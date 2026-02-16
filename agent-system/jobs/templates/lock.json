@@ -1,0 +1,8 @@
+{
+  "job_id": "J-YYYYMMDD-001",
+  "title": "short-title",
+  "branch": "feat/J-YYYYMMDD-001-short-title",
+  "stage": "coding",
+  "created_at": "YYYY-MM-DDTHH:MM:SS+09:00",
+  "allowed_stages": ["coding", "qa", "done"]
+}
