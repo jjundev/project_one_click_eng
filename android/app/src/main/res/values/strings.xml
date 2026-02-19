@@ -1,0 +1,147 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="app_name">Test</string>
+    <!-- Preference Titles -->
+    <string name="messages_header">Messages</string>
+    <string name="sync_header">Sync</string>
+
+    <!-- Messages Preferences -->
+    <string name="signature_title">Your signature</string>
+    <string name="reply_title">Default reply action</string>
+
+    <!-- Sync Preferences -->
+    <string name="sync_title">Sync email periodically</string>
+    <string name="attachment_title">Download incoming attachments</string>
+    <string name="attachment_summary_on">Automatically download attachments for incoming emails
+    </string>
+    <string name="attachment_summary_off">Only download attachments when manually requested</string>
+
+    <!-- Script Generation Options -->
+    <string-array name="levels">
+        <item>Beginner</item>
+        <item>Elementary</item>
+        <item>Intermediate</item>
+        <item>Upper-Intermediate</item>
+        <item>Advanced</item>
+    </string-array>
+
+    <!-- Format Selection (Legacy, now fixed to Dialogue) -->
+    <string-array name="formats" tools:ignore="UnusedResources">
+        <item>대화 (Dialogue)</item>
+    </string-array>
+
+    <string-array name="lengths">
+        <item>10줄</item>
+        <item>20줄</item>
+        <item>30줄</item>
+    </string-array>
+    <string name="desc_save_word">Save word</string>
+    <string name="desc_save_sentence">Save sentence</string>
+    <string name="desc_save_expression">Save expression</string>
+    <string name="desc_save_paraphrasing">Save paraphrasing sentence</string>
+    <string name="summary_empty_liked_sentences">No bookmarked paraphrasing sentences yet.</string>
+    <string name="summary_generating">Generating summary...</string>
+    <string name="summary_future_feedback_load_error">Future feedback is unavailable right now. Please try again later.</string>
+    <string name="summary_words_load_error">Summary words are unavailable right now. Please try again later.</string>
+    <string name="quiz_overline">Review Quiz</string>
+    <string name="quiz_loading">퀴즈를 준비하고 있어요...</string>
+    <string name="quiz_error_title">퀴즈를 불러오지 못했어요</string>
+    <string name="quiz_error_default">문제를 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.</string>
+    <string name="quiz_retry">다시 시도</string>
+    <string name="quiz_progress_format">%1$d / %2$d</string>
+    <string name="quiz_answer_input_hint">정답을 입력해 주세요</string>
+    <string name="quiz_primary_check">정답 확인</string>
+    <string name="quiz_primary_next">다음 문제</string>
+    <string name="quiz_primary_finish">학습 종료</string>
+    <string name="quiz_result_correct">정답이에요!</string>
+    <string name="quiz_result_incorrect">아쉬워요. 다시 확인해볼까요?</string>
+    <string name="quiz_correct_answer_format">정답: %1$s</string>
+    <string name="quiz_explanation_format">해설: %1$s</string>
+    <string name="quiz_completed_title">퀴즈 완료!</string>
+    <string name="quiz_completed_summary_format">%1$d / %2$d 문제 정답</string>
+    <string name="quiz_completed_subtitle">오늘 학습한 표현과 단어를 잘 복습했어요.</string>
+    <string name="quiz_finish_button">학습 마치기</string>
+    <string name="learning_finished_quiz_subtitle">학습 요약을 확인하고 오늘 학습을 마무리해보세요.</string>
+    <string name="learning_finished_quiz_button">학습 요약 보기</string>
+    <string name="summary_finish_button">완료 후 나가기</string>
+    <string name="summary_start_quiz_button">퀴즈 진행</string>
+    <string name="bottom_nav_content_desc">Bottom navigation</string>
+    <string name="bottom_nav_tab_mode">학습 모드</string>
+    <string name="bottom_nav_tab_script">Scripts</string>
+    <string name="bottom_nav_tab_summary">Summary</string>
+    <string name="bottom_nav_tab_english_shorts">영어학습 쇼츠</string>
+    <string name="bottom_nav_tab_game_mode">게임 모드</string>
+    <string name="bottom_nav_tab_learning_history">학습한 내용 기록</string>
+    <string name="bottom_nav_tab_settings">설정</string>
+    <string name="empty_feature_status_ready">준비 중입니다.</string>
+    <string name="empty_feature_english_shorts_title">영어학습 쇼츠</string>
+    <string name="empty_feature_game_mode_title">게임 모드</string>
+    <string name="empty_feature_learning_history_title">학습한 내용 기록</string>
+    <string name="empty_feature_settings_title">설정</string>
+
+    <string name="settings_section_mute">음소거</string>
+    <string name="settings_mute_all_playback">모든 재생 음소거</string>
+
+    <string name="settings_section_timer">학습 타이머</string>
+    <string name="settings_timer_placeholder">준비 중 (현재 동작하지 않음)</string>
+    <string name="settings_timer_toggle_placeholder">타이머 사용 (준비 중)</string>
+
+    <string name="settings_section_llm">LLM 설정</string>
+    <string name="settings_api_key_override_label">API Key Override</string>
+    <string name="settings_api_key_override_hint">비워두면 기본 API key 사용</string>
+    <string name="settings_model_sentence">문장 피드백 모델</string>
+    <string name="settings_model_speaking">발화 피드백 모델</string>
+    <string name="settings_model_script">대화 대본 모델</string>
+    <string name="settings_model_summary">요약 모델</string>
+    <string name="settings_model_extra">추가질문 모델</string>
+    <string name="settings_api_test">API 테스트</string>
+    <string name="settings_api_test_idle">아직 테스트하지 않음</string>
+    <string name="settings_api_test_running">테스트 중...</string>
+    <string name="settings_api_test_success">연결 성공</string>
+    <string name="settings_api_test_fail_code">연결 실패 (HTTP %1$d)</string>
+    <string name="settings_api_test_fail_message">연결 실패: %1$s</string>
+    <string name="settings_api_test_missing_key">API key가 비어 있습니다.</string>
+
+    <string name="settings_section_tts">TTS 설정</string>
+    <string name="settings_tts_provider_android">Provider: Android TTS (고정)</string>
+    <string name="settings_tts_provider_api_soon">API 기반 TTS: 준비 중</string>
+    <string name="settings_tts_speed_label">음성 속도</string>
+    <string name="settings_tts_rate_default">0.85x</string>
+    <string name="settings_tts_rate_format">%1$.2fx</string>
+    <string name="settings_tts_locale_preset_label">로케일 프리셋</string>
+    <string name="settings_tts_locale_custom_label">직접 입력 (BCP-47)</string>
+    <string name="settings_tts_locale_custom_hint">예: en-US</string>
+    <string name="settings_tts_locale_custom_item">직접 입력</string>
+
+    <string name="settings_mute_blocked_toast">무음 모드가 켜져 있어 재생이 차단됩니다.</string>
+    <string name="dialogue_learning_settings_title">학습 설정</string>
+    <string name="dialogue_learning_settings_subtitle">학습 화면에서 재생 관련 설정을 바로 조정할 수 있어요.</string>
+    <string name="dialogue_learning_settings_section_mute">음소거</string>
+    <string name="dialogue_learning_settings_section_mute_placeholder">다음 작업에서 음소거 토글이 연결됩니다.</string>
+    <string name="dialogue_learning_settings_section_timer">학습 타이머</string>
+    <string name="dialogue_learning_settings_section_timer_placeholder">현재는 준비 중 안내만 제공합니다.</string>
+    <string name="dialogue_learning_settings_section_tts">TTS 설정</string>
+    <string name="dialogue_learning_settings_section_tts_placeholder">속도 및 로케일 컨트롤은 다음 작업에서 연결됩니다.</string>
+    <string name="dialogue_learning_settings_close">닫기</string>
+
+    <string name="english_shorts_header_label">ENGLISH SHORTS</string>
+    <string name="english_shorts_action_like_content_desc">Like this short</string>
+    <string name="english_shorts_action_bookmark_content_desc">Bookmark this short</string>
+    <string name="english_shorts_action_share_content_desc">Share this short</string>
+    <string name="english_shorts_action_like_toast">Like tapped (demo)</string>
+    <string name="english_shorts_action_bookmark_toast">Bookmark tapped (demo)</string>
+    <string name="english_shorts_action_share_toast">Share tapped (demo)</string>
+
+    <string-array name="settings_llm_model_presets">
+        <item>gemini-3-flash-preview</item>
+        <item>gemini-2.5-flash-lite</item>
+        <item>gemini-2.5-flash</item>
+    </string-array>
+
+    <string-array name="settings_tts_locale_presets">
+        <item>직접 입력</item>
+        <item>en-US</item>
+        <item>en-GB</item>
+        <item>ko-KR</item>
+        <item>ja-JP</item>
+    </string-array>
+</resources>

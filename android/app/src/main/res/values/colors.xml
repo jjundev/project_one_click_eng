@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Chat UI Colors -->
+    <color name="toss_blue">#0064FF</color>
+    <color name="primary_blue">@color/toss_blue</color>
+    <color name="bubble_ai">#F2F4F6</color>
+    <color name="text_secondary">#6B7684</color>
+    <color name="text_hint">#8B95A1</color>
+    <color name="divider_light">#E5E8EB</color>
+    <color name="input_background">#F7F8FA</color>
+
+    <!-- 4단계 Voice UI 상태별 색상 -->
+    <color name="state_ready">#9E9E9E</color>
+    <color name="state_recording">#E91E63</color>
+    <color name="state_analyzing">#9C27B0</color>
+    <color name="state_analyzing_soft">#6B7684</color>
+    <color name="state_complete">#4CAF50</color>
+    <color name="progress_ring">#9C27B0</color>
+
+    <!-- Toss Style Colors -->
+    <color name="grey_50">#F9FAFB</color>
+    <color name="grey_100">#F2F4F6</color>
+    <color name="grey_200">#EAEEF2</color>
+    <color name="grey_300">#E5E8EB</color>
+    <color name="grey_400">#ADB5BD</color>
+    <color name="grey_500">#8B95A1</color>
+    <color name="grey_600">#6B7684</color>
+    <color name="grey_700">#4E5968</color>
+    <color name="grey_800">#333D4B</color>
+    <color name="text_primary">#191F28</color>
+    <color name="white_to_transparent_gradient">#CCFFFFFF</color>
+
+    <color name="background_main">#FFFFFF</color>
+    <color name="surface_dark">#101012</color>
+    <color name="card_blue_start">#3182F6</color>
+    <color name="card_blue_end">#1B64DA</color>
+    <color name="card_purple_start">#9C27B0</color>
+    <color name="card_purple_end">#7B1FA2</color>
+    <color name="streak_fire">#FF5C00</color>
+    <color name="button_primary">@color/toss_blue</color>
+    <color name="save_icon_gold">#FFC107</color>
+
+    <color name="expression_natural_accent">#0B7A4B</color>
+    <color name="expression_natural_after_bg">#E8F7EF</color>
+    <color name="expression_natural_icon">#0B7A4B</color>
+
+    <color name="expression_precise_accent">#D32F2F</color>
+    <color name="expression_precise_after_bg">#FDECEC</color>
+    <color name="expression_precise_icon">#D32F2F</color>
+
+    <color name="shorts_surface_dark">#060910</color>
+    <color name="shorts_scrim_top">#CC05080F</color>
+    <color name="shorts_scrim_bottom_mid">#590A111D</color>
+    <color name="shorts_scrim_bottom_end">#E50A111D</color>
+    <color name="shorts_action_button_bg">#66202A3A</color>
+    <color name="shorts_action_button_stroke">#99FFFFFF</color>
+    <color name="shorts_action_icon">#FFFFFFFF</color>
+    <color name="shorts_action_count_text">#E8F2F7FF</color>
+    <color name="shorts_progress_active">#FFF3F8FF</color>
+    <color name="shorts_progress_inactive">#8CE1ECFA</color>
+    <color name="shorts_chip_bg">#73040A16</color>
+    <color name="shorts_chip_stroke">#7DFFFFFF</color>
+    <color name="shorts_chip_text">#F0F6FFFF</color>
+    <color name="shorts_caption_box_bg">#66202A3A</color>
+    <color name="shorts_caption_box_stroke">#66FFFFFF</color>
+    <color name="shorts_meta_creator_text">#FFF7FBFF</color>
+    <color name="shorts_meta_title_text">#FFFFFFFF</color>
+    <color name="shorts_meta_subtitle_text">#D7E8EEFF</color>
+    <color name="shorts_meta_hashtag_text">#EBF2F8FF</color>
+    <color name="shorts_sentence_text">#FFF5FAFF</color>
+    <color name="shorts_hint_text">#EAF2F9FF</color>
+    <color name="shorts_prompt_text">#FFF7FBFF</color>
+    <color name="shorts_accent_placeholder">#66FFFFFF</color>
+</resources>

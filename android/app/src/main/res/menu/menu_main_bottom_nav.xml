@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@id/englishShortsEmptyFragment"
+        android:icon="@android:drawable/ic_media_play"
+        android:title="@string/bottom_nav_tab_english_shorts" />
+    <item
+        android:id="@id/gameModeEmptyFragment"
+        android:icon="@android:drawable/ic_menu_compass"
+        android:title="@string/bottom_nav_tab_game_mode" />
+    <item
+        android:id="@id/studyModeSelectFragment"
+        android:icon="@android:drawable/ic_menu_manage"
+        android:title="@string/bottom_nav_tab_mode" />
+    <item
+        android:id="@id/learningHistoryEmptyFragment"
+        android:icon="@android:drawable/ic_menu_agenda"
+        android:title="@string/bottom_nav_tab_learning_history" />
+    <item
+        android:id="@id/settingFragment"
+        android:icon="@android:drawable/ic_menu_preferences"
+        android:title="@string/bottom_nav_tab_settings" />
+</menu>

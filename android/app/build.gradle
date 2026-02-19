@@ -1,0 +1,103 @@
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.spotless)
+}
+
+// local.properties에서 GEMINI_API_KEY 읽기
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localProperties.load(new FileInputStream(localPropertiesFile))
+}
+
+android {
+    namespace 'com.example.test'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.example.test"
+        minSdk 31
+        targetSdk 36
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        
+        // BuildConfig에 GEMINI_API_KEY 추가
+        buildConfigField "String", "GEMINI_API_KEY", "\"${localProperties.getProperty('GEMINI_API_KEY', '')}\""
+
+        ndk {
+            // 지원하는 아키텍처만 포함하여 용량 절감
+            abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+    testOptions {
+        unitTests {
+            returnDefaultValues = true
+        }
+    }
+    buildFeatures {
+        buildConfig true
+    }
+}
+
+dependencies {
+    implementation 'androidx.navigation:navigation-fragment:2.8.0'
+    implementation 'androidx.navigation:navigation-ui:2.8.0'
+    implementation 'androidx.viewpager2:viewpager2:1.1.0'
+    implementation 'com.google.android.flexbox:flexbox:3.0.0'
+
+    implementation libs.appcompat
+    implementation libs.material
+    implementation libs.activity
+    implementation libs.constraintlayout
+    implementation libs.preference
+    
+    // Gemini Live API 연동
+    implementation libs.okhttp
+    implementation libs.gson
+    implementation libs.shimmer
+    implementation libs.lottie
+    implementation libs.lifecycle.viewmodel
+    implementation libs.lifecycle.livedata
+    implementation libs.lifecycle.runtime
+
+    testImplementation libs.junit
+    testImplementation libs.arch.core.testing
+    androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.espresso.core
+}
+
+spotless {
+    java {
+        target("src/**/*.java")
+        targetExclude("**/build/**")
+        googleJavaFormat()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+
+    format("xml") {
+        target("src/**/*.xml")
+        targetExclude("**/build/**")
+        indentWithSpaces(4)
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+tasks.named("check") {
+    dependsOn("spotlessCheck")
+}
+
