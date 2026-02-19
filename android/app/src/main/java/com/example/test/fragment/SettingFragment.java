@@ -32,13 +32,15 @@ import okhttp3.Response;
 
 public class SettingFragment extends Fragment {
   private static final String TAG = "JOB_J-20260216-003";
-  private static final String GEMINI_BASE_URL =
-      "https://generativelanguage.googleapis.com/v1beta/models/";
+  private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
   private static final MediaType JSON_MEDIA_TYPE = MediaType.parse("application/json");
 
-  @Nullable private AppSettingsStore appSettingsStore;
-  @NonNull private final OkHttpClient apiTestClient = new OkHttpClient();
-  @NonNull private final Gson gson = new Gson();
+  @Nullable
+  private AppSettingsStore appSettingsStore;
+  @NonNull
+  private final OkHttpClient apiTestClient = new OkHttpClient();
+  @NonNull
+  private final Gson gson = new Gson();
 
   private boolean bindingState;
 
@@ -53,7 +55,14 @@ public class SettingFragment extends Fragment {
   private TextView tvAppVersion;
   private TextView tvModelReset;
 
-  @Nullable private ArrayAdapter<String> modelAdapter;
+  private TextView tvLabelSentence;
+  private TextView tvLabelSpeaking;
+  private TextView tvLabelScript;
+  private TextView tvLabelSummary;
+  private TextView tvLabelExtra;
+
+  @Nullable
+  private ArrayAdapter<String> modelAdapter;
 
   @Nullable
   @Override
@@ -86,17 +95,23 @@ public class SettingFragment extends Fragment {
     tvApiTestResult = view.findViewById(R.id.tv_api_test_result);
     tvAppVersion = view.findViewById(R.id.tv_app_version);
     tvModelReset = view.findViewById(R.id.tv_model_reset);
+
+    tvLabelSentence = view.findViewById(R.id.tv_label_sentence);
+    tvLabelSpeaking = view.findViewById(R.id.tv_label_speaking);
+    tvLabelScript = view.findViewById(R.id.tv_label_script);
+    tvLabelSummary = view.findViewById(R.id.tv_label_summary);
+    tvLabelExtra = view.findViewById(R.id.tv_label_extra);
+
     if (tvAppVersion != null) {
       tvAppVersion.setText(BuildConfig.VERSION_NAME);
     }
   }
 
   private void setupAdapters() {
-    modelAdapter =
-        new ArrayAdapter<>(
-            requireContext(),
-            android.R.layout.simple_spinner_item,
-            getResources().getStringArray(R.array.settings_llm_model_presets));
+    modelAdapter = new ArrayAdapter<>(
+        requireContext(),
+        android.R.layout.simple_spinner_item,
+        getResources().getStringArray(R.array.settings_llm_model_presets));
     modelAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
     spinnerModelSentence.setAdapter(modelAdapter);
     spinnerModelSpeaking.setAdapter(modelAdapter);
@@ -109,10 +124,12 @@ public class SettingFragment extends Fragment {
     etApiKeyOverride.addTextChangedListener(
         new TextWatcher() {
           @Override
-          public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+          public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+          }
 
           @Override
-          public void onTextChanged(CharSequence s, int start, int before, int count) {}
+          public void onTextChanged(CharSequence s, int start, int before, int count) {
+          }
 
           @Override
           public void afterTextChanged(Editable s) {
@@ -160,7 +177,8 @@ public class SettingFragment extends Fragment {
           }
 
           @Override
-          public void onNothingSelected(AdapterView<?> parent) {}
+          public void onNothingSelected(AdapterView<?> parent) {
+          }
         });
   }
 
@@ -172,23 +190,47 @@ public class SettingFragment extends Fragment {
     switch (target) {
       case SENTENCE:
         store.setLlmModelSentence(selectedModel);
+        updateModelIndicatorHelper(
+            selectedModel, AppSettings.DEFAULT_MODEL_SENTENCE, tvLabelSentence);
         break;
       case SPEAKING:
         store.setLlmModelSpeaking(selectedModel);
+        updateModelIndicatorHelper(
+            selectedModel, AppSettings.DEFAULT_MODEL_SPEAKING, tvLabelSpeaking);
         break;
       case SCRIPT:
         store.setLlmModelScript(selectedModel);
+        updateModelIndicatorHelper(selectedModel, AppSettings.DEFAULT_MODEL_SCRIPT, tvLabelScript);
         break;
       case SUMMARY:
         store.setLlmModelSummary(selectedModel);
+        updateModelIndicatorHelper(
+            selectedModel, AppSettings.DEFAULT_MODEL_SUMMARY, tvLabelSummary);
         break;
       case EXTRA:
         store.setLlmModelExtra(selectedModel);
+        updateModelIndicatorHelper(selectedModel, AppSettings.DEFAULT_MODEL_EXTRA, tvLabelExtra);
         break;
       default:
         return;
     }
     logDebug("Saved model selection target=" + target.name());
+  }
+
+  private void updateModelIndicatorHelper(
+      @Nullable String currentModel,
+      @NonNull String defaultModel,
+      @Nullable TextView labelTextView) {
+    if (labelTextView == null) {
+      return;
+    }
+    boolean isChanged = currentModel != null && !currentModel.equals(defaultModel);
+    if (isChanged) {
+      labelTextView.setCompoundDrawablesWithIntrinsicBounds(
+          0, 0, R.drawable.ic_indicator_changed, 0);
+    } else {
+      labelTextView.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
+    }
   }
 
   private void resetToDefaults() {
@@ -211,11 +253,23 @@ public class SettingFragment extends Fragment {
       setSpinnerSelection(spinnerModelScript, AppSettings.DEFAULT_MODEL_SCRIPT, modelAdapter);
       setSpinnerSelection(spinnerModelSummary, AppSettings.DEFAULT_MODEL_SUMMARY, modelAdapter);
       setSpinnerSelection(spinnerModelExtra, AppSettings.DEFAULT_MODEL_EXTRA, modelAdapter);
+
+      // Reset indicators
+      updateModelIndicatorHelper(
+          AppSettings.DEFAULT_MODEL_SENTENCE, AppSettings.DEFAULT_MODEL_SENTENCE, tvLabelSentence);
+      updateModelIndicatorHelper(
+          AppSettings.DEFAULT_MODEL_SPEAKING, AppSettings.DEFAULT_MODEL_SPEAKING, tvLabelSpeaking);
+      updateModelIndicatorHelper(
+          AppSettings.DEFAULT_MODEL_SCRIPT, AppSettings.DEFAULT_MODEL_SCRIPT, tvLabelScript);
+      updateModelIndicatorHelper(
+          AppSettings.DEFAULT_MODEL_SUMMARY, AppSettings.DEFAULT_MODEL_SUMMARY, tvLabelSummary);
+      updateModelIndicatorHelper(
+          AppSettings.DEFAULT_MODEL_EXTRA, AppSettings.DEFAULT_MODEL_EXTRA, tvLabelExtra);
     }
 
     // 3. Show feedback
     android.widget.Toast.makeText(
-            requireContext(), "모든 모델 설정이 초기화되었습니다.", android.widget.Toast.LENGTH_SHORT)
+        requireContext(), "모든 모델 설정이 초기화되었습니다.", android.widget.Toast.LENGTH_SHORT)
         .show();
   }
 
@@ -233,6 +287,18 @@ public class SettingFragment extends Fragment {
     setSpinnerSelection(spinnerModelScript, settings.getLlmModelScript(), modelAdapter);
     setSpinnerSelection(spinnerModelSummary, settings.getLlmModelSummary(), modelAdapter);
     setSpinnerSelection(spinnerModelExtra, settings.getLlmModelExtra(), modelAdapter);
+
+    updateModelIndicatorHelper(
+        settings.getLlmModelSentence(), AppSettings.DEFAULT_MODEL_SENTENCE, tvLabelSentence);
+    updateModelIndicatorHelper(
+        settings.getLlmModelSpeaking(), AppSettings.DEFAULT_MODEL_SPEAKING, tvLabelSpeaking);
+    updateModelIndicatorHelper(
+        settings.getLlmModelScript(), AppSettings.DEFAULT_MODEL_SCRIPT, tvLabelScript);
+    updateModelIndicatorHelper(
+        settings.getLlmModelSummary(), AppSettings.DEFAULT_MODEL_SUMMARY, tvLabelSummary);
+    updateModelIndicatorHelper(
+        settings.getLlmModelExtra(), AppSettings.DEFAULT_MODEL_EXTRA, tvLabelExtra);
+
     bindingState = false;
   }
 
@@ -262,61 +328,59 @@ public class SettingFragment extends Fragment {
     String modelName = settings.getLlmModelSentence();
     setApiTestInProgress(true);
     new Thread(
-            () -> {
-              boolean success;
-              String resultMessage;
-              try {
-                JsonObject requestBody = new JsonObject();
-                JsonArray contents = new JsonArray();
-                JsonObject userContent = new JsonObject();
-                userContent.addProperty("role", "user");
-                JsonArray parts = new JsonArray();
-                JsonObject part = new JsonObject();
-                part.addProperty("text", "ping");
-                parts.add(part);
-                userContent.add("parts", parts);
-                contents.add(userContent);
-                requestBody.add("contents", contents);
-                JsonObject generationConfig = new JsonObject();
-                generationConfig.addProperty("maxOutputTokens", 8);
-                requestBody.add("generationConfig", generationConfig);
+        () -> {
+          boolean success;
+          String resultMessage;
+          try {
+            JsonObject requestBody = new JsonObject();
+            JsonArray contents = new JsonArray();
+            JsonObject userContent = new JsonObject();
+            userContent.addProperty("role", "user");
+            JsonArray parts = new JsonArray();
+            JsonObject part = new JsonObject();
+            part.addProperty("text", "ping");
+            parts.add(part);
+            userContent.add("parts", parts);
+            contents.add(userContent);
+            requestBody.add("contents", contents);
+            JsonObject generationConfig = new JsonObject();
+            generationConfig.addProperty("maxOutputTokens", 8);
+            requestBody.add("generationConfig", generationConfig);
 
-                String requestUrl = GEMINI_BASE_URL + modelName + ":generateContent?key=" + apiKey;
-                Request request =
-                    new Request.Builder()
-                        .url(requestUrl)
-                        .post(RequestBody.create(gson.toJson(requestBody), JSON_MEDIA_TYPE))
-                        .build();
+            String requestUrl = GEMINI_BASE_URL + modelName + ":generateContent?key=" + apiKey;
+            Request request = new Request.Builder()
+                .url(requestUrl)
+                .post(RequestBody.create(gson.toJson(requestBody), JSON_MEDIA_TYPE))
+                .build();
 
-                try (Response response = apiTestClient.newCall(request).execute()) {
-                  success = response.isSuccessful();
-                  if (success) {
-                    resultMessage = getString(R.string.settings_api_test_success);
-                  } else {
-                    resultMessage =
-                        getString(R.string.settings_api_test_fail_code, response.code());
-                  }
-                }
-              } catch (Exception e) {
-                success = false;
-                String message = e.getMessage();
-                if (message == null || message.trim().isEmpty()) {
-                  message = "unknown";
-                }
-                resultMessage = getString(R.string.settings_api_test_fail_message, message);
+            try (Response response = apiTestClient.newCall(request).execute()) {
+              success = response.isSuccessful();
+              if (success) {
+                resultMessage = getString(R.string.settings_api_test_success);
+              } else {
+                resultMessage = getString(R.string.settings_api_test_fail_code, response.code());
               }
+            }
+          } catch (Exception e) {
+            success = false;
+            String message = e.getMessage();
+            if (message == null || message.trim().isEmpty()) {
+              message = "unknown";
+            }
+            resultMessage = getString(R.string.settings_api_test_fail_message, message);
+          }
 
-              boolean finalSuccess = success;
-              String finalMessage = resultMessage;
-              if (isAdded()) {
-                requireActivity()
-                    .runOnUiThread(
-                        () -> {
-                          setApiTestInProgress(false);
-                          showApiTestResult(finalSuccess, finalMessage);
-                        });
-              }
-            })
+          boolean finalSuccess = success;
+          String finalMessage = resultMessage;
+          if (isAdded()) {
+            requireActivity()
+                .runOnUiThread(
+                    () -> {
+                      setApiTestInProgress(false);
+                      showApiTestResult(finalSuccess, finalMessage);
+                    });
+          }
+        })
         .start();
   }
 

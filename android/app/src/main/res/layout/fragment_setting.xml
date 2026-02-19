@@ -94,9 +94,11 @@
 
                 <!-- 문장 피드백 모델 -->
                 <TextView
-                    android:layout_width="match_parent"
+                    android:id="@+id/tv_label_sentence"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="20dp"
+                    android:drawablePadding="6dp"
                     android:text="@string/settings_model_sentence"
                     android:textColor="@color/grey_700"
                     android:textSize="13sp"
@@ -119,9 +121,11 @@
 
                 <!-- 발화 피드백 모델 -->
                 <TextView
-                    android:layout_width="match_parent"
+                    android:id="@+id/tv_label_speaking"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
+                    android:drawablePadding="6dp"
                     android:text="@string/settings_model_speaking"
                     android:textColor="@color/grey_700"
                     android:textSize="13sp"
@@ -144,9 +148,11 @@
 
                 <!-- 대화 대본 모델 -->
                 <TextView
-                    android:layout_width="match_parent"
+                    android:id="@+id/tv_label_script"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
+                    android:drawablePadding="6dp"
                     android:text="@string/settings_model_script"
                     android:textColor="@color/grey_700"
                     android:textSize="13sp"
@@ -169,9 +175,11 @@
 
                 <!-- 요약 모델 -->
                 <TextView
-                    android:layout_width="match_parent"
+                    android:id="@+id/tv_label_summary"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
+                    android:drawablePadding="6dp"
                     android:text="@string/settings_model_summary"
                     android:textColor="@color/grey_700"
                     android:textSize="13sp"
@@ -194,9 +202,11 @@
 
                 <!-- 추가질문 모델 -->
                 <TextView
-                    android:layout_width="match_parent"
+                    android:id="@+id/tv_label_extra"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
+                    android:drawablePadding="6dp"
                     android:text="@string/settings_model_extra"
                     android:textColor="@color/grey_700"
                     android:textSize="13sp"

@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_quiz_surface">
+    android:background="@color/grey_50">
 
     <LinearLayout
         android:id="@+id/layout_quiz_loading"
@@ -41,10 +41,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardBackgroundColor="@color/white"
-            app:cardCornerRadius="20dp"
+            app:cardCornerRadius="16dp"
             app:cardElevation="0dp"
-            app:strokeColor="@color/grey_300"
-            app:strokeWidth="1dp">
+            app:strokeWidth="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -79,7 +78,7 @@
                     android:text="@string/quiz_retry"
                     android:textStyle="bold"
                     app:backgroundTint="@color/toss_blue"
-                    app:cornerRadius="14dp" />
+                    app:cornerRadius="12dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
@@ -102,23 +101,22 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_chip_grey"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="6dp"
+                android:layout_marginStart="4dp"
+                android:letterSpacing="0.08"
                 android:text="@string/quiz_overline"
                 android:textAllCaps="true"
-                android:textColor="@color/grey_700"
-                android:textSize="11sp"
+                android:textColor="@color/grey_500"
+                android:textSize="12sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tv_quiz_progress"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="8dp"
                 android:text="1 / 5"
                 android:textColor="@color/text_primary"
-                android:textSize="24sp"
+                android:textSize="28sp"
                 android:textStyle="bold" />
 
             <ProgressBar
@@ -135,10 +133,9 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="18dp"
                 app:cardBackgroundColor="@color/white"
-                app:cardCornerRadius="20dp"
+                app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/grey_200"
-                app:strokeWidth="1dp">
+                app:strokeWidth="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -172,10 +169,12 @@
                 android:hint="@string/quiz_answer_input_hint"
                 app:boxBackgroundColor="@color/white"
                 app:boxBackgroundMode="outline"
-                app:boxCornerRadiusBottomEnd="14dp"
-                app:boxCornerRadiusBottomStart="14dp"
-                app:boxCornerRadiusTopEnd="14dp"
-                app:boxCornerRadiusTopStart="14dp">
+                app:boxCornerRadiusBottomEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxStrokeColor="@color/grey_300"
+                app:hintTextColor="@color/grey_500">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_quiz_answer"
@@ -198,14 +197,13 @@
                 app:cardBackgroundColor="@color/white"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/grey_200"
-                app:strokeWidth="1dp">
+                app:strokeWidth="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="20dp">
 
                     <TextView
                         android:id="@+id/tv_quiz_result_title"
@@ -241,12 +239,12 @@
                 android:id="@+id/btn_quiz_primary"
                 style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="52dp"
                 android:layout_marginTop="18dp"
                 android:text="@string/quiz_primary_check"
                 android:textStyle="bold"
                 app:backgroundTint="@color/toss_blue"
-                app:cornerRadius="16dp" />
+                app:cornerRadius="12dp" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
@@ -310,12 +308,12 @@
             android:id="@+id/btn_quiz_finish"
             style="@style/Widget.MaterialComponents.Button"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="52dp"
             android:layout_marginTop="24dp"
             android:text="@string/quiz_finish_button"
             android:textStyle="bold"
             app:backgroundTint="@color/toss_blue"
-            app:cornerRadius="16dp" />
+            app:cornerRadius="12dp" />
     </LinearLayout>
 
 </FrameLayout>
