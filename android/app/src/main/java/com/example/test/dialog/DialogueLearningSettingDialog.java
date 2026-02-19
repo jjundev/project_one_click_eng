@@ -2,17 +2,12 @@ package com.example.test.dialog;
 
 import android.content.DialogInterface;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.EditText;
+import android.widget.RadioGroup;
 import android.widget.SeekBar;
-import android.widget.Spinner;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -28,15 +23,14 @@ public class DialogueLearningSettingDialog extends DialogFragment {
   private static final String TAG = "JOB_J-20260216-005";
 
   @Nullable private AppSettingsStore appSettingsStore;
-  @Nullable private ArrayAdapter<String> localePresetAdapter;
 
   private boolean bindingState;
 
   private SwitchMaterial switchMuteAll;
   private SeekBar seekTtsRate;
   private TextView tvTtsRateValue;
-  private Spinner spinnerTtsLocalePreset;
-  private EditText etTtsLocaleCustom;
+  private RadioGroup rgTtsProvider;
+  private View btnResetSpeed;
 
   @Nullable
   @Override
@@ -53,7 +47,6 @@ public class DialogueLearningSettingDialog extends DialogFragment {
     appSettingsStore = new AppSettingsStore(requireContext().getApplicationContext());
 
     bindViews(view);
-    setupAdapter();
     setupListeners();
     renderSettings();
 
@@ -85,18 +78,8 @@ public class DialogueLearningSettingDialog extends DialogFragment {
     switchMuteAll = view.findViewById(R.id.switch_mute_all);
     seekTtsRate = view.findViewById(R.id.seek_tts_rate);
     tvTtsRateValue = view.findViewById(R.id.tv_tts_rate_value);
-    spinnerTtsLocalePreset = view.findViewById(R.id.spinner_tts_locale_preset);
-    etTtsLocaleCustom = view.findViewById(R.id.et_tts_locale_custom);
-  }
-
-  private void setupAdapter() {
-    localePresetAdapter =
-        new ArrayAdapter<>(
-            requireContext(),
-            android.R.layout.simple_spinner_item,
-            getResources().getStringArray(R.array.settings_tts_locale_presets));
-    localePresetAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-    spinnerTtsLocalePreset.setAdapter(localePresetAdapter);
+    rgTtsProvider = view.findViewById(R.id.rg_tts_provider);
+    btnResetSpeed = view.findViewById(R.id.btn_reset_speed);
   }
 
   private void setupListeners() {
@@ -138,42 +121,46 @@ public class DialogueLearningSettingDialog extends DialogFragment {
           }
         });
 
-    spinnerTtsLocalePreset.setOnItemSelectedListener(
-        new AdapterView.OnItemSelectedListener() {
-          @Override
-          public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-            if (bindingState || localePresetAdapter == null) {
-              return;
-            }
-            String selected = localePresetAdapter.getItem(position);
-            if (selected == null
-                || selected.equals(getString(R.string.settings_tts_locale_custom_item))) {
-              return;
-            }
-            etTtsLocaleCustom.setText(selected);
-            saveLocale(selected);
-          }
+    rgTtsProvider.setOnCheckedChangeListener(
+        (group, checkedId) -> {
+          if (bindingState) return;
+          AppSettingsStore store = appSettingsStore;
+          if (store == null) return;
 
-          @Override
-          public void onNothingSelected(AdapterView<?> parent) {}
-        });
-
-    etTtsLocaleCustom.addTextChangedListener(
-        new TextWatcher() {
-          @Override
-          public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-          @Override
-          public void onTextChanged(CharSequence s, int start, int before, int count) {}
-
-          @Override
-          public void afterTextChanged(Editable s) {
-            if (bindingState) {
-              return;
-            }
-            saveLocale(s == null ? "" : s.toString());
+          if (checkedId == R.id.rb_provider_android) {
+            store.setTtsProvider(AppSettings.TTS_PROVIDER_ANDROID);
+          } else if (checkedId == R.id.rb_provider_gemini) {
+            store.setTtsProvider(AppSettings.TTS_PROVIDER_GOOGLE);
           }
         });
+
+    if (btnResetSpeed != null) {
+      btnResetSpeed.setOnClickListener(
+          v -> {
+            AppSettingsStore store = appSettingsStore;
+            if (store != null) {
+              store.setTtsSpeechRate(AppSettings.DEFAULT_TTS_SPEECH_RATE);
+              // Update UI immediately since the listener will only update store if fromUser
+              // is true
+              // But wait, setProgress triggers onProgressChanged.
+              // We need to make sure onProgressChanged handles programmatic changes
+              // correctly.
+              // In my implementation above, onProgressChanged checks !fromUser ||
+              // bindingState.
+              // So calling setProgress programmatically won't update the store if !fromUser.
+              // But we just updated the store directly.
+              // So we just need to update the UI.
+
+              bindingState = true;
+              int defaultProgress = speechRateToProgress(AppSettings.DEFAULT_TTS_SPEECH_RATE);
+              seekTtsRate.setProgress(defaultProgress);
+              tvTtsRateValue.setText(
+                  getString(
+                      R.string.settings_tts_rate_format, AppSettings.DEFAULT_TTS_SPEECH_RATE));
+              bindingState = false;
+            }
+          });
+    }
   }
 
   private void renderSettings() {
@@ -190,29 +177,14 @@ public class DialogueLearningSettingDialog extends DialogFragment {
     tvTtsRateValue.setText(
         getString(R.string.settings_tts_rate_format, settings.getTtsSpeechRate()));
 
-    etTtsLocaleCustom.setText(settings.getTtsLocaleTag());
-    setLocaleSpinnerSelection(settings.getTtsLocaleTag());
+    String provider = settings.getTtsProvider();
+    if (AppSettings.TTS_PROVIDER_GOOGLE.equals(provider)) {
+      rgTtsProvider.check(R.id.rb_provider_gemini);
+    } else {
+      rgTtsProvider.check(R.id.rb_provider_android);
+    }
+
     bindingState = false;
-  }
-
-  private void saveLocale(@Nullable String localeTag) {
-    AppSettingsStore store = appSettingsStore;
-    if (store == null) {
-      return;
-    }
-    store.setTtsLocaleTag(localeTag);
-    logDebug("Saved TTS locale.");
-  }
-
-  private void setLocaleSpinnerSelection(@NonNull String localeTag) {
-    if (localePresetAdapter == null) {
-      return;
-    }
-    int index = localePresetAdapter.getPosition(localeTag);
-    if (index < 0) {
-      index = 0;
-    }
-    spinnerTtsLocalePreset.setSelection(index);
   }
 
   private int speechRateToProgress(float speechRate) {

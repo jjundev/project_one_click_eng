@@ -9,7 +9,9 @@ public final class AppSettings {
   public static final String DEFAULT_MODEL_SCRIPT = "gemini-3-flash-preview";
   public static final String DEFAULT_MODEL_SUMMARY = "gemini-3-flash-preview";
   public static final String DEFAULT_MODEL_EXTRA = "gemini-3-flash-preview";
-  public static final String DEFAULT_TTS_PROVIDER = "android";
+  public static final String TTS_PROVIDER_ANDROID = "android";
+  public static final String TTS_PROVIDER_GOOGLE = "google";
+  public static final String DEFAULT_TTS_PROVIDER = TTS_PROVIDER_ANDROID;
   public static final float DEFAULT_TTS_SPEECH_RATE = 0.85f;
   public static final String DEFAULT_TTS_LOCALE_TAG = "en-US";
 

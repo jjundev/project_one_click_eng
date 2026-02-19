@@ -13,7 +13,7 @@
 
     <!-- 얼굴 -->
     <path
-        android:fillColor="#0064FF"
+        android:fillColor="#39A0ED"
         android:pathData="M20,8c-6.6,0 -12,5.4 -12,12s5.4,12 12,12s12,-5.4 12,-12S26.6,8 20,8z" />
 
     <!-- 왼쪽 눈 -->
@@ -36,10 +36,10 @@
 
     <!-- 안테나 -->
     <path
-        android:fillColor="#0064FF"
+        android:fillColor="#39A0ED"
         android:pathData="M19,6L19,8L21,8L21,6L19,6Z" />
     <path
-        android:fillColor="#0064FF"
+        android:fillColor="#39A0ED"
         android:pathData="M20,4m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
 
 </vector>
