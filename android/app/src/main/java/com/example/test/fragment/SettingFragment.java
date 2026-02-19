@@ -50,6 +50,8 @@ public class SettingFragment extends Fragment {
   private Spinner spinnerModelExtra;
   private Button btnApiTest;
   private TextView tvApiTestResult;
+  private TextView tvAppVersion;
+  private TextView tvModelReset;
 
   @Nullable private ArrayAdapter<String> modelAdapter;
 
@@ -82,6 +84,11 @@ public class SettingFragment extends Fragment {
     spinnerModelExtra = view.findViewById(R.id.spinner_model_extra);
     btnApiTest = view.findViewById(R.id.btn_api_test);
     tvApiTestResult = view.findViewById(R.id.tv_api_test_result);
+    tvAppVersion = view.findViewById(R.id.tv_app_version);
+    tvModelReset = view.findViewById(R.id.tv_model_reset);
+    if (tvAppVersion != null) {
+      tvAppVersion.setText(BuildConfig.VERSION_NAME);
+    }
   }
 
   private void setupAdapters() {
@@ -132,6 +139,10 @@ public class SettingFragment extends Fragment {
     bindModelSpinner(
         spinnerModelExtra, selected -> saveModelSelection(selected, ModelTarget.EXTRA));
 
+    if (tvModelReset != null) {
+      tvModelReset.setOnClickListener(v -> resetToDefaults());
+    }
+
     btnApiTest.setOnClickListener(v -> runApiConnectionTest());
   }
 
@@ -178,6 +189,34 @@ public class SettingFragment extends Fragment {
         return;
     }
     logDebug("Saved model selection target=" + target.name());
+  }
+
+  private void resetToDefaults() {
+    AppSettingsStore store = appSettingsStore;
+    if (store == null) {
+      return;
+    }
+
+    // 1. Reset values in store
+    store.setLlmModelSentence(AppSettings.DEFAULT_MODEL_SENTENCE);
+    store.setLlmModelSpeaking(AppSettings.DEFAULT_MODEL_SPEAKING);
+    store.setLlmModelScript(AppSettings.DEFAULT_MODEL_SCRIPT);
+    store.setLlmModelSummary(AppSettings.DEFAULT_MODEL_SUMMARY);
+    store.setLlmModelExtra(AppSettings.DEFAULT_MODEL_EXTRA);
+
+    // 2. Update UI
+    if (modelAdapter != null) {
+      setSpinnerSelection(spinnerModelSentence, AppSettings.DEFAULT_MODEL_SENTENCE, modelAdapter);
+      setSpinnerSelection(spinnerModelSpeaking, AppSettings.DEFAULT_MODEL_SPEAKING, modelAdapter);
+      setSpinnerSelection(spinnerModelScript, AppSettings.DEFAULT_MODEL_SCRIPT, modelAdapter);
+      setSpinnerSelection(spinnerModelSummary, AppSettings.DEFAULT_MODEL_SUMMARY, modelAdapter);
+      setSpinnerSelection(spinnerModelExtra, AppSettings.DEFAULT_MODEL_EXTRA, modelAdapter);
+    }
+
+    // 3. Show feedback
+    android.widget.Toast.makeText(
+            requireContext(), "모든 모델 설정이 초기화되었습니다.", android.widget.Toast.LENGTH_SHORT)
+        .show();
   }
 
   private void renderSettings() {

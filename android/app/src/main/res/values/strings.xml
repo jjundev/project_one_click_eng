@@ -81,8 +81,19 @@
     <string name="settings_section_mute">음소거</string>
     <string name="settings_mute_all_playback">모든 재생 음소거</string>
 
+    <string name="settings_header_title">설정</string>
+    <string name="settings_header_subtitle">앱 환경을 설정해보세요</string>
+    <string name="settings_section_gemini_api">GEMINI API</string>
+    <string name="settings_api_key_title">API Key</string>
+    <string name="settings_api_key_description">직접 API Key를 입력하면 기본 Key 대신 사용합니다</string>
+    <string name="settings_model_title">AI 모델 설정</string>
+    <string name="settings_model_description">기능별로 사용할 Gemini 모델을 선택하세요</string>
+    <string name="settings_connection_test_title">연결 테스트</string>
+    <string name="settings_connection_test_description">API Key와 모델이 정상적으로 동작하는지 확인합니다</string>
+    <string name="settings_section_app_info">앱 정보</string>
+    <string name="settings_app_version_label">앱 버전</string>
     <string name="settings_section_llm">LLM 설정</string>
-    <string name="settings_api_key_override_label">API Key Override</string>
+    <string name="settings_api_key_override_label">Gemini API Key를 입력하세요</string>
     <string name="settings_api_key_override_hint">비워두면 기본 API key 사용</string>
     <string name="settings_model_sentence">문장 피드백 모델</string>
     <string name="settings_model_speaking">발화 피드백 모델</string>
@@ -96,6 +107,7 @@
     <string name="settings_api_test_fail_code">연결 실패 (HTTP %1$d)</string>
     <string name="settings_api_test_fail_message">연결 실패: %1$s</string>
     <string name="settings_api_test_missing_key">API key가 비어 있습니다.</string>
+    <string name="settings_model_reset">기본값으로 초기화</string>
 
     <string name="settings_section_tts">TTS 설정</string>
     <string name="settings_tts_provider_android">Provider: Android TTS (고정)</string>
