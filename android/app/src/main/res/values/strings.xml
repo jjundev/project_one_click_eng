@@ -81,10 +81,6 @@
     <string name="settings_section_mute">음소거</string>
     <string name="settings_mute_all_playback">모든 재생 음소거</string>
 
-    <string name="settings_section_timer">학습 타이머</string>
-    <string name="settings_timer_placeholder">준비 중 (현재 동작하지 않음)</string>
-    <string name="settings_timer_toggle_placeholder">타이머 사용 (준비 중)</string>
-
     <string name="settings_section_llm">LLM 설정</string>
     <string name="settings_api_key_override_label">API Key Override</string>
     <string name="settings_api_key_override_hint">비워두면 기본 API key 사용</string>
@@ -117,8 +113,6 @@
     <string name="dialogue_learning_settings_subtitle">학습 화면에서 재생 관련 설정을 바로 조정할 수 있어요.</string>
     <string name="dialogue_learning_settings_section_mute">음소거</string>
     <string name="dialogue_learning_settings_section_mute_placeholder">다음 작업에서 음소거 토글이 연결됩니다.</string>
-    <string name="dialogue_learning_settings_section_timer">학습 타이머</string>
-    <string name="dialogue_learning_settings_section_timer_placeholder">현재는 준비 중 안내만 제공합니다.</string>
     <string name="dialogue_learning_settings_section_tts">TTS 설정</string>
     <string name="dialogue_learning_settings_section_tts_placeholder">속도 및 로케일 컨트롤은 다음 작업에서 연결됩니다.</string>
     <string name="dialogue_learning_settings_close">닫기</string>
