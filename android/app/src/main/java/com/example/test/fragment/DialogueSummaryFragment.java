@@ -5,6 +5,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.widget.NestedScrollView;
@@ -27,6 +28,11 @@ public class DialogueSummaryFragment extends Fragment {
   private BottomSheetBehavior<MaterialCardView> bottomSheetBehavior;
   private NestedScrollView scrollView;
   private DialogueSummaryViewModel viewModel;
+  private Boolean isFullyLoaded = null;
+  private TextView tvBottomSheetTitle;
+  private TextView tvBottomSheetSubtitle;
+  private View btnStartQuiz;
+  private View btnFinishSummary;
 
   public static DialogueSummaryFragment newInstance(String summaryJson) {
     return newInstance(summaryJson, null);
@@ -60,26 +66,30 @@ public class DialogueSummaryFragment extends Fragment {
     bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetCard);
     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
 
-    scrollView.setOnScrollChangeListener(
-        (NestedScrollView.OnScrollChangeListener)
-            (v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
-              View child = v.getChildAt(0);
-              if (child == null) {
-                return;
-              }
-              int scrollRange = child.getMeasuredHeight() - v.getMeasuredHeight();
-              boolean reachedBottom = scrollY >= (scrollRange - 20);
+    tvBottomSheetTitle = view.findViewById(R.id.tv_bottom_sheet_title);
+    tvBottomSheetSubtitle = view.findViewById(R.id.tv_bottom_sheet_subtitle);
+    btnStartQuiz = view.findViewById(R.id.btn_start_quiz_summary);
+    btnFinishSummary = view.findViewById(R.id.btn_finish_summary);
 
-              if (reachedBottom) {
-                if (bottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
-                  bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
-                }
-              } else if (scrollY < scrollRange - 100) {
-                if (bottomSheetBehavior.getState() != BottomSheetBehavior.STATE_HIDDEN) {
-                  bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
-                }
-              }
-            });
+    scrollView.setOnScrollChangeListener(
+        (NestedScrollView.OnScrollChangeListener) (v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
+          View child = v.getChildAt(0);
+          if (child == null) {
+            return;
+          }
+          int scrollRange = child.getMeasuredHeight() - v.getMeasuredHeight();
+          boolean reachedBottom = scrollY >= (scrollRange - 20);
+
+          if (reachedBottom) {
+            if (bottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
+              bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+            }
+          } else if (scrollY < scrollRange - 100) {
+            if (bottomSheetBehavior.getState() != BottomSheetBehavior.STATE_HIDDEN) {
+              bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+            }
+          }
+        });
 
     initViewModel(view, savedInstanceState);
     logDebug("summary fragment entered");
@@ -111,13 +121,11 @@ public class DialogueSummaryFragment extends Fragment {
   }
 
   private void initViewModel(@NonNull View rootView, @Nullable Bundle savedInstanceState) {
-    AppSettings settings =
-        new AppSettingsStore(requireContext().getApplicationContext()).getSettings();
-    DialogueSummaryViewModelFactory factory =
-        new DialogueSummaryViewModelFactory(
-            LearningDependencyProvider.provideSessionSummaryLlmManager(
-                settings.resolveEffectiveApiKey(BuildConfig.GEMINI_API_KEY),
-                settings.getLlmModelSummary()));
+    AppSettings settings = new AppSettingsStore(requireContext().getApplicationContext()).getSettings();
+    DialogueSummaryViewModelFactory factory = new DialogueSummaryViewModelFactory(
+        LearningDependencyProvider.provideSessionSummaryLlmManager(
+            settings.resolveEffectiveApiKey(BuildConfig.GEMINI_API_KEY),
+            settings.getLlmModelSummary()));
     viewModel = new ViewModelProvider(this, factory).get(DialogueSummaryViewModel.class);
 
     viewModel
@@ -127,8 +135,7 @@ public class DialogueSummaryFragment extends Fragment {
             data -> {
               if (data != null) {
                 SessionSummaryBinder.bind(rootView, data);
-                DialogueSummaryViewModel.WordLoadState wordState =
-                    viewModel.getWordLoadState().getValue();
+                DialogueSummaryViewModel.WordLoadState wordState = viewModel.getWordLoadState().getValue();
                 if (wordState != null
                     && wordState.getStatus() == DialogueSummaryViewModel.WordLoadStatus.READY) {
                   SessionSummaryBinder.bindWordsContent(rootView, data.getWords());
@@ -145,6 +152,7 @@ public class DialogueSummaryFragment extends Fragment {
                 return;
               }
               applyFutureFeedbackState(rootView, state);
+              checkIfFullyLoaded();
             });
     viewModel
         .getWordLoadState()
@@ -155,6 +163,7 @@ public class DialogueSummaryFragment extends Fragment {
                 return;
               }
               applyWordLoadState(rootView, state);
+              checkIfFullyLoaded();
             });
 
     Bundle args = getArguments();
@@ -201,6 +210,73 @@ public class DialogueSummaryFragment extends Fragment {
       default:
         SessionSummaryBinder.showWordsLoading(rootView);
         break;
+    }
+  }
+
+  private void checkIfFullyLoaded() {
+    if (viewModel == null)
+      return;
+    DialogueSummaryViewModel.FutureFeedbackState futureState = viewModel.getFutureFeedbackState().getValue();
+    DialogueSummaryViewModel.WordLoadState wordState = viewModel.getWordLoadState().getValue();
+
+    boolean isNowLoaded = true;
+
+    if (futureState != null
+        && futureState.getStatus() == DialogueSummaryViewModel.FutureFeedbackStatus.LOADING) {
+      isNowLoaded = false;
+    }
+    if (wordState != null
+        && wordState.getStatus() == DialogueSummaryViewModel.WordLoadStatus.LOADING) {
+      isNowLoaded = false;
+    }
+
+    if (isFullyLoaded == null || isFullyLoaded != isNowLoaded) {
+      isFullyLoaded = isNowLoaded;
+      updateBottomSheetUI(isNowLoaded);
+    }
+  }
+
+  private void updateBottomSheetUI(boolean isLoaded) {
+    if (isLoaded) {
+      if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+
+        if (tvBottomSheetTitle != null)
+          tvBottomSheetTitle.setText("학습을 마칠까요?");
+        if (tvBottomSheetSubtitle != null)
+          tvBottomSheetSubtitle.setText("오늘의 성과가 저장되었습니다.");
+        if (btnStartQuiz != null)
+          btnStartQuiz.setVisibility(View.VISIBLE);
+        if (btnFinishSummary != null)
+          btnFinishSummary.setVisibility(View.VISIBLE);
+
+        if (getView() != null) {
+          getView()
+              .postDelayed(
+                  () -> {
+                    bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                  },
+                  200);
+        }
+      } else {
+        if (tvBottomSheetTitle != null)
+          tvBottomSheetTitle.setText("학습을 마칠까요?");
+        if (tvBottomSheetSubtitle != null)
+          tvBottomSheetSubtitle.setText("오늘의 성과가 저장되었습니다.");
+        if (btnStartQuiz != null)
+          btnStartQuiz.setVisibility(View.VISIBLE);
+        if (btnFinishSummary != null)
+          btnFinishSummary.setVisibility(View.VISIBLE);
+      }
+    } else {
+      if (tvBottomSheetTitle != null)
+        tvBottomSheetTitle.setText("잠시만 기다려주세요");
+      if (tvBottomSheetSubtitle != null)
+        tvBottomSheetSubtitle.setText("요약 데이터가 완전히 로딩되지 않았어요");
+      if (btnStartQuiz != null)
+        btnStartQuiz.setVisibility(View.GONE);
+      if (btnFinishSummary != null)
+        btnFinishSummary.setVisibility(View.GONE);
     }
   }
 

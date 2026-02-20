@@ -501,6 +501,7 @@
                 android:layout_marginBottom="16dp" />
 
             <TextView
+                android:id="@+id/tv_bottom_sheet_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:lineSpacingMultiplier="1.4"
@@ -510,6 +511,7 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/tv_bottom_sheet_subtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
