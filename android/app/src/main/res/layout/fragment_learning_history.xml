@@ -60,7 +60,7 @@
         android:paddingStart="16dp"
         android:paddingTop="16dp"
         android:paddingEnd="16dp"
-        android:paddingBottom="90dp"
+        android:paddingBottom="150dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
         tools:listitem="@layout/item_summary_word" />
 
@@ -70,7 +70,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:layout_marginHorizontal="20dp"
-        android:layout_marginBottom="24dp"
+        android:layout_marginBottom="84dp"
         android:insetTop="0dp"
         android:insetBottom="0dp"
         android:paddingVertical="14dp"
