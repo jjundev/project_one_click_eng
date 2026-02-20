@@ -9,7 +9,6 @@ import static org.junit.Assert.assertTrue;
 import com.example.test.fragment.dialoguelearning.model.QuizData;
 import com.example.test.fragment.dialoguelearning.model.SummaryData;
 import com.example.test.manager_gemini.QuizGenerateManager;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -19,16 +18,18 @@ public class QuizGenerateManagerTest {
 
   @Test
   public void parseQuizQuestionsPayload_capsAtFive() {
-    String payload = "{\"questions\":["
-        + "{\"question\":\"Q1\",\"answer\":\"A1\"},"
-        + "{\"question\":\"Q2\",\"answer\":\"A2\"},"
-        + "{\"question\":\"Q3\",\"answer\":\"A3\"},"
-        + "{\"question\":\"Q4\",\"answer\":\"A4\"},"
-        + "{\"question\":\"Q5\",\"answer\":\"A5\"},"
-        + "{\"question\":\"Q6\",\"answer\":\"A6\"}"
-        + "]}";
+    String payload =
+        "{\"questions\":["
+            + "{\"question\":\"Q1\",\"answer\":\"A1\"},"
+            + "{\"question\":\"Q2\",\"answer\":\"A2\"},"
+            + "{\"question\":\"Q3\",\"answer\":\"A3\"},"
+            + "{\"question\":\"Q4\",\"answer\":\"A4\"},"
+            + "{\"question\":\"Q5\",\"answer\":\"A5\"},"
+            + "{\"question\":\"Q6\",\"answer\":\"A6\"}"
+            + "]}";
 
-    QuizGenerateManager.ParseResult result = QuizGenerateManager.parseQuizQuestionsPayload(payload, 5);
+    QuizGenerateManager.ParseResult result =
+        QuizGenerateManager.parseQuizQuestionsPayload(payload, 5);
 
     assertEquals(5, result.getQuestions().size());
     assertTrue(result.isCapped());
@@ -39,14 +40,16 @@ public class QuizGenerateManagerTest {
 
   @Test
   public void parseQuizQuestionsPayload_filtersInvalidAndDeduplicates() {
-    String payload = "{\"questions\":["
-        + "{\"question\":\"\",\"answer\":\"A\"},"
-        + "{\"question\":\"Valid\",\"answer\":\"Answer\",\"choices\":[\" A \",\"A\",\"B\",\"\"],\"explanation\":\"   \"},"
-        + "{\"question\":\" valid \",\"answer\":\"Duplicate\"},"
-        + "{\"question\":\"NoAnswer\"}"
-        + "]}";
+    String payload =
+        "{\"questions\":["
+            + "{\"question\":\"\",\"answer\":\"A\"},"
+            + "{\"question\":\"Valid\",\"answer\":\"Answer\",\"choices\":[\" A \",\"A\",\"B\",\"\"],\"explanation\":\"   \"},"
+            + "{\"question\":\" valid \",\"answer\":\"Duplicate\"},"
+            + "{\"question\":\"NoAnswer\"}"
+            + "]}";
 
-    QuizGenerateManager.ParseResult result = QuizGenerateManager.parseQuizQuestionsPayload(payload, 5);
+    QuizGenerateManager.ParseResult result =
+        QuizGenerateManager.parseQuizQuestionsPayload(payload, 5);
 
     assertEquals(1, result.getQuestions().size());
     assertFalse(result.isCapped());
@@ -62,7 +65,8 @@ public class QuizGenerateManagerTest {
 
   @Test
   public void parseQuizQuestionsPayload_returnsEmptyOnMalformedJson() {
-    QuizGenerateManager.ParseResult result = QuizGenerateManager.parseQuizQuestionsPayload("{not-json", 5);
+    QuizGenerateManager.ParseResult result =
+        QuizGenerateManager.parseQuizQuestionsPayload("{not-json", 5);
 
     assertTrue(result.getQuestions().isEmpty());
     assertFalse(result.isCapped());

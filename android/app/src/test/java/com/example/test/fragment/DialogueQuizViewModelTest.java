@@ -146,8 +146,15 @@ public class DialogueQuizViewModelTest {
     int requestCount = 0;
 
     @Override
+    public void initializeCache(@NonNull InitCallback callback) {
+      callback.onReady();
+    }
+
+    @Override
     public void generateQuizFromSummaryAsync(
-        @NonNull SummaryData summaryData, int requestedQuestionCount, @NonNull QuizCallback callback) {
+        @NonNull SummaryData summaryData,
+        int requestedQuestionCount,
+        @NonNull QuizCallback callback) {
       requestCount++;
       lastSummaryData = summaryData;
       if (nextError != null) {

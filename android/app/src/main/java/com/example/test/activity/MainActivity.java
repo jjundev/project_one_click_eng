@@ -21,8 +21,8 @@ public class MainActivity extends AppCompatActivity {
     setContentView(R.layout.activity_main);
 
     BottomNavigationView bottomNavigation = findViewById(R.id.bottom_navigation);
-    NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
-        .findFragmentById(R.id.fragment_container);
+    NavHostFragment navHostFragment =
+        (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_container);
 
     if (navHostFragment == null) {
       logDebug("NavHostFragment is null. Bottom navigation setup skipped.");
@@ -42,9 +42,10 @@ public class MainActivity extends AppCompatActivity {
     bottomNavigation.setOnItemReselectedListener(
         item -> {
           int itemId = item.getItemId();
-          int currentDestinationId = navController.getCurrentDestination() != null
-              ? navController.getCurrentDestination().getId()
-              : -1;
+          int currentDestinationId =
+              navController.getCurrentDestination() != null
+                  ? navController.getCurrentDestination().getId()
+                  : -1;
 
           if (currentDestinationId != itemId) {
             String selectedName = getResources().getResourceEntryName(itemId);
@@ -58,7 +59,8 @@ public class MainActivity extends AppCompatActivity {
           int destinationId = destination.getId();
 
           int menuId = destinationId;
-          if (destinationId == R.id.scriptSelectFragment || destinationId == R.id.dialogueSummaryFragment) {
+          if (destinationId == R.id.scriptSelectFragment
+              || destinationId == R.id.dialogueSummaryFragment) {
             menuId = R.id.studyModeSelectFragment;
           } else if (destinationId == R.id.dialogueQuizFragment) {
             menuId = R.id.learningHistoryFragment;

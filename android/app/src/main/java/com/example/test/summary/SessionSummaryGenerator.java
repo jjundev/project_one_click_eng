@@ -712,8 +712,7 @@ public class SessionSummaryGenerator {
     return result;
   }
 
-  private List<SummaryData.WordItem> fromLlmWords(
-      List<SessionSummaryManager.WordSection> source) {
+  private List<SummaryData.WordItem> fromLlmWords(List<SessionSummaryManager.WordSection> source) {
     List<SummaryData.WordItem> result = new ArrayList<>();
     if (source == null) {
       return result;

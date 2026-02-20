@@ -18,18 +18,16 @@ import java.util.Set;
 
 public class DialogueQuizViewModel extends ViewModel {
   private static final String TAG = "JOB_J-20260217-002";
-  private static final String DEFAULT_QUIZ_ERROR = "Quiz questions are unavailable right now. Please try again.";
+  private static final String DEFAULT_QUIZ_ERROR =
+      "Quiz questions are unavailable right now. Please try again.";
 
   private final IQuizGenerationManager quizGenerationManager;
   private final Gson gson = new Gson();
   private final MutableLiveData<QuizUiState> uiState = new MutableLiveData<>(QuizUiState.loading());
 
-  @Nullable
-  private SummaryData summaryData;
-  @NonNull
-  private List<QuizData.QuizQuestion> questions = new ArrayList<>();
-  @Nullable
-  private QuizQuestionState currentQuestionState;
+  @Nullable private SummaryData summaryData;
+  @NonNull private List<QuizData.QuizQuestion> questions = new ArrayList<>();
+  @Nullable private QuizQuestionState currentQuestionState;
   private int currentQuestionIndex = 0;
   private int correctAnswerCount = 0;
   private boolean hasInitialized = false;
@@ -54,7 +52,21 @@ public class DialogueQuizViewModel extends ViewModel {
     hasInitialized = true;
     maxQuestions = Math.max(1, Math.min(10, requestedQuestionCount));
     summaryData = resolveSummaryData(summaryJson);
-    loadQuizQuestions();
+
+    uiState.setValue(QuizUiState.loading());
+    quizGenerationManager.initializeCache(
+        new IQuizGenerationManager.InitCallback() {
+          @Override
+          public void onReady() {
+            loadQuizQuestions();
+          }
+
+          @Override
+          public void onError(@NonNull String error) {
+            logDebug("Quiz cache init error: " + error);
+            loadQuizQuestions();
+          }
+        });
   }
 
   public void retryLoad() {
@@ -97,7 +109,9 @@ public class DialogueQuizViewModel extends ViewModel {
       return;
     }
 
-    uiState.setValue(QuizUiState.loading());
+    // Loading state is already set in initialize, but we can set it again if
+    // retried.
+    uiState.postValue(QuizUiState.loading());
     logDebug("quiz load start");
     quizGenerationManager.generateQuizFromSummaryAsync(
         seed,
@@ -304,12 +318,9 @@ public class DialogueQuizViewModel extends ViewModel {
       COMPLETED
     }
 
-    @NonNull
-    private final Status status;
-    @Nullable
-    private final String errorMessage;
-    @Nullable
-    private final QuizQuestionState questionState;
+    @NonNull private final Status status;
+    @Nullable private final String errorMessage;
+    @Nullable private final QuizQuestionState questionState;
     private final int currentQuestionIndex;
     private final int totalQuestions;
     private final int correctAnswerCount;
@@ -414,18 +425,12 @@ public class DialogueQuizViewModel extends ViewModel {
       FINISH
     }
 
-    @NonNull
-    private final String question;
-    @NonNull
-    private final String answer;
-    @Nullable
-    private final List<String> choices;
-    @Nullable
-    private final String explanation;
-    @Nullable
-    private final String selectedChoice;
-    @Nullable
-    private final String typedAnswer;
+    @NonNull private final String question;
+    @NonNull private final String answer;
+    @Nullable private final List<String> choices;
+    @Nullable private final String explanation;
+    @Nullable private final String selectedChoice;
+    @Nullable private final String typedAnswer;
     private final boolean checked;
     private final boolean correct;
 

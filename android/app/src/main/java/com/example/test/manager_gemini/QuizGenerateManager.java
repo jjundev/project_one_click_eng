@@ -1,5 +1,7 @@
 package com.example.test.manager_gemini;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -14,6 +16,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -32,13 +36,26 @@ public class QuizGenerateManager implements IQuizGenerationManager {
   private static final String DEFAULT_MODEL_NAME = "gemini-3-flash-preview";
   private static final int DEFAULT_MAX_QUESTIONS = 5;
 
+  private static final String PREF_NAME = "gemini_quiz_cache_prefs";
+  private static final String KEY_CACHE_NAME = "gemini_quiz_cache_name";
+  private static final String KEY_CACHE_CREATED = "gemini_quiz_cache_created_at";
+  private static final String KEY_CACHE_TTL = "gemini_quiz_cache_ttl_seconds";
+  private static final int CACHE_TTL_SECONDS = 3600; // 1 hour
+  private static final int MIN_REMAINING_TTL_SECONDS = 300; // 5 minutes
+
   private final OkHttpClient client;
   private final Gson gson;
   private final Handler mainHandler;
   private final String apiKey;
   private final String modelName;
+  private final Context context;
+  private final SharedPreferences prefs;
 
-  public QuizGenerateManager(String apiKey, String modelName) {
+  private String cachedContentName;
+  private boolean cacheReady = false;
+
+  public QuizGenerateManager(Context context, String apiKey, String modelName) {
+    this.context = context;
     this.apiKey = normalizeOrDefault(apiKey, "");
     this.modelName = normalizeOrDefault(modelName, DEFAULT_MODEL_NAME);
     this.client = new OkHttpClient.Builder()
@@ -48,11 +65,14 @@ public class QuizGenerateManager implements IQuizGenerationManager {
         .build();
     this.gson = new Gson();
     this.mainHandler = new Handler(Looper.getMainLooper());
+    this.prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
   }
 
   @Override
   public void generateQuizFromSummaryAsync(
-      @NonNull SummaryData summaryData, int requestedQuestionCount, @NonNull QuizCallback callback) {
+      @NonNull SummaryData summaryData,
+      int requestedQuestionCount,
+      @NonNull QuizCallback callback) {
     if (callback == null) {
       return;
     }
@@ -81,14 +101,24 @@ public class QuizGenerateManager implements IQuizGenerationManager {
         () -> {
           try {
             JsonObject requestBody = new JsonObject();
-            addSystemInstruction(requestBody, maxQuestions);
+            if (cacheReady && cachedContentName != null) {
+              requestBody.addProperty("cachedContent", cachedContentName);
+            } else {
+              JsonObject sysInstruction = new JsonObject();
+              JsonArray sysParts = new JsonArray();
+              JsonObject sysPart = new JsonObject();
+              sysPart.addProperty("text", getSystemPrompt());
+              sysParts.add(sysPart);
+              sysInstruction.add("parts", sysParts);
+              requestBody.add("systemInstruction", sysInstruction);
+            }
 
             JsonArray contents = new JsonArray();
             JsonObject userContent = new JsonObject();
             userContent.addProperty("role", "user");
             JsonArray parts = new JsonArray();
             JsonObject part = new JsonObject();
-            part.addProperty("text", buildUserPrompt(seed));
+            part.addProperty("text", buildUserPrompt(seed, maxQuestions));
             parts.add(part);
             userContent.add("parts", parts);
             contents.add(userContent);
@@ -140,7 +170,7 @@ public class QuizGenerateManager implements IQuizGenerationManager {
   }
 
   @NonNull
-  static QuizData.QuizSeed buildQuizSeed(@Nullable SummaryData summaryData) {
+  public static QuizData.QuizSeed buildQuizSeed(@Nullable SummaryData summaryData) {
     List<QuizData.QuizSeedExpression> expressionSeeds = new ArrayList<>();
     List<QuizData.QuizSeedWord> wordSeeds = new ArrayList<>();
     if (summaryData == null) {
@@ -206,7 +236,7 @@ public class QuizGenerateManager implements IQuizGenerationManager {
   }
 
   @NonNull
-  static ParseResult parseQuizQuestionsPayload(@Nullable String rawPayload, int maxQuestions) {
+  public static ParseResult parseQuizQuestionsPayload(@Nullable String rawPayload, int maxQuestions) {
     String cleanJson = stripJsonFence(rawPayload);
     if (cleanJson.isEmpty()) {
       return ParseResult.empty();
@@ -253,42 +283,17 @@ public class QuizGenerateManager implements IQuizGenerationManager {
     mainHandler.post(() -> callback.onFailure(error));
   }
 
-  private void addSystemInstruction(@NonNull JsonObject root, int maxQuestions) {
-    JsonObject systemInstruction = new JsonObject();
-    JsonArray systemParts = new JsonArray();
-    JsonObject systemPart = new JsonObject();
-    systemPart.addProperty("text", buildSystemPrompt(maxQuestions));
-    systemParts.add(systemPart);
-    systemInstruction.add("parts", systemParts);
-    root.add("systemInstruction", systemInstruction);
-  }
+  // Removed addSystemInstruction and buildSystemPrompt
 
   @NonNull
-  private String buildSystemPrompt(int maxQuestions) {
-    return "You are an English learning quiz generator.\n"
-        + "Return JSON only with this top-level shape:\n"
-        + "{\n"
-        + "  \"questions\": [\n"
-        + "    {\"question\":\"...\",\"answer\":\"...\",\"choices\":[\"...\"],\"explanation\":\"...\"}\n"
-        + "  ]\n"
-        + "}\n"
-        + "Rules:\n"
-        + "1) Build quiz items only from provided summary seed expressions/words.\n"
-        + "2) questions size must be "
-        + maxQuestions
-        + ".\n"
-        + "3) question and answer are required and non-empty.\n"
-        + "4) choices and explanation are optional.\n"
-        + "5) Keep wording concise for Korean English learners.\n"
-        + "6) Do not include markdown code fences.";
-  }
-
-  @NonNull
-  private String buildUserPrompt(@NonNull QuizData.QuizSeed seed) {
+  private String buildUserPrompt(@NonNull QuizData.QuizSeed seed, int maxQuestions) {
     JsonObject payload = new JsonObject();
     payload.add("expressions", gson.toJsonTree(seed.getExpressions()));
     payload.add("words", gson.toJsonTree(seed.getWords()));
     return "Generate review quiz questions from this summary seed payload.\n"
+        + "Requested Question Count: "
+        + maxQuestions
+        + "\n"
         + "Input data:\n"
         + gson.toJson(payload);
   }
@@ -454,13 +459,235 @@ public class QuizGenerateManager implements IQuizGenerationManager {
     }
   }
 
-  static final class ParseResult {
+  interface ValidationCallback {
+    void onValid(String cacheName, long remainingSeconds);
+
+    void onInvalid();
+
+    void onError(String error);
+  }
+
+  @Override
+  public void initializeCache(@NonNull InitCallback callback) {
+    String savedCacheName = prefs.getString(KEY_CACHE_NAME, null);
+
+    if (savedCacheName != null) {
+      long createdAt = prefs.getLong(KEY_CACHE_CREATED, 0);
+      int ttl = prefs.getInt(KEY_CACHE_TTL, CACHE_TTL_SECONDS);
+      long elapsedSeconds = (System.currentTimeMillis() - createdAt) / 1000;
+
+      if (elapsedSeconds > ttl) {
+        logDebug("Local cache expired, creating new one");
+        clearLocalCacheData();
+        createCache(callback);
+        return;
+      }
+
+      validateCacheFromServer(
+          savedCacheName,
+          new ValidationCallback() {
+            @Override
+            public void onValid(String name, long remainingSeconds) {
+              if (remainingSeconds > MIN_REMAINING_TTL_SECONDS) {
+                logDebug("Reusing existing cache: " + name);
+                cachedContentName = name;
+                cacheReady = true;
+                mainHandler.post(callback::onReady);
+              } else {
+                logDebug("Cache expiring soon. Creating new cache.");
+                createCache(callback);
+              }
+            }
+
+            @Override
+            public void onInvalid() {
+              logDebug("Saved cache invalid. Creating new cache.");
+              clearLocalCacheData();
+              createCache(callback);
+            }
+
+            @Override
+            public void onError(String error) {
+              logDebug("Validation error: " + error + ". Creating new cache.");
+              createCache(callback);
+            }
+          });
+    } else {
+      logDebug("No local cache found. Creating new cache.");
+      createCache(callback);
+    }
+  }
+
+  private void createCache(@NonNull InitCallback callback) {
+    new Thread(
+        () -> {
+          try {
+            String systemPrompt = getSystemPrompt();
+
+            JsonObject requestBody = new JsonObject();
+            requestBody.addProperty("model", "models/" + modelName);
+
+            JsonArray contents = new JsonArray();
+            JsonObject userContent = new JsonObject();
+            userContent.addProperty("role", "user");
+            JsonArray userParts = new JsonArray();
+            JsonObject userPart = new JsonObject();
+            userPart.addProperty("text", "Initialize quiz generator.");
+            userParts.add(userPart);
+            userContent.add("parts", userParts);
+            contents.add(userContent);
+
+            JsonObject modelContent = new JsonObject();
+            modelContent.addProperty("role", "model");
+            JsonArray modelParts = new JsonArray();
+            JsonObject modelPart = new JsonObject();
+            modelPart.addProperty(
+                "text",
+                "I am ready to generate English learning quizzes based on your requirements.");
+            modelParts.add(modelPart);
+            modelContent.add("parts", modelParts);
+            contents.add(modelContent);
+
+            requestBody.add("contents", contents);
+
+            JsonObject sysInstruction = new JsonObject();
+            JsonArray sysParts = new JsonArray();
+            JsonObject sysPart = new JsonObject();
+            sysPart.addProperty("text", systemPrompt);
+            sysParts.add(sysPart);
+            sysInstruction.add("parts", sysParts);
+            requestBody.add("systemInstruction", sysInstruction);
+
+            requestBody.addProperty("ttl", CACHE_TTL_SECONDS + "s");
+            requestBody.addProperty("displayName", "QuizGeneratorCache");
+
+            String url = BASE_URL + "/cachedContents?key=" + apiKey;
+            String jsonBody = gson.toJson(requestBody);
+
+            Request request = new Request.Builder()
+                .url(url)
+                .post(RequestBody.create(jsonBody, MediaType.parse("application/json")))
+                .build();
+
+            try (Response response = client.newCall(request).execute()) {
+              String responseBody = response.body() != null ? response.body().string() : "";
+
+              if (!response.isSuccessful()) {
+                logDebug("Cache creation failed: " + response.code() + " - " + responseBody);
+                mainHandler.post(
+                    () -> callback.onError("Cache creation failed: " + responseBody));
+                return;
+              }
+
+              JsonObject result = JsonParser.parseString(responseBody).getAsJsonObject();
+              cachedContentName = result.get("name").getAsString();
+              cacheReady = true;
+
+              prefs
+                  .edit()
+                  .putString(KEY_CACHE_NAME, cachedContentName)
+                  .putLong(KEY_CACHE_CREATED, System.currentTimeMillis())
+                  .putInt(KEY_CACHE_TTL, CACHE_TTL_SECONDS)
+                  .apply();
+
+              logDebug("New cache created: " + cachedContentName);
+              mainHandler.post(callback::onReady);
+            }
+          } catch (Exception e) {
+            logDebug("Cache initialization error: " + safeMessage(e));
+            mainHandler.post(() -> callback.onError("Error: " + e.getMessage()));
+          }
+        })
+        .start();
+  }
+
+  private void validateCacheFromServer(String cacheName, ValidationCallback callback) {
+    new Thread(
+        () -> {
+          try {
+            String url = BASE_URL + "/" + cacheName + "?key=" + apiKey;
+            Request request = new Request.Builder().url(url).get().build();
+
+            try (Response response = client.newCall(request).execute()) {
+              if (response.code() == 404) {
+                callback.onInvalid();
+                return;
+              }
+              if (!response.isSuccessful()) {
+                callback.onError("Server check failed: " + response.code());
+                return;
+              }
+              String responseBody = response.body() != null ? response.body().string() : "";
+              JsonObject result = JsonParser.parseString(responseBody).getAsJsonObject();
+
+              if (result.has("expireTime")) {
+                String expireTimeStr = result.get("expireTime").getAsString();
+                Instant expireTime = Instant.parse(expireTimeStr);
+                long remainingSeconds = expireTime.getEpochSecond() - Instant.now().getEpochSecond();
+                callback.onValid(cacheName, remainingSeconds);
+              } else {
+                callback.onError("No expireTime in response");
+              }
+            }
+          } catch (Exception e) {
+            logDebug("Cache validation error: " + safeMessage(e));
+            callback.onError(e.getMessage());
+          }
+        })
+        .start();
+  }
+
+  private void clearLocalCacheData() {
+    prefs.edit().remove(KEY_CACHE_NAME).remove(KEY_CACHE_CREATED).remove(KEY_CACHE_TTL).apply();
+  }
+
+  private String getSystemPrompt() {
+    String prompt = readAssetFile("prompts/quiz_generate/system_prompt.md");
+    if (prompt.isEmpty()) {
+      return buildSystemPrompt_Dummy();
+    }
+    return prompt;
+  }
+
+  private String readAssetFile(String fileName) {
+    try (java.io.InputStream is = context.getAssets().open(fileName);
+        java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(is))) {
+      StringBuilder sb = new StringBuilder();
+      String line;
+      while ((line = reader.readLine()) != null) {
+        sb.append(line).append("\n");
+      }
+      return sb.toString().trim();
+    } catch (IOException e) {
+      Log.e(TAG, "Failed to read asset file: " + fileName, e);
+      return "";
+    }
+  }
+
+  private String buildSystemPrompt_Dummy() {
+    return "You are an English learning quiz generator.\n"
+        + "Return JSON only with this top-level shape:\n"
+        + "{\n"
+        + "  \"questions\": [\n"
+        + "    {\"question\":\"...\",\"answer\":\"...\",\"choices\":[\"...\"],\"explanation\":\"...\"}\n"
+        + "  ]\n"
+        + "}\n"
+        + "Rules:\n"
+        + "1) Build quiz items only from provided summary seed expressions/words.\n"
+        + "2) Generate EXACTLY the number of questions specified in the user prompt. No more, no fewer.\n"
+        + "3) question and answer are required and non-empty.\n"
+        + "4) choices and explanation are optional.\n"
+        + "5) Keep wording concise for Korean English learners.\n"
+        + "6) Do not include markdown code fences.";
+  }
+
+  public static final class ParseResult {
     @NonNull
     private final List<QuizData.QuizQuestion> questions;
     private final boolean capped;
     private final int validQuestionCount;
 
-    ParseResult(
+    public ParseResult(
         @NonNull List<QuizData.QuizQuestion> questions, boolean capped, int validQuestionCount) {
       this.questions = questions;
       this.capped = capped;
@@ -468,20 +695,20 @@ public class QuizGenerateManager implements IQuizGenerationManager {
     }
 
     @NonNull
-    static ParseResult empty() {
+    public static ParseResult empty() {
       return new ParseResult(new ArrayList<>(), false, 0);
     }
 
     @NonNull
-    List<QuizData.QuizQuestion> getQuestions() {
+    public List<QuizData.QuizQuestion> getQuestions() {
       return questions;
     }
 
-    boolean isCapped() {
+    public boolean isCapped() {
       return capped;
     }
 
-    int getValidQuestionCount() {
+    public int getValidQuestionCount() {
       return validQuestionCount;
     }
   }

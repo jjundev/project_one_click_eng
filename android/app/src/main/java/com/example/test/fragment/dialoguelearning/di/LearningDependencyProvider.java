@@ -10,9 +10,9 @@ import com.example.test.fragment.dialoguelearning.manager_contracts.ISessionSumm
 import com.example.test.fragment.dialoguelearning.manager_contracts.ISpeakingFeedbackManager;
 import com.example.test.manager_gemini.DialogueGenerateManager;
 import com.example.test.manager_gemini.ExtraQuestionManager;
+import com.example.test.manager_gemini.QuizGenerateManager;
 import com.example.test.manager_gemini.SentenceFeedbackManager;
 import com.example.test.manager_gemini.SpeakingFeedbackManager;
-import com.example.test.manager_gemini.QuizGenerateManager;
 import com.example.test.summary.SessionSummaryManager;
 import com.example.test.tool.AudioRecorder;
 
@@ -59,8 +59,8 @@ public final class LearningDependencyProvider {
 
   @NonNull
   public static IQuizGenerationManager provideQuizGenerationManager(
-      @NonNull String apiKey, @NonNull String modelName) {
-    return new QuizGenerateManager(apiKey, modelName);
+      @NonNull Context appContext, @NonNull String apiKey, @NonNull String modelName) {
+    return new QuizGenerateManager(appContext, apiKey, modelName);
   }
 
   @NonNull
