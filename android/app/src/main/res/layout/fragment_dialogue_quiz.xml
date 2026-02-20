@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/grey_50">
 
+    <!-- ═══ 로딩 상태 ═══ -->
     <LinearLayout
         android:id="@+id/layout_quiz_loading"
         android:layout_width="match_parent"
@@ -28,6 +29,7 @@
             android:textStyle="bold" />
     </LinearLayout>
 
+    <!-- ═══ 에러 상태 ═══ -->
     <LinearLayout
         android:id="@+id/layout_quiz_error"
         android:layout_width="match_parent"
@@ -83,13 +85,14 @@
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 
+    <!-- ═══ 퀴즈 콘텐츠 (배경: 문제 + 결과만) ═══ -->
     <androidx.core.widget.NestedScrollView
         android:id="@+id/layout_quiz_content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
         android:paddingTop="20dp"
-        android:paddingBottom="24dp"
+        android:paddingBottom="320dp"
         android:visibility="gone">
 
         <LinearLayout
@@ -128,6 +131,7 @@
                 android:progressTint="@color/toss_blue"
                 android:progressBackgroundTint="@color/grey_200" />
 
+            <!-- 문제 카드 -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -154,40 +158,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <LinearLayout
-                android:id="@+id/layout_quiz_choice_container"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:orientation="vertical" />
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/layout_quiz_answer_input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:hint="@string/quiz_answer_input_hint"
-                app:boxBackgroundColor="@color/white"
-                app:boxBackgroundMode="outline"
-                app:boxCornerRadiusBottomEnd="12dp"
-                app:boxCornerRadiusBottomStart="12dp"
-                app:boxCornerRadiusTopEnd="12dp"
-                app:boxCornerRadiusTopStart="12dp"
-                app:boxStrokeColor="@color/grey_300"
-                app:hintTextColor="@color/grey_500">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/et_quiz_answer"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:imeOptions="actionDone"
-                    android:inputType="text"
-                    android:maxLines="3"
-                    android:minLines="1"
-                    android:textColor="@color/text_primary"
-                    android:textColorHint="@color/grey_500" />
-            </com.google.android.material.textfield.TextInputLayout>
-
+            <!-- 결과 카드 (채점 후 표시) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_quiz_result"
                 android:layout_width="match_parent"
@@ -235,19 +206,10 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_quiz_primary"
-                style="@style/Widget.MaterialComponents.Button"
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginTop="18dp"
-                android:text="@string/quiz_primary_check"
-                android:textStyle="bold"
-                app:backgroundTint="@color/toss_blue"
-                app:cornerRadius="12dp" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
+    <!-- ═══ 완료 상태 ═══ -->
     <LinearLayout
         android:id="@+id/layout_quiz_completed"
         android:layout_width="match_parent"
@@ -316,4 +278,75 @@
             app:cornerRadius="12dp" />
     </LinearLayout>
 
-</FrameLayout>
+    <!-- ═══ BottomSheet: 선택지 / 입력 / 버튼 ═══ -->
+    <LinearLayout
+        android:id="@+id/bottom_sheet_quiz"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_bottom_sheet_quiz"
+        android:orientation="vertical"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="24dp"
+        android:visibility="gone"
+        app:behavior_hideable="false"
+        app:behavior_peekHeight="300dp"
+        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+
+        <!-- 드래그 핸들 -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/bg_bottom_sheet_handle" />
+
+        <!-- 객관식 선택지 컨테이너 -->
+        <LinearLayout
+            android:id="@+id/layout_quiz_choice_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <!-- 주관식 입력 -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layout_quiz_answer_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/quiz_answer_input_hint"
+            app:boxBackgroundColor="@color/white"
+            app:boxBackgroundMode="outline"
+            app:boxCornerRadiusBottomEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxStrokeColor="@color/grey_300"
+            app:hintTextColor="@color/grey_500">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_quiz_answer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:imeOptions="actionDone"
+                android:inputType="text"
+                android:maxLines="3"
+                android:minLines="1"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/grey_500" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- 주요 액션 버튼 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_quiz_primary"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="14dp"
+            android:text="@string/quiz_primary_check"
+            android:textStyle="bold"
+            app:backgroundTint="@color/toss_blue"
+            app:cornerRadius="12dp" />
+
+    </LinearLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

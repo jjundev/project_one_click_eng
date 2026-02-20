@@ -23,6 +23,7 @@ import com.example.test.R;
 import com.example.test.fragment.dialoguelearning.di.LearningDependencyProvider;
 import com.example.test.settings.AppSettings;
 import com.example.test.settings.AppSettingsStore;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textfield.TextInputEditText;
@@ -39,27 +40,50 @@ public class DialogueQuizFragment extends Fragment {
   public static final int POP_BACK_STACK = 1;
   private static final String TAG = "JOB_J-20260217-002";
 
-  @Nullable private DialogueQuizViewModel viewModel;
-  @Nullable private View loadingView;
-  @Nullable private View errorView;
-  @Nullable private View contentView;
-  @Nullable private View completedView;
-  @Nullable private TextView tvErrorMessage;
-  @Nullable private MaterialButton btnRetry;
-  @Nullable private TextView tvProgress;
-  @Nullable private ProgressBar progressBar;
-  @Nullable private TextView tvQuestion;
-  @Nullable private LinearLayout choiceContainer;
-  @Nullable private TextInputLayout inputAnswerLayout;
-  @Nullable private TextInputEditText etAnswer;
-  @Nullable private MaterialCardView resultCard;
-  @Nullable private TextView tvResultTitle;
-  @Nullable private TextView tvCorrectAnswer;
-  @Nullable private TextView tvExplanation;
-  @Nullable private MaterialButton btnPrimary;
-  @Nullable private TextView tvCompletedSummary;
-  @Nullable private MaterialButton btnFinish;
-  @Nullable private TextWatcher answerWatcher;
+  @Nullable
+  private DialogueQuizViewModel viewModel;
+  @Nullable
+  private View loadingView;
+  @Nullable
+  private View errorView;
+  @Nullable
+  private View contentView;
+  @Nullable
+  private View completedView;
+  @Nullable
+  private View bottomSheetView;
+  @Nullable
+  private TextView tvErrorMessage;
+  @Nullable
+  private MaterialButton btnRetry;
+  @Nullable
+  private TextView tvProgress;
+  @Nullable
+  private ProgressBar progressBar;
+  @Nullable
+  private TextView tvQuestion;
+  @Nullable
+  private LinearLayout choiceContainer;
+  @Nullable
+  private TextInputLayout inputAnswerLayout;
+  @Nullable
+  private TextInputEditText etAnswer;
+  @Nullable
+  private MaterialCardView resultCard;
+  @Nullable
+  private TextView tvResultTitle;
+  @Nullable
+  private TextView tvCorrectAnswer;
+  @Nullable
+  private TextView tvExplanation;
+  @Nullable
+  private MaterialButton btnPrimary;
+  @Nullable
+  private TextView tvCompletedSummary;
+  @Nullable
+  private MaterialButton btnFinish;
+  @Nullable
+  private TextWatcher answerWatcher;
   private boolean suppressAnswerWatcher = false;
   private int lastLoggedQuestionIndex = -1;
 
@@ -113,6 +137,7 @@ public class DialogueQuizFragment extends Fragment {
     errorView = null;
     contentView = null;
     completedView = null;
+    bottomSheetView = null;
     tvErrorMessage = null;
     btnRetry = null;
     tvProgress = null;
@@ -136,6 +161,7 @@ public class DialogueQuizFragment extends Fragment {
     errorView = root.findViewById(R.id.layout_quiz_error);
     contentView = root.findViewById(R.id.layout_quiz_content);
     completedView = root.findViewById(R.id.layout_quiz_completed);
+    bottomSheetView = root.findViewById(R.id.bottom_sheet_quiz);
     tvErrorMessage = root.findViewById(R.id.tv_quiz_error_message);
     btnRetry = root.findViewById(R.id.btn_quiz_retry);
     tvProgress = root.findViewById(R.id.tv_quiz_progress);
@@ -151,17 +177,23 @@ public class DialogueQuizFragment extends Fragment {
     btnPrimary = root.findViewById(R.id.btn_quiz_primary);
     tvCompletedSummary = root.findViewById(R.id.tv_quiz_completed_summary);
     btnFinish = root.findViewById(R.id.btn_quiz_finish);
+
+    // BottomSheet 초기화
+    if (bottomSheetView != null) {
+      BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(bottomSheetView);
+      behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+      behavior.setSkipCollapsed(true);
+      behavior.setDraggable(false);
+    }
   }
 
   private void initViewModel() {
-    AppSettings settings =
-        new AppSettingsStore(requireContext().getApplicationContext()).getSettings();
-    DialogueQuizViewModelFactory factory =
-        new DialogueQuizViewModelFactory(
-            LearningDependencyProvider.provideQuizGenerationManager(
-                requireContext().getApplicationContext(),
-                settings.resolveEffectiveApiKey(BuildConfig.GEMINI_API_KEY),
-                settings.getLlmModelSummary()));
+    AppSettings settings = new AppSettingsStore(requireContext().getApplicationContext()).getSettings();
+    DialogueQuizViewModelFactory factory = new DialogueQuizViewModelFactory(
+        LearningDependencyProvider.provideQuizGenerationManager(
+            requireContext().getApplicationContext(),
+            settings.resolveEffectiveApiKey(BuildConfig.GEMINI_API_KEY),
+            settings.getLlmModelSummary()));
     viewModel = new ViewModelProvider(this, factory).get(DialogueQuizViewModel.class);
     viewModel.getUiState().observe(getViewLifecycleOwner(), this::renderUiState);
   }
@@ -189,10 +221,9 @@ public class DialogueQuizFragment extends Fragment {
       btnFinish.setOnClickListener(
           v -> {
             Bundle bundle = getArguments();
-            int finishBehavior =
-                bundle != null
-                    ? bundle.getInt(ARG_FINISH_BEHAVIOR, FINISH_ACTIVITY)
-                    : FINISH_ACTIVITY;
+            int finishBehavior = bundle != null
+                ? bundle.getInt(ARG_FINISH_BEHAVIOR, FINISH_ACTIVITY)
+                : FINISH_ACTIVITY;
             if (finishBehavior == POP_BACK_STACK) {
               if (getActivity() != null) {
                 getActivity().getOnBackPressedDispatcher().onBackPressed();
@@ -206,26 +237,25 @@ public class DialogueQuizFragment extends Fragment {
     }
 
     if (etAnswer != null) {
-      answerWatcher =
-          new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-              // No-op.
-            }
+      answerWatcher = new TextWatcher() {
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+          // No-op.
+        }
 
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-              if (suppressAnswerWatcher || viewModel == null) {
-                return;
-              }
-              viewModel.onAnswerInputChanged(s == null ? null : s.toString());
-            }
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+          if (suppressAnswerWatcher || viewModel == null) {
+            return;
+          }
+          viewModel.onAnswerInputChanged(s == null ? null : s.toString());
+        }
 
-            @Override
-            public void afterTextChanged(Editable s) {
-              // No-op.
-            }
-          };
+        @Override
+        public void afterTextChanged(Editable s) {
+          // No-op.
+        }
+      };
       etAnswer.addTextChangedListener(answerWatcher);
     }
   }
@@ -428,12 +458,11 @@ public class DialogueQuizFragment extends Fragment {
     }
 
     if (tvResultTitle != null) {
-      int color =
-          ContextCompat.getColor(
-              requireContext(),
-              state.isCorrect()
-                  ? R.color.expression_natural_accent
-                  : R.color.expression_precise_accent);
+      int color = ContextCompat.getColor(
+          requireContext(),
+          state.isCorrect()
+              ? R.color.expression_natural_accent
+              : R.color.expression_precise_accent);
       tvResultTitle.setText(
           state.isCorrect() ? R.string.quiz_result_correct : R.string.quiz_result_incorrect);
       tvResultTitle.setTextColor(color);
@@ -457,8 +486,7 @@ public class DialogueQuizFragment extends Fragment {
     if (btnPrimary == null) {
       return;
     }
-    DialogueQuizViewModel.QuizQuestionState.PrimaryAction action =
-        questionState.resolvePrimaryAction(lastQuestion);
+    DialogueQuizViewModel.QuizQuestionState.PrimaryAction action = questionState.resolvePrimaryAction(lastQuestion);
     int labelRes;
     switch (action) {
       case NEXT:
@@ -481,6 +509,8 @@ public class DialogueQuizFragment extends Fragment {
     setVisible(errorView, errorView == target);
     setVisible(contentView, contentView == target);
     setVisible(completedView, completedView == target);
+    // BottomSheet는 READY 상태(contentView)일 때만 표시
+    setVisible(bottomSheetView, contentView == target);
   }
 
   private void setVisible(@Nullable View view, boolean visible) {
