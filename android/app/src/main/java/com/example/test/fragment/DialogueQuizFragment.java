@@ -4,8 +4,8 @@ import android.content.Context;
 import android.content.res.ColorStateList;
 import android.os.Build;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -26,7 +26,6 @@ import com.example.test.settings.AppSettingsStore;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
-import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import java.util.List;
 
@@ -39,6 +38,15 @@ public class DialogueQuizFragment extends Fragment {
   public static final int FINISH_ACTIVITY = 0;
   public static final int POP_BACK_STACK = 1;
   private static final String TAG = "JOB_J-20260217-002";
+  private static final long SHOW_CHOICES_DELAY_MS = 500L;
+  private static final long AUTO_CHECK_DELAY_MS = 200L;
+  private static final long SHOW_NEXT_BUTTON_DELAY_MS = 500L;
+
+  private enum BottomSheetUiStage {
+    HIDDEN,
+    CHOICES_ONLY,
+    NEXT_BUTTON_ONLY
+  }
 
   @Nullable
   private DialogueQuizViewModel viewModel;
@@ -52,6 +60,8 @@ public class DialogueQuizFragment extends Fragment {
   private View completedView;
   @Nullable
   private View bottomSheetView;
+  @Nullable
+  private BottomSheetBehavior<View> bottomSheetBehavior;
   @Nullable
   private TextView tvErrorMessage;
   @Nullable
@@ -67,8 +77,6 @@ public class DialogueQuizFragment extends Fragment {
   @Nullable
   private TextInputLayout inputAnswerLayout;
   @Nullable
-  private TextInputEditText etAnswer;
-  @Nullable
   private MaterialCardView resultCard;
   @Nullable
   private TextView tvResultTitle;
@@ -82,10 +90,21 @@ public class DialogueQuizFragment extends Fragment {
   private TextView tvCompletedSummary;
   @Nullable
   private MaterialButton btnFinish;
+
+  @NonNull
+  private final Handler uiHandler = new Handler(Looper.getMainLooper());
   @Nullable
-  private TextWatcher answerWatcher;
-  private boolean suppressAnswerWatcher = false;
+  private Runnable showChoicesRunnable;
+  @Nullable
+  private Runnable autoCheckRunnable;
+  @Nullable
+  private Runnable showNextButtonRunnable;
+
+  private BottomSheetUiStage bottomSheetUiStage = BottomSheetUiStage.HIDDEN;
+  private int renderedBottomSheetQuestionIndex = -1;
   private int lastLoggedQuestionIndex = -1;
+  private boolean autoCheckPending = false;
+  private boolean showNextButtonScheduled = false;
 
   public static DialogueQuizFragment newInstance(String summaryJson) {
     return newInstance(summaryJson, null);
@@ -129,15 +148,13 @@ public class DialogueQuizFragment extends Fragment {
   @Override
   public void onDestroyView() {
     super.onDestroyView();
-    if (etAnswer != null && answerWatcher != null) {
-      etAnswer.removeTextChangedListener(answerWatcher);
-    }
-    answerWatcher = null;
+    cancelPendingBottomSheetTasks();
     loadingView = null;
     errorView = null;
     contentView = null;
     completedView = null;
     bottomSheetView = null;
+    bottomSheetBehavior = null;
     tvErrorMessage = null;
     btnRetry = null;
     tvProgress = null;
@@ -145,7 +162,6 @@ public class DialogueQuizFragment extends Fragment {
     tvQuestion = null;
     choiceContainer = null;
     inputAnswerLayout = null;
-    etAnswer = null;
     resultCard = null;
     tvResultTitle = null;
     tvCorrectAnswer = null;
@@ -153,7 +169,10 @@ public class DialogueQuizFragment extends Fragment {
     btnPrimary = null;
     tvCompletedSummary = null;
     btnFinish = null;
-    suppressAnswerWatcher = false;
+    bottomSheetUiStage = BottomSheetUiStage.HIDDEN;
+    renderedBottomSheetQuestionIndex = -1;
+    autoCheckPending = false;
+    showNextButtonScheduled = false;
   }
 
   private void bindViews(@NonNull View root) {
@@ -169,7 +188,6 @@ public class DialogueQuizFragment extends Fragment {
     tvQuestion = root.findViewById(R.id.tv_quiz_question);
     choiceContainer = root.findViewById(R.id.layout_quiz_choice_container);
     inputAnswerLayout = root.findViewById(R.id.layout_quiz_answer_input);
-    etAnswer = root.findViewById(R.id.et_quiz_answer);
     resultCard = root.findViewById(R.id.card_quiz_result);
     tvResultTitle = root.findViewById(R.id.tv_quiz_result_title);
     tvCorrectAnswer = root.findViewById(R.id.tv_quiz_correct_answer);
@@ -178,22 +196,23 @@ public class DialogueQuizFragment extends Fragment {
     tvCompletedSummary = root.findViewById(R.id.tv_quiz_completed_summary);
     btnFinish = root.findViewById(R.id.btn_quiz_finish);
 
-    // BottomSheet 초기화
     if (bottomSheetView != null) {
-      BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(bottomSheetView);
-      behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
-      behavior.setSkipCollapsed(true);
-      behavior.setDraggable(false);
+      bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetView);
+      bottomSheetBehavior.setHideable(true);
+      bottomSheetBehavior.setSkipCollapsed(true);
+      bottomSheetBehavior.setDraggable(false);
+      bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
     }
   }
 
   private void initViewModel() {
     AppSettings settings = new AppSettingsStore(requireContext().getApplicationContext()).getSettings();
-    DialogueQuizViewModelFactory factory = new DialogueQuizViewModelFactory(
-        LearningDependencyProvider.provideQuizGenerationManager(
-            requireContext().getApplicationContext(),
-            settings.resolveEffectiveApiKey(BuildConfig.GEMINI_API_KEY),
-            settings.getLlmModelSummary()));
+    DialogueQuizViewModelFactory factory =
+        new DialogueQuizViewModelFactory(
+            LearningDependencyProvider.provideQuizGenerationManager(
+                requireContext().getApplicationContext(),
+                settings.resolveEffectiveApiKey(BuildConfig.GEMINI_API_KEY),
+                settings.getLlmModelSummary()));
     viewModel = new ViewModelProvider(this, factory).get(DialogueQuizViewModel.class);
     viewModel.getUiState().observe(getViewLifecycleOwner(), this::renderUiState);
   }
@@ -211,9 +230,14 @@ public class DialogueQuizFragment extends Fragment {
     if (btnPrimary != null) {
       btnPrimary.setOnClickListener(
           v -> {
-            if (viewModel != null) {
-              viewModel.onPrimaryAction();
+            if (bottomSheetUiStage != BottomSheetUiStage.NEXT_BUTTON_ONLY || viewModel == null) {
+              return;
             }
+            cancelPendingBottomSheetTasks();
+            hideBottomSheet();
+            bottomSheetUiStage = BottomSheetUiStage.HIDDEN;
+            autoCheckPending = false;
+            viewModel.onPrimaryAction();
           });
     }
 
@@ -221,9 +245,10 @@ public class DialogueQuizFragment extends Fragment {
       btnFinish.setOnClickListener(
           v -> {
             Bundle bundle = getArguments();
-            int finishBehavior = bundle != null
-                ? bundle.getInt(ARG_FINISH_BEHAVIOR, FINISH_ACTIVITY)
-                : FINISH_ACTIVITY;
+            int finishBehavior =
+                bundle != null
+                    ? bundle.getInt(ARG_FINISH_BEHAVIOR, FINISH_ACTIVITY)
+                    : FINISH_ACTIVITY;
             if (finishBehavior == POP_BACK_STACK) {
               if (getActivity() != null) {
                 getActivity().getOnBackPressedDispatcher().onBackPressed();
@@ -234,29 +259,6 @@ public class DialogueQuizFragment extends Fragment {
               }
             }
           });
-    }
-
-    if (etAnswer != null) {
-      answerWatcher = new TextWatcher() {
-        @Override
-        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-          // No-op.
-        }
-
-        @Override
-        public void onTextChanged(CharSequence s, int start, int before, int count) {
-          if (suppressAnswerWatcher || viewModel == null) {
-            return;
-          }
-          viewModel.onAnswerInputChanged(s == null ? null : s.toString());
-        }
-
-        @Override
-        public void afterTextChanged(Editable s) {
-          // No-op.
-        }
-      };
-      etAnswer.addTextChangedListener(answerWatcher);
     }
   }
 
@@ -309,7 +311,7 @@ public class DialogueQuizFragment extends Fragment {
 
   private void renderReady(@NonNull DialogueQuizViewModel.QuizUiState state) {
     DialogueQuizViewModel.QuizQuestionState questionState = state.getQuestionState();
-    if (questionState == null) {
+    if (questionState == null || !questionState.isMultipleChoice()) {
       showOnly(errorView);
       if (tvErrorMessage != null) {
         tvErrorMessage.setText(getString(R.string.quiz_error_default));
@@ -336,9 +338,25 @@ public class DialogueQuizFragment extends Fragment {
       tvQuestion.setText(questionState.getQuestion());
     }
 
-    renderAnswerInput(questionState);
+    boolean questionChanged = renderedBottomSheetQuestionIndex != state.getCurrentQuestionIndex();
+    if (questionChanged) {
+      renderedBottomSheetQuestionIndex = state.getCurrentQuestionIndex();
+      resetBottomSheetForNewQuestion();
+    }
+
     renderResultCard(questionState);
-    renderPrimaryAction(questionState, state.isLastQuestion());
+    if (questionState.isChecked()) {
+      autoCheckPending = false;
+      if (bottomSheetUiStage != BottomSheetUiStage.NEXT_BUTTON_ONLY && !showNextButtonScheduled) {
+        scheduleShowNextButton(state.getCurrentQuestionIndex(), state.isLastQuestion());
+      }
+    } else {
+      if (questionChanged) {
+        scheduleShowChoices(state.getCurrentQuestionIndex(), questionState);
+      } else if (bottomSheetUiStage == BottomSheetUiStage.CHOICES_ONLY) {
+        showBottomSheetChoices(questionState);
+      }
+    }
 
     if (lastLoggedQuestionIndex != state.getCurrentQuestionIndex()) {
       lastLoggedQuestionIndex = state.getCurrentQuestionIndex();
@@ -350,32 +368,21 @@ public class DialogueQuizFragment extends Fragment {
     }
   }
 
-  private void renderAnswerInput(@NonNull DialogueQuizViewModel.QuizQuestionState state) {
-    boolean multipleChoice = state.isMultipleChoice();
+  private void resetBottomSheetForNewQuestion() {
+    cancelPendingBottomSheetTasks();
+    autoCheckPending = false;
+    showNextButtonScheduled = false;
+    bottomSheetUiStage = BottomSheetUiStage.HIDDEN;
     if (choiceContainer != null) {
-      choiceContainer.setVisibility(multipleChoice ? View.VISIBLE : View.GONE);
+      choiceContainer.setVisibility(View.GONE);
     }
     if (inputAnswerLayout != null) {
-      inputAnswerLayout.setVisibility(multipleChoice ? View.GONE : View.VISIBLE);
+      inputAnswerLayout.setVisibility(View.GONE);
     }
-
-    if (multipleChoice) {
-      renderChoiceButtons(state);
-      clearAnswerText();
-      return;
+    if (btnPrimary != null) {
+      btnPrimary.setVisibility(View.GONE);
     }
-
-    if (etAnswer != null) {
-      etAnswer.setEnabled(!state.isChecked());
-      String desired = state.getTypedAnswer() == null ? "" : state.getTypedAnswer();
-      String current = etAnswer.getText() == null ? "" : etAnswer.getText().toString();
-      if (!current.equals(desired)) {
-        suppressAnswerWatcher = true;
-        etAnswer.setText(desired);
-        etAnswer.setSelection(desired.length());
-        suppressAnswerWatcher = false;
-      }
-    }
+    hideBottomSheet();
   }
 
   private void renderChoiceButtons(@NonNull DialogueQuizViewModel.QuizQuestionState state) {
@@ -398,16 +405,24 @@ public class DialogueQuizFragment extends Fragment {
       MaterialButton button = item.findViewById(R.id.btn_quiz_choice);
       button.setText(choice);
       applyChoiceButtonStyle(button, state, choice, selectedChoice);
-      if (!state.isChecked()) {
-        button.setOnClickListener(
-            v -> {
-              if (viewModel != null) {
-                viewModel.onChoiceSelected(choice);
-              }
-            });
+      if (!state.isChecked()
+          && !autoCheckPending
+          && bottomSheetUiStage == BottomSheetUiStage.CHOICES_ONLY) {
+        button.setOnClickListener(v -> onChoiceSelected(choice));
       }
       container.addView(item);
     }
+  }
+
+  private void onChoiceSelected(@NonNull String choice) {
+    if (viewModel == null
+        || autoCheckPending
+        || bottomSheetUiStage != BottomSheetUiStage.CHOICES_ONLY) {
+      return;
+    }
+    autoCheckPending = true;
+    viewModel.onChoiceSelected(choice);
+    scheduleAutoCheck(renderedBottomSheetQuestionIndex);
   }
 
   private void applyChoiceButtonStyle(
@@ -442,7 +457,9 @@ public class DialogueQuizFragment extends Fragment {
       textColor = ContextCompat.getColor(context, R.color.expression_precise_accent);
     }
 
-    button.setEnabled(!isChecked);
+    boolean enabled =
+        !isChecked && !autoCheckPending && bottomSheetUiStage == BottomSheetUiStage.CHOICES_ONLY;
+    button.setEnabled(enabled);
     button.setStrokeWidth(dpToPx(1));
     button.setStrokeColor(ColorStateList.valueOf(strokeColor));
     button.setBackgroundTintList(ColorStateList.valueOf(bgColor));
@@ -458,11 +475,12 @@ public class DialogueQuizFragment extends Fragment {
     }
 
     if (tvResultTitle != null) {
-      int color = ContextCompat.getColor(
-          requireContext(),
-          state.isCorrect()
-              ? R.color.expression_natural_accent
-              : R.color.expression_precise_accent);
+      int color =
+          ContextCompat.getColor(
+              requireContext(),
+              state.isCorrect()
+                  ? R.color.expression_natural_accent
+                  : R.color.expression_precise_accent);
       tvResultTitle.setText(
           state.isCorrect() ? R.string.quiz_result_correct : R.string.quiz_result_incorrect);
       tvResultTitle.setTextColor(color);
@@ -481,35 +499,154 @@ public class DialogueQuizFragment extends Fragment {
     }
   }
 
-  private void renderPrimaryAction(
-      @NonNull DialogueQuizViewModel.QuizQuestionState questionState, boolean lastQuestion) {
-    if (btnPrimary == null) {
+  private void scheduleShowChoices(
+      int questionIndex, @NonNull DialogueQuizViewModel.QuizQuestionState questionState) {
+    if (showChoicesRunnable != null) {
+      uiHandler.removeCallbacks(showChoicesRunnable);
+      showChoicesRunnable = null;
+    }
+    Runnable runnable =
+        () -> {
+          showChoicesRunnable = null;
+          if (!isViewReady() || renderedBottomSheetQuestionIndex != questionIndex) {
+            return;
+          }
+          showBottomSheetChoices(questionState);
+        };
+    showChoicesRunnable = runnable;
+    uiHandler.postDelayed(runnable, SHOW_CHOICES_DELAY_MS);
+  }
+
+  private void scheduleAutoCheck(int questionIndex) {
+    if (autoCheckRunnable != null) {
+      uiHandler.removeCallbacks(autoCheckRunnable);
+      autoCheckRunnable = null;
+    }
+    Runnable runnable =
+        () -> {
+          autoCheckRunnable = null;
+          if (!isViewReady() || renderedBottomSheetQuestionIndex != questionIndex) {
+            autoCheckPending = false;
+            return;
+          }
+          hideBottomSheet();
+          bottomSheetUiStage = BottomSheetUiStage.HIDDEN;
+          if (choiceContainer != null) {
+            choiceContainer.setVisibility(View.GONE);
+          }
+          if (viewModel != null) {
+            viewModel.onPrimaryAction();
+          } else {
+            autoCheckPending = false;
+          }
+        };
+    autoCheckRunnable = runnable;
+    uiHandler.postDelayed(runnable, AUTO_CHECK_DELAY_MS);
+  }
+
+  private void scheduleShowNextButton(int questionIndex, boolean lastQuestion) {
+    if (showNextButtonRunnable != null) {
+      uiHandler.removeCallbacks(showNextButtonRunnable);
+      showNextButtonRunnable = null;
+    }
+    showNextButtonScheduled = true;
+    Runnable runnable =
+        () -> {
+          showNextButtonRunnable = null;
+          showNextButtonScheduled = false;
+          if (!isViewReady() || renderedBottomSheetQuestionIndex != questionIndex) {
+            return;
+          }
+          showBottomSheetNextButton(lastQuestion);
+        };
+    showNextButtonRunnable = runnable;
+    uiHandler.postDelayed(runnable, SHOW_NEXT_BUTTON_DELAY_MS);
+  }
+
+  private void showBottomSheetChoices(@NonNull DialogueQuizViewModel.QuizQuestionState questionState) {
+    bottomSheetUiStage = BottomSheetUiStage.CHOICES_ONLY;
+    if (choiceContainer != null) {
+      choiceContainer.setVisibility(View.VISIBLE);
+    }
+    if (inputAnswerLayout != null) {
+      inputAnswerLayout.setVisibility(View.GONE);
+    }
+    if (btnPrimary != null) {
+      btnPrimary.setVisibility(View.GONE);
+    }
+    renderChoiceButtons(questionState);
+    expandBottomSheet();
+  }
+
+  private void showBottomSheetNextButton(boolean lastQuestion) {
+    bottomSheetUiStage = BottomSheetUiStage.NEXT_BUTTON_ONLY;
+    autoCheckPending = false;
+    if (choiceContainer != null) {
+      choiceContainer.setVisibility(View.GONE);
+    }
+    if (inputAnswerLayout != null) {
+      inputAnswerLayout.setVisibility(View.GONE);
+    }
+    if (btnPrimary != null) {
+      btnPrimary.setVisibility(View.VISIBLE);
+      btnPrimary.setEnabled(true);
+      btnPrimary.setText(lastQuestion ? R.string.quiz_primary_finish : R.string.quiz_primary_next);
+    }
+    expandBottomSheet();
+  }
+
+  private void expandBottomSheet() {
+    if (bottomSheetView == null) {
       return;
     }
-    DialogueQuizViewModel.QuizQuestionState.PrimaryAction action = questionState.resolvePrimaryAction(lastQuestion);
-    int labelRes;
-    switch (action) {
-      case NEXT:
-        labelRes = R.string.quiz_primary_next;
-        break;
-      case FINISH:
-        labelRes = R.string.quiz_primary_finish;
-        break;
-      case CHECK:
-      default:
-        labelRes = R.string.quiz_primary_check;
-        break;
+    bottomSheetView.setVisibility(View.VISIBLE);
+    if (bottomSheetBehavior != null) {
+      bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
     }
-    btnPrimary.setText(labelRes);
-    btnPrimary.setEnabled(questionState.isPrimaryActionEnabled());
+  }
+
+  private void hideBottomSheet() {
+    if (bottomSheetBehavior != null) {
+      bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+      return;
+    }
+    if (bottomSheetView != null) {
+      bottomSheetView.setVisibility(View.GONE);
+    }
+  }
+
+  private void cancelPendingBottomSheetTasks() {
+    if (showChoicesRunnable != null) {
+      uiHandler.removeCallbacks(showChoicesRunnable);
+      showChoicesRunnable = null;
+    }
+    if (autoCheckRunnable != null) {
+      uiHandler.removeCallbacks(autoCheckRunnable);
+      autoCheckRunnable = null;
+    }
+    if (showNextButtonRunnable != null) {
+      uiHandler.removeCallbacks(showNextButtonRunnable);
+      showNextButtonRunnable = null;
+    }
+    showNextButtonScheduled = false;
+  }
+
+  private boolean isViewReady() {
+    return isAdded() && getView() != null;
   }
 
   private void showOnly(@Nullable View target) {
+    if (target != contentView) {
+      cancelPendingBottomSheetTasks();
+      bottomSheetUiStage = BottomSheetUiStage.HIDDEN;
+      renderedBottomSheetQuestionIndex = -1;
+      autoCheckPending = false;
+      hideBottomSheet();
+    }
     setVisible(loadingView, loadingView == target);
     setVisible(errorView, errorView == target);
     setVisible(contentView, contentView == target);
     setVisible(completedView, completedView == target);
-    // BottomSheet는 READY 상태(contentView)일 때만 표시
     setVisible(bottomSheetView, contentView == target);
   }
 
@@ -517,19 +654,6 @@ public class DialogueQuizFragment extends Fragment {
     if (view != null) {
       view.setVisibility(visible ? View.VISIBLE : View.GONE);
     }
-  }
-
-  private void clearAnswerText() {
-    if (etAnswer == null) {
-      return;
-    }
-    String current = etAnswer.getText() == null ? "" : etAnswer.getText().toString();
-    if (current.isEmpty()) {
-      return;
-    }
-    suppressAnswerWatcher = true;
-    etAnswer.setText("");
-    suppressAnswerWatcher = false;
   }
 
   private int dpToPx(int dp) {

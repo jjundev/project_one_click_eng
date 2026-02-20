@@ -55,7 +55,7 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_go_to_summary"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="60dp"
             android:text="@string/learning_finished_quiz_button"
             android:textSize="16sp"
             android:textStyle="bold"

@@ -43,14 +43,14 @@
     <string name="summary_future_feedback_load_error">Future feedback is unavailable right now. Please try again later.</string>
     <string name="summary_words_load_error">Summary words are unavailable right now. Please try again later.</string>
     <string name="quiz_overline">Review Quiz</string>
-    <string name="quiz_loading">퀴즈를 준비하고 있어요...</string>
+    <string name="quiz_loading">복습 퀴즈를 준비하고 있어요...</string>
     <string name="quiz_error_title">퀴즈를 불러오지 못했어요</string>
     <string name="quiz_error_default">문제를 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.</string>
     <string name="quiz_retry">다시 시도</string>
     <string name="quiz_progress_format">%1$d / %2$d</string>
     <string name="quiz_answer_input_hint">정답을 입력해 주세요</string>
     <string name="quiz_primary_check">정답 확인</string>
-    <string name="quiz_primary_next">다음 문제</string>
+    <string name="quiz_primary_next">다음 문제로</string>
     <string name="quiz_primary_finish">학습 종료</string>
     <string name="quiz_result_correct">정답이에요!</string>
     <string name="quiz_result_incorrect">아쉬워요. 다시 확인해볼까요?</string>

@@ -25,7 +25,7 @@ public class DialogueQuizViewModelTest {
   @Test
   public void initialize_limitsQuestionsToFive() {
     FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
-    manager.nextQuestions = buildQuestions(7);
+    manager.nextQuestions = buildChoiceQuestions(7);
     DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager);
 
     viewModel.initialize("{}");
@@ -38,11 +38,11 @@ public class DialogueQuizViewModelTest {
   }
 
   @Test
-  public void onPrimaryAction_supportsHybridChoiceAndInputMode() {
+  public void onPrimaryAction_checksAndMovesToNextQuestion() {
     FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
     List<QuizData.QuizQuestion> questions = new ArrayList<>();
     questions.add(new QuizData.QuizQuestion("Q1", "A1", Arrays.asList("A1", "B1"), null));
-    questions.add(new QuizData.QuizQuestion("Q2", "A2", null, null));
+    questions.add(new QuizData.QuizQuestion("Q2", "A2", Arrays.asList("A2", "B2"), null));
     manager.nextQuestions = questions;
     DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager);
 
@@ -62,7 +62,8 @@ public class DialogueQuizViewModelTest {
     DialogueQuizViewModel.QuizUiState second = viewModel.getUiState().getValue();
     assertNotNull(second);
     assertEquals(2, second.getCurrentQuestionNumber());
-    assertFalse(second.getQuestionState().isMultipleChoice());
+    assertTrue(second.getQuestionState().isMultipleChoice());
+    assertFalse(second.getQuestionState().isChecked());
   }
 
   @Test
@@ -70,7 +71,7 @@ public class DialogueQuizViewModelTest {
     FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
     List<QuizData.QuizQuestion> questions = new ArrayList<>();
     questions.add(new QuizData.QuizQuestion("Q1", "A1", Arrays.asList("A1", "B1"), null));
-    questions.add(new QuizData.QuizQuestion("Q2", "A2", null, null));
+    questions.add(new QuizData.QuizQuestion("Q2", "A2", Arrays.asList("A2", "B2"), null));
     manager.nextQuestions = questions;
     DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager);
 
@@ -78,7 +79,7 @@ public class DialogueQuizViewModelTest {
     viewModel.onChoiceSelected("A1");
     viewModel.onPrimaryAction();
     viewModel.onPrimaryAction();
-    viewModel.onAnswerInputChanged("wrong");
+    viewModel.onChoiceSelected("B2");
     viewModel.onPrimaryAction();
     viewModel.onPrimaryAction();
 
@@ -101,7 +102,7 @@ public class DialogueQuizViewModelTest {
     assertEquals(DialogueQuizViewModel.QuizUiState.Status.ERROR, errorState.getStatus());
 
     manager.nextError = null;
-    manager.nextQuestions = buildQuestions(1);
+    manager.nextQuestions = buildChoiceQuestions(1);
     viewModel.retryLoad();
 
     DialogueQuizViewModel.QuizUiState recovered = viewModel.getUiState().getValue();
@@ -113,11 +114,14 @@ public class DialogueQuizViewModelTest {
   @Test
   public void checkAnswer_ignoresCaseAndWhitespace() {
     FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
-    manager.nextQuestions = Arrays.asList(new QuizData.QuizQuestion("Q1", "Look Forward To", null, null));
+    manager.nextQuestions =
+        Arrays.asList(
+            new QuizData.QuizQuestion(
+                "Q1", "Look Forward To", Arrays.asList("  look forward to ", "give up"), null));
     DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager);
 
     viewModel.initialize("{}");
-    viewModel.onAnswerInputChanged("  look forward to ");
+    viewModel.onChoiceSelected("  look forward to ");
     viewModel.onPrimaryAction();
 
     DialogueQuizViewModel.QuizUiState state = viewModel.getUiState().getValue();
@@ -127,11 +131,52 @@ public class DialogueQuizViewModelTest {
     assertTrue(state.getQuestionState().isCorrect());
   }
 
+  @Test
+  public void initialize_skipsQuestionsWithoutEnoughChoices() {
+    FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
+    manager.nextQuestions =
+        Arrays.asList(
+            new QuizData.QuizQuestion("Q1", "A1", null, null),
+            new QuizData.QuizQuestion("Q2", "A2", Arrays.asList("A2"), null),
+            new QuizData.QuizQuestion("Q3", "A3", Arrays.asList("A3", "B3"), null),
+            new QuizData.QuizQuestion("Q4", "A4", Arrays.asList("A4", "B4", "C4"), null));
+    DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager);
+
+    viewModel.initialize("{}");
+
+    DialogueQuizViewModel.QuizUiState state = viewModel.getUiState().getValue();
+    assertNotNull(state);
+    assertEquals(DialogueQuizViewModel.QuizUiState.Status.READY, state.getStatus());
+    assertEquals(2, state.getTotalQuestions());
+    assertEquals("Q3", state.getQuestionState().getQuestion());
+  }
+
+  @Test
+  public void initialize_returnsErrorWhenAllQuestionsAreInvalid() {
+    FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
+    manager.nextQuestions =
+        Arrays.asList(
+            new QuizData.QuizQuestion("Q1", "A1", null, null),
+            new QuizData.QuizQuestion("Q2", "A2", Arrays.asList("A2"), null));
+    DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager);
+
+    viewModel.initialize("{}");
+
+    DialogueQuizViewModel.QuizUiState state = viewModel.getUiState().getValue();
+    assertNotNull(state);
+    assertEquals(DialogueQuizViewModel.QuizUiState.Status.ERROR, state.getStatus());
+  }
+
   @NonNull
-  private static List<QuizData.QuizQuestion> buildQuestions(int count) {
+  private static List<QuizData.QuizQuestion> buildChoiceQuestions(int count) {
     List<QuizData.QuizQuestion> result = new ArrayList<>();
     for (int i = 1; i <= count; i++) {
-      result.add(new QuizData.QuizQuestion("Question " + i, "Answer " + i));
+      result.add(
+          new QuizData.QuizQuestion(
+              "Question " + i,
+              "Answer " + i,
+              Arrays.asList("Answer " + i, "Wrong " + i + " A", "Wrong " + i + " B"),
+              null));
     }
     return result;
   }

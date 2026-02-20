@@ -226,6 +226,9 @@ public class DialogueQuizViewModel extends ViewModel {
       }
 
       List<String> choices = sanitizeChoices(item.getChoices(), answer);
+      if (choices == null || choices.size() <= 1) {
+        continue;
+      }
       String explanation = trimToNull(item.getExplanation());
       result.add(new QuizData.QuizQuestion(question, answer, choices, explanation));
       if (result.size() >= maxQuestions) {
@@ -256,13 +259,14 @@ public class DialogueQuizViewModel extends ViewModel {
       result.add(choice);
     }
 
+    if (result.size() <= 1) {
+      return null;
+    }
+
     if (!seen.contains(normalize(answer))) {
       result.add(answer);
     }
 
-    if (result.size() < 2) {
-      return null;
-    }
     return result;
   }
 
