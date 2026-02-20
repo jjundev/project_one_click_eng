@@ -65,12 +65,12 @@
     <string name="summary_finish_button">완료 후 나가기</string>
     <string name="summary_start_quiz_button">퀴즈 진행</string>
     <string name="bottom_nav_content_desc">Bottom navigation</string>
-    <string name="bottom_nav_tab_mode">학습 모드</string>
+    <string name="bottom_nav_tab_mode">학습</string>
     <string name="bottom_nav_tab_script">Scripts</string>
     <string name="bottom_nav_tab_summary">Summary</string>
-    <string name="bottom_nav_tab_english_shorts">영어학습 쇼츠</string>
-    <string name="bottom_nav_tab_game_mode">게임 모드</string>
-    <string name="bottom_nav_tab_learning_history">학습한 내용 기록</string>
+    <string name="bottom_nav_tab_english_shorts">쇼츠</string>
+    <string name="bottom_nav_tab_game_mode">게임</string>
+    <string name="bottom_nav_tab_learning_history">기록</string>
     <string name="bottom_nav_tab_settings">설정</string>
     <string name="empty_feature_status_ready">준비 중입니다.</string>
     <string name="empty_feature_english_shorts_title">영어학습 쇼츠</string>
@@ -112,7 +112,7 @@
     <string name="settings_section_tts">TTS 설정</string>
     <string name="settings_tts_provider_android">Provider: Android TTS (고정)</string>
     <string name="settings_tts_provider_api_soon">API 기반 TTS: 준비 중</string>
-    <string name="settings_tts_speed_label">음성 속도</string>
+    <string name="settings_tts_speed_label">말하기 속도 설정</string>
     <string name="settings_tts_rate_default">0.85x</string>
     <string name="settings_tts_rate_format">%1$.2fx</string>
     <string name="settings_tts_locale_preset_label">로케일 프리셋</string>
@@ -122,7 +122,7 @@
 
     <string name="settings_mute_blocked_toast">무음 모드가 켜져 있어 재생이 차단됩니다.</string>
     <string name="dialogue_learning_settings_title">학습 설정</string>
-    <string name="dialogue_learning_settings_subtitle">학습 화면에서 재생 관련 설정을 바로 조정할 수 있어요.</string>
+    <string name="dialogue_learning_settings_subtitle">학습 관련 설정을 조정할 수 있어요.</string>
     <string name="dialogue_learning_settings_section_mute">음소거</string>
     <string name="dialogue_learning_settings_section_mute_placeholder">다음 작업에서 음소거 토글이 연결됩니다.</string>
     <string name="dialogue_learning_settings_section_tts">TTS 설정</string>
@@ -150,4 +150,7 @@
         <item>ko-KR</item>
         <item>ja-JP</item>
     </string-array>
+
+    <string name="learning_history_header_title">학습 기록</string>
+    <string name="learning_history_header_subtitle">지금까지 학습한 내용을 확인해보세요</string>
 </resources>

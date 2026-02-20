@@ -44,10 +44,10 @@
         tools:layout="@layout/fragment_game_mode_empty" />
 
     <fragment
-        android:id="@+id/learningHistoryEmptyFragment"
-        android:name="com.example.test.fragment.LearningHistoryEmptyFragment"
-        android:label="LearningHistoryEmptyFragment"
-        tools:layout="@layout/fragment_learning_history_empty" />
+        android:id="@+id/learningHistoryFragment"
+        android:name="com.example.test.fragment.history.LearningHistoryFragment"
+        android:label="LearningHistoryFragment"
+        tools:layout="@layout/fragment_learning_history" />
 
     <fragment
         android:id="@+id/settingFragment"

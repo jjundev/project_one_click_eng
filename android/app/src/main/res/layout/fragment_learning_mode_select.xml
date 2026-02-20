@@ -12,7 +12,6 @@
         android:layout_height="wrap_content"
         android:background="#FFFFFF"
         android:elevation="0dp"
-        android:paddingTop="20dp"
         android:paddingHorizontal="10dp"
         app:contentInsetStart="0dp"
         app:contentInsetEnd="0dp"
@@ -80,18 +79,18 @@
                     android:textSize="16sp" />
             </LinearLayout>
 
-            <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-                xmlns:app="http://schemas.android.com/apk/res-auto"
+            <LinearLayout 
+                android:id="@+id/layout_status"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:padding="20dp">
 
-                <TextView
+                <com.example.test.widget.SlotMachineTextView
                     android:id="@+id/tv_streak_info"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="3일째 열공 중 🔥"
+                    android:text="0일째 열공 중 🔥"
                     android:textColor="@color/streak_fire"
                     android:textSize="14sp"
                     android:textStyle="bold" />
@@ -125,11 +124,11 @@
                                 android:textColor="@color/grey_600"
                                 android:textSize="12sp" />
 
-                            <TextView
+                            <com.example.test.widget.SlotMachineTextView
                                 android:id="@+id/tv_study_time"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="15분"
+                                android:text="0분"
                                 android:textColor="@color/text_primary"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
@@ -159,11 +158,11 @@
                                 android:textColor="@color/grey_600"
                                 android:textSize="12sp" />
 
-                            <TextView
+                            <com.example.test.widget.SlotMachineTextView
                                 android:id="@+id/tv_points"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="150XP"
+                                android:text="0XP"
                                 android:textColor="@color/text_primary"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />

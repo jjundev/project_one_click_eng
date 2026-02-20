@@ -10,6 +10,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 import com.example.test.R;
+import com.example.test.widget.SlotMachineTextView;
 
 public class LearningModeSelectFragment extends Fragment {
 
@@ -27,6 +28,17 @@ public class LearningModeSelectFragment extends Fragment {
     super.onViewCreated(view, savedInstanceState);
 
     setupClickListeners(view);
+    startSlotMachineAnimations(view);
+  }
+
+  private void startSlotMachineAnimations(View view) {
+    SlotMachineTextView tvStreak = view.findViewById(R.id.tv_streak_info);
+    SlotMachineTextView tvStudyTime = view.findViewById(R.id.tv_study_time);
+    SlotMachineTextView tvPoints = view.findViewById(R.id.tv_points);
+
+    tvStreak.animateValue(3, "일째 열공 중 🔥", 800, 0);
+    tvStudyTime.animateValue(15, "분", 800, 200);
+    tvPoints.animateValue(150, "XP", 1000, 400);
   }
 
   private void setupClickListeners(View view) {

@@ -3,11 +3,11 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="24dp"
-    app:cardBackgroundColor="#FFF4E8"
+    android:layout_marginBottom="16dp"
+    app:cardBackgroundColor="@color/white"
     app:cardCornerRadius="16dp"
     app:cardElevation="0dp"
-    app:strokeColor="#FFDAB8"
+    app:strokeColor="@color/grey_300"
     app:strokeWidth="1dp">
 
     <LinearLayout
@@ -16,73 +16,26 @@
         android:orientation="vertical"
         android:padding="20dp">
 
-        <LinearLayout
+        <TextView
+            android:id="@+id/tv_highlight_english"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:lineSpacingMultiplier="1.4"
+            android:text="The English sentence you wrote."
+            android:textColor="#1A1A1A"
+            android:textSize="18sp"
+            android:textStyle="bold" />
 
-            <ImageView
-                android:id="@+id/iv_highlight_type"
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:src="@drawable/ic_highlight_moment" />
-
-            <TextView
-                android:id="@+id/tv_highlight_type"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:fontFamily="@font/pretendard_black"
-                android:text="&#xC6D0;&#xC5B4;&#xBBFC; &#xBAA8;&#xBA3C;&#xD2B8;"
-                android:textColor="#7A3E12"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
-        </LinearLayout>
-
-        <com.google.android.material.card.MaterialCardView
+        <TextView
+            android:id="@+id/tv_highlight_korean"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
             android:layout_marginBottom="16dp"
-            app:cardBackgroundColor="#FFFFFF"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="0dp"
-            app:strokeColor="#FFE7D2"
-            app:strokeWidth="1dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:id="@+id/tv_highlight_english"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:lineSpacingMultiplier="1.4"
-                    android:text="The English sentence you wrote."
-                    android:textColor="#2E1A0C"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tv_highlight_korean"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:lineSpacingMultiplier="1.4"
-                    android:text="&#xD55C;&#xAD6D;&#xC5B4; &#xD574;&#xC11D;"
-                    android:textColor="#6F4E37"
-                    android:textSize="14sp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+            android:lineSpacingMultiplier="1.4"
+            android:text="&#xD55C;&#xAD6D;&#xC5B4; &#xD574;&#xC11D;"
+            android:textColor="@color/grey_700"
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/tv_highlight_reason"

@@ -1,92 +1,93 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-xmlns:app="http://schemas.android.com/apk/res-auto"
-android:layout_width="match_parent"
-android:layout_height="match_parent"
-android:orientation="vertical">
-
-<androidx.appcompat.widget.Toolbar
-    android:id="@+id/toolbar"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="#82B1FF"
-    app:contentInsetStart="0dp"
-    app:contentInsetEnd="0dp"
-    android:elevation="0dp"
-    app:popupTheme="@style/ThemeOverlay.AppCompat.Light">
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
 
-    <LinearLayout
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
-
-        <ImageButton
-            android:id="@+id/btn_left"
-            android:src="@drawable/ic_arrow_back"
-            android:background="@android:color/transparent"
-            android:contentDescription="Back"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:scaleType="centerInside" />
+        android:layout_height="wrap_content"
+        android:background="#82B1FF"
+        app:contentInsetStart="0dp"
+        app:contentInsetEnd="0dp"
+        android:elevation="0dp"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light">
 
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:orientation="vertical"
+            android:orientation="horizontal"
             android:gravity="center_vertical">
 
-            <TextView
-                android:id="@+id/tv_title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="레스토랑 주문하기"
-                android:textColor="@color/black"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+            <ImageButton
+                android:id="@+id/btn_left"
+                android:src="@drawable/ic_arrow_back"
+                android:background="@android:color/transparent"
+                android:contentDescription="Back"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:scaleType="centerInside" />
 
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
                 android:gravity="center_vertical">
 
-                <ProgressBar
-                    android:id="@+id/progress_bar"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="100dp"
-                    android:layout_height="4dp" />
-
                 <TextView
-                    android:id="@+id/tv_progress"
-                    android:text="1 of 20"
-                    android:textColor="@android:color/black"
-                    android:layout_width="wrap_content"
+                    android:id="@+id/tv_title"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp" />
+                    android:text="레스토랑 주문하기"
+                    android:textColor="@color/black"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ProgressBar
+                        android:id="@+id/progress_bar"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="100dp"
+                        android:layout_height="4dp" />
+
+                    <TextView
+                        android:id="@+id/tv_progress"
+                        android:text="1 of 20"
+                        android:textColor="@android:color/black"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp" />
+
+                </LinearLayout>
 
             </LinearLayout>
 
+            <ImageButton
+                android:id="@+id/btn_right"
+                android:src="@drawable/ic_settings"
+                android:background="@android:color/transparent"
+                android:contentDescription="Settings"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:scaleType="centerInside" />
+
         </LinearLayout>
 
-        <ImageButton
-            android:id="@+id/btn_right"
-            android:src="@drawable/ic_settings"
-            android:background="@android:color/transparent"
-            android:contentDescription="Settings"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:scaleType="centerInside" />
+    </androidx.appcompat.widget.Toolbar>
 
-    </LinearLayout>
-
-</androidx.appcompat.widget.Toolbar>
-
-<androidx.fragment.app.FragmentContainerView
-    android:id="@+id/fragment_container"
-    android:layout_width="match_parent"
-    android:layout_height="0dp"
-    android:layout_weight="1" />
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/fragment_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
 
 </LinearLayout>
