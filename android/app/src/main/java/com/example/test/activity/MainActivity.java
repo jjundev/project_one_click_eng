@@ -21,8 +21,8 @@ public class MainActivity extends AppCompatActivity {
     setContentView(R.layout.activity_main);
 
     BottomNavigationView bottomNavigation = findViewById(R.id.bottom_navigation);
-    NavHostFragment navHostFragment =
-        (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+    NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
+        .findFragmentById(R.id.fragment_container);
 
     if (navHostFragment == null) {
       logDebug("NavHostFragment is null. Bottom navigation setup skipped.");
@@ -39,13 +39,35 @@ public class MainActivity extends AppCompatActivity {
           return NavigationUI.onNavDestinationSelected(item, navController);
         });
 
+    bottomNavigation.setOnItemReselectedListener(
+        item -> {
+          int itemId = item.getItemId();
+          int currentDestinationId = navController.getCurrentDestination() != null
+              ? navController.getCurrentDestination().getId()
+              : -1;
+
+          if (currentDestinationId != itemId) {
+            String selectedName = getResources().getResourceEntryName(itemId);
+            logDebug("Tab reselected: Popping to " + selectedName);
+            navController.popBackStack(itemId, false);
+          }
+        });
+
     navController.addOnDestinationChangedListener(
         (controller, destination, arguments) -> {
           int destinationId = destination.getId();
-          if (bottomNavigation.getMenu().findItem(destinationId) != null
-              && bottomNavigation.getSelectedItemId() != destinationId) {
-            bottomNavigation.setSelectedItemId(destinationId);
+
+          int menuId = destinationId;
+          if (destinationId == R.id.scriptSelectFragment || destinationId == R.id.dialogueSummaryFragment) {
+            menuId = R.id.studyModeSelectFragment;
+          } else if (destinationId == R.id.dialogueQuizFragment) {
+            menuId = R.id.learningHistoryFragment;
           }
+
+          if (bottomNavigation.getMenu().findItem(menuId) != null) {
+            bottomNavigation.getMenu().findItem(menuId).setChecked(true);
+          }
+
           String destinationName = getResources().getResourceEntryName(destinationId);
           logDebug("Fragment switched: " + destinationName + " (" + destinationId + ")");
         });

@@ -184,28 +184,39 @@
                             android:textSize="16sp" />
 
                         <TextView
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_weight="1"
                             android:layout_marginStart="8dp"
                             android:text="@string/history_quiz_config_count"
                             android:textColor="@color/text_primary"
                             android:textSize="15sp"
                             android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_quiz_count_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="5문제"
+                            android:textColor="@color/primary_blue"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
                     </LinearLayout>
 
-                    <com.google.android.material.slider.Slider
-                        android:id="@+id/slider_question_count"
+                    <SeekBar
+                        android:id="@+id/sb_question_count"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:stepSize="1.0"
-                        android:valueFrom="1.0"
-                        android:valueTo="10.0"
-                        android:value="5.0"
-                        app:labelBehavior="withinBounds"
-                        app:thumbColor="@color/toss_blue"
-                        app:trackColorActive="@color/toss_blue"
-                        app:trackColorInactive="@color/grey_200" />
+                        android:layout_marginTop="16dp"
+                        android:layout_marginHorizontal="5dp"
+                        android:max="9"
+                        android:paddingStart="0dp"
+                        android:paddingEnd="0dp"
+                        android:progress="4"
+                        android:progressBackgroundTint="@color/grey_300"
+                        android:progressTint="@color/primary_blue"
+                        android:splitTrack="false"
+                        android:thumbTint="@color/primary_blue" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

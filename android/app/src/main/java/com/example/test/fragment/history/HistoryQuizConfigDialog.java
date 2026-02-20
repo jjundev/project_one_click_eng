@@ -13,8 +13,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 
+import android.widget.SeekBar;
+import android.widget.TextView;
 import com.example.test.R;
-import com.google.android.material.slider.Slider;
 
 public class HistoryQuizConfigDialog extends DialogFragment {
 
@@ -43,7 +44,24 @@ public class HistoryQuizConfigDialog extends DialogFragment {
         super.onViewCreated(view, savedInstanceState);
 
         RadioGroup rgPeriod = view.findViewById(R.id.rg_quiz_period);
-        Slider sliderCount = view.findViewById(R.id.slider_question_count);
+        SeekBar sbQuestionCount = view.findViewById(R.id.sb_question_count);
+        TextView tvQuizCountValue = view.findViewById(R.id.tv_quiz_count_value);
+
+        sbQuestionCount.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                int count = progress + 1;
+                tvQuizCountValue.setText(count + "문제");
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
+        });
 
         view.findViewById(R.id.btn_quiz_cancel).setOnClickListener(v -> dismiss());
 
@@ -59,7 +77,7 @@ public class HistoryQuizConfigDialog extends DialogFragment {
                 periodBucket = PERIOD_OLDER;
             }
 
-            int questionCount = (int) sliderCount.getValue();
+            int questionCount = sbQuestionCount.getProgress() + 1;
 
             Bundle result = new Bundle();
             result.putInt(BUNDLE_KEY_PERIOD_BUCKET, periodBucket);

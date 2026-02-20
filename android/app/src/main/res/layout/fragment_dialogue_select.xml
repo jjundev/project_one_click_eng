@@ -13,7 +13,6 @@
         android:layout_height="wrap_content"
         android:background="#FFFFFF"
         android:elevation="0dp"
-        android:paddingTop="20dp"
         android:paddingHorizontal="10dp"
         app:contentInsetStart="0dp"
         app:contentInsetEnd="0dp"
@@ -63,6 +62,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingHorizontal="20dp"
+            android:paddingBottom="150dp"
             android:paddingTop="10dp">
 
             <LinearLayout
