@@ -13,5 +13,10 @@ public interface IQuizGenerationManager {
   }
 
   void generateQuizFromSummaryAsync(
-      @NonNull SummaryData summaryData, @NonNull QuizCallback callback);
+      @NonNull SummaryData summaryData, int requestedQuestionCount, @NonNull QuizCallback callback);
+
+  default void generateQuizFromSummaryAsync(
+      @NonNull SummaryData summaryData, @NonNull QuizCallback callback) {
+    generateQuizFromSummaryAsync(summaryData, 5, callback);
+  }
 }

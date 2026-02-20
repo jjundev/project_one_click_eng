@@ -55,6 +55,43 @@ public class LearningHistoryFragment extends Fragment {
         });
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerView.setAdapter(adapter);
+
+        View btnQuiz = view.findViewById(R.id.btn_history_quiz);
+        if (btnQuiz != null) {
+            btnQuiz.setOnClickListener(v -> {
+                HistoryQuizConfigDialog dialog = new HistoryQuizConfigDialog();
+                dialog.show(getChildFragmentManager(), "HistoryQuizConfigDialog");
+            });
+        }
+
+        getChildFragmentManager().setFragmentResultListener(HistoryQuizConfigDialog.REQUEST_KEY,
+                getViewLifecycleOwner(), (requestKey, result) -> {
+                    int periodBucket = result.getInt(HistoryQuizConfigDialog.BUNDLE_KEY_PERIOD_BUCKET);
+                    int questionCount = result.getInt(HistoryQuizConfigDialog.BUNDLE_KEY_QUESTION_COUNT);
+
+                    int currentTab = tabLayout.getSelectedTabPosition();
+                    com.example.test.fragment.dialoguelearning.model.SummaryData seed = viewModel
+                            .generateQuizSeed(periodBucket, currentTab);
+
+                    if (seed == null) {
+                        android.widget.Toast.makeText(requireContext(), R.string.history_quiz_err_no_items,
+                                android.widget.Toast.LENGTH_SHORT).show();
+                    } else {
+                        Bundle args = new Bundle();
+                        args.putString(com.example.test.fragment.DialogueQuizFragment.ARG_SUMMARY_JSON,
+                                new com.google.gson.Gson().toJson(seed));
+                        args.putInt(com.example.test.fragment.DialogueQuizFragment.ARG_REQUESTED_QUESTION_COUNT,
+                                questionCount);
+                        args.putInt(com.example.test.fragment.DialogueQuizFragment.ARG_FINISH_BEHAVIOR,
+                                com.example.test.fragment.DialogueQuizFragment.POP_BACK_STACK);
+                        try {
+                            androidx.navigation.fragment.NavHostFragment.findNavController(this)
+                                    .navigate(R.id.action_learningHistoryFragment_to_dialogueQuizFragment, args);
+                        } catch (Exception e) {
+                            logDebug("Navigation failed: " + e.getMessage());
+                        }
+                    }
+                });
     }
 
     private void setupTabs() {

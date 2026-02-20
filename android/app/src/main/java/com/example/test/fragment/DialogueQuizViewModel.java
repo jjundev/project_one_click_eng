@@ -18,20 +18,22 @@ import java.util.Set;
 
 public class DialogueQuizViewModel extends ViewModel {
   private static final String TAG = "JOB_J-20260217-002";
-  private static final int MAX_QUESTIONS = 5;
-  private static final String DEFAULT_QUIZ_ERROR =
-      "Quiz questions are unavailable right now. Please try again.";
+  private static final String DEFAULT_QUIZ_ERROR = "Quiz questions are unavailable right now. Please try again.";
 
   private final IQuizGenerationManager quizGenerationManager;
   private final Gson gson = new Gson();
   private final MutableLiveData<QuizUiState> uiState = new MutableLiveData<>(QuizUiState.loading());
 
-  @Nullable private SummaryData summaryData;
-  @NonNull private List<QuizData.QuizQuestion> questions = new ArrayList<>();
-  @Nullable private QuizQuestionState currentQuestionState;
+  @Nullable
+  private SummaryData summaryData;
+  @NonNull
+  private List<QuizData.QuizQuestion> questions = new ArrayList<>();
+  @Nullable
+  private QuizQuestionState currentQuestionState;
   private int currentQuestionIndex = 0;
   private int correctAnswerCount = 0;
   private boolean hasInitialized = false;
+  private int maxQuestions = 5;
 
   public DialogueQuizViewModel(@NonNull IQuizGenerationManager quizGenerationManager) {
     this.quizGenerationManager = quizGenerationManager;
@@ -42,10 +44,15 @@ public class DialogueQuizViewModel extends ViewModel {
   }
 
   public void initialize(@Nullable String summaryJson) {
+    initialize(summaryJson, 5);
+  }
+
+  public void initialize(@Nullable String summaryJson, int requestedQuestionCount) {
     if (hasInitialized) {
       return;
     }
     hasInitialized = true;
+    maxQuestions = Math.max(1, Math.min(10, requestedQuestionCount));
     summaryData = resolveSummaryData(summaryJson);
     loadQuizQuestions();
   }
@@ -94,6 +101,7 @@ public class DialogueQuizViewModel extends ViewModel {
     logDebug("quiz load start");
     quizGenerationManager.generateQuizFromSummaryAsync(
         seed,
+        maxQuestions,
         new IQuizGenerationManager.QuizCallback() {
           @Override
           public void onSuccess(@NonNull List<QuizData.QuizQuestion> rawQuestions) {
@@ -206,7 +214,7 @@ public class DialogueQuizViewModel extends ViewModel {
       List<String> choices = sanitizeChoices(item.getChoices(), answer);
       String explanation = trimToNull(item.getExplanation());
       result.add(new QuizData.QuizQuestion(question, answer, choices, explanation));
-      if (result.size() >= MAX_QUESTIONS) {
+      if (result.size() >= maxQuestions) {
         break;
       }
     }
@@ -296,9 +304,12 @@ public class DialogueQuizViewModel extends ViewModel {
       COMPLETED
     }
 
-    @NonNull private final Status status;
-    @Nullable private final String errorMessage;
-    @Nullable private final QuizQuestionState questionState;
+    @NonNull
+    private final Status status;
+    @Nullable
+    private final String errorMessage;
+    @Nullable
+    private final QuizQuestionState questionState;
     private final int currentQuestionIndex;
     private final int totalQuestions;
     private final int correctAnswerCount;
@@ -403,12 +414,18 @@ public class DialogueQuizViewModel extends ViewModel {
       FINISH
     }
 
-    @NonNull private final String question;
-    @NonNull private final String answer;
-    @Nullable private final List<String> choices;
-    @Nullable private final String explanation;
-    @Nullable private final String selectedChoice;
-    @Nullable private final String typedAnswer;
+    @NonNull
+    private final String question;
+    @NonNull
+    private final String answer;
+    @Nullable
+    private final List<String> choices;
+    @Nullable
+    private final String explanation;
+    @Nullable
+    private final String selectedChoice;
+    @Nullable
+    private final String typedAnswer;
     private final boolean checked;
     private final boolean correct;
 

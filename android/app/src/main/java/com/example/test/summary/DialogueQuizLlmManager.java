@@ -30,7 +30,7 @@ public class DialogueQuizLlmManager implements IQuizGenerationManager {
   private static final String TAG = "JOB_J-20260217-001";
   private static final String BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
   private static final String DEFAULT_MODEL_NAME = "gemini-3-flash-preview";
-  private static final int MAX_QUESTIONS = 5;
+  private static final int DEFAULT_MAX_QUESTIONS = 5;
 
   private final OkHttpClient client;
   private final Gson gson;
@@ -41,19 +41,18 @@ public class DialogueQuizLlmManager implements IQuizGenerationManager {
   public DialogueQuizLlmManager(String apiKey, String modelName) {
     this.apiKey = normalizeOrDefault(apiKey, "");
     this.modelName = normalizeOrDefault(modelName, DEFAULT_MODEL_NAME);
-    this.client =
-        new OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
-            .build();
+    this.client = new OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build();
     this.gson = new Gson();
     this.mainHandler = new Handler(Looper.getMainLooper());
   }
 
   @Override
   public void generateQuizFromSummaryAsync(
-      @NonNull SummaryData summaryData, @NonNull QuizCallback callback) {
+      @NonNull SummaryData summaryData, int requestedQuestionCount, @NonNull QuizCallback callback) {
     if (callback == null) {
       return;
     }
@@ -66,6 +65,8 @@ public class DialogueQuizLlmManager implements IQuizGenerationManager {
       return;
     }
 
+    final int maxQuestions = Math.max(1, Math.min(10, requestedQuestionCount));
+
     QuizData.QuizSeed seed = buildQuizSeed(summaryData);
     if (!hasSeed(seed)) {
       postFailure(callback, "Quiz seed is empty");
@@ -77,65 +78,64 @@ public class DialogueQuizLlmManager implements IQuizGenerationManager {
     logDebug("quiz request start: expressionCount=" + expressionCount + ", wordCount=" + wordCount);
 
     new Thread(
-            () -> {
-              try {
-                JsonObject requestBody = new JsonObject();
-                addSystemInstruction(requestBody);
+        () -> {
+          try {
+            JsonObject requestBody = new JsonObject();
+            addSystemInstruction(requestBody, maxQuestions);
 
-                JsonArray contents = new JsonArray();
-                JsonObject userContent = new JsonObject();
-                userContent.addProperty("role", "user");
-                JsonArray parts = new JsonArray();
-                JsonObject part = new JsonObject();
-                part.addProperty("text", buildUserPrompt(seed));
-                parts.add(part);
-                userContent.add("parts", parts);
-                contents.add(userContent);
-                requestBody.add("contents", contents);
+            JsonArray contents = new JsonArray();
+            JsonObject userContent = new JsonObject();
+            userContent.addProperty("role", "user");
+            JsonArray parts = new JsonArray();
+            JsonObject part = new JsonObject();
+            part.addProperty("text", buildUserPrompt(seed));
+            parts.add(part);
+            userContent.add("parts", parts);
+            contents.add(userContent);
+            requestBody.add("contents", contents);
 
-                JsonObject generationConfig = new JsonObject();
-                generationConfig.addProperty("responseMimeType", "application/json");
-                requestBody.add("generationConfig", generationConfig);
+            JsonObject generationConfig = new JsonObject();
+            generationConfig.addProperty("responseMimeType", "application/json");
+            requestBody.add("generationConfig", generationConfig);
 
-                String url = BASE_URL + "/models/" + modelName + ":generateContent?key=" + apiKey;
-                Request request =
-                    new Request.Builder()
-                        .url(url)
-                        .post(
-                            RequestBody.create(
-                                gson.toJson(requestBody), MediaType.parse("application/json")))
-                        .build();
+            String url = BASE_URL + "/models/" + modelName + ":generateContent?key=" + apiKey;
+            Request request = new Request.Builder()
+                .url(url)
+                .post(
+                    RequestBody.create(
+                        gson.toJson(requestBody), MediaType.parse("application/json")))
+                .build();
 
-                try (Response response = client.newCall(request).execute()) {
-                  String body = response.body() != null ? response.body().string() : "";
-                  if (!response.isSuccessful()) {
-                    logDebug("quiz request failed: code=" + response.code());
-                    postFailure(callback, "Quiz LLM request failed: " + response.code());
-                    return;
-                  }
-
-                  String responseText = extractFirstTextPart(body);
-                  ParseResult parseResult = parseQuizQuestionsPayload(responseText);
-                  if (parseResult.getQuestions().isEmpty()) {
-                    logDebug("quiz parse failed: no valid questions");
-                    postFailure(callback, "Failed to parse quiz questions");
-                    return;
-                  }
-
-                  logDebug(
-                      "quiz parse success: questionCount="
-                          + parseResult.getQuestions().size()
-                          + ", validCount="
-                          + parseResult.getValidQuestionCount()
-                          + ", capped="
-                          + parseResult.isCapped());
-                  mainHandler.post(() -> callback.onSuccess(parseResult.getQuestions()));
-                }
-              } catch (Exception e) {
-                logDebug("quiz request exception: " + safeMessage(e));
-                postFailure(callback, "Quiz LLM error: " + safeMessage(e));
+            try (Response response = client.newCall(request).execute()) {
+              String body = response.body() != null ? response.body().string() : "";
+              if (!response.isSuccessful()) {
+                logDebug("quiz request failed: code=" + response.code());
+                postFailure(callback, "Quiz LLM request failed: " + response.code());
+                return;
               }
-            })
+
+              String responseText = extractFirstTextPart(body);
+              ParseResult parseResult = parseQuizQuestionsPayload(responseText, maxQuestions);
+              if (parseResult.getQuestions().isEmpty()) {
+                logDebug("quiz parse failed: no valid questions");
+                postFailure(callback, "Failed to parse quiz questions");
+                return;
+              }
+
+              logDebug(
+                  "quiz parse success: questionCount="
+                      + parseResult.getQuestions().size()
+                      + ", validCount="
+                      + parseResult.getValidQuestionCount()
+                      + ", capped="
+                      + parseResult.isCapped());
+              mainHandler.post(() -> callback.onSuccess(parseResult.getQuestions()));
+            }
+          } catch (Exception e) {
+            logDebug("quiz request exception: " + safeMessage(e));
+            postFailure(callback, "Quiz LLM error: " + safeMessage(e));
+          }
+        })
         .start();
   }
 
@@ -206,7 +206,7 @@ public class DialogueQuizLlmManager implements IQuizGenerationManager {
   }
 
   @NonNull
-  static ParseResult parseQuizQuestionsPayload(@Nullable String rawPayload) {
+  static ParseResult parseQuizQuestionsPayload(@Nullable String rawPayload, int maxQuestions) {
     String cleanJson = stripJsonFence(rawPayload);
     if (cleanJson.isEmpty()) {
       return ParseResult.empty();
@@ -240,31 +240,31 @@ public class DialogueQuizLlmManager implements IQuizGenerationManager {
       validQuestions.add(new QuizData.QuizQuestion(question, answer, choices, explanation));
     }
 
-    boolean capped = validQuestions.size() > MAX_QUESTIONS;
+    boolean capped = validQuestions.size() > maxQuestions;
     if (!capped) {
       return new ParseResult(validQuestions, false, validQuestions.size());
     }
 
     return new ParseResult(
-        new ArrayList<>(validQuestions.subList(0, MAX_QUESTIONS)), true, validQuestions.size());
+        new ArrayList<>(validQuestions.subList(0, maxQuestions)), true, validQuestions.size());
   }
 
   private void postFailure(@NonNull QuizCallback callback, @NonNull String error) {
     mainHandler.post(() -> callback.onFailure(error));
   }
 
-  private void addSystemInstruction(@NonNull JsonObject root) {
+  private void addSystemInstruction(@NonNull JsonObject root, int maxQuestions) {
     JsonObject systemInstruction = new JsonObject();
     JsonArray systemParts = new JsonArray();
     JsonObject systemPart = new JsonObject();
-    systemPart.addProperty("text", buildSystemPrompt());
+    systemPart.addProperty("text", buildSystemPrompt(maxQuestions));
     systemParts.add(systemPart);
     systemInstruction.add("parts", systemParts);
     root.add("systemInstruction", systemInstruction);
   }
 
   @NonNull
-  private String buildSystemPrompt() {
+  private String buildSystemPrompt(int maxQuestions) {
     return "You are an English learning quiz generator.\n"
         + "Return JSON only with this top-level shape:\n"
         + "{\n"
@@ -275,7 +275,7 @@ public class DialogueQuizLlmManager implements IQuizGenerationManager {
         + "Rules:\n"
         + "1) Build quiz items only from provided summary seed expressions/words.\n"
         + "2) questions size must be <= "
-        + MAX_QUESTIONS
+        + maxQuestions
         + ".\n"
         + "3) question and answer are required and non-empty.\n"
         + "4) choices and explanation are optional.\n"
@@ -455,7 +455,8 @@ public class DialogueQuizLlmManager implements IQuizGenerationManager {
   }
 
   static final class ParseResult {
-    @NonNull private final List<QuizData.QuizQuestion> questions;
+    @NonNull
+    private final List<QuizData.QuizQuestion> questions;
     private final boolean capped;
     private final int validQuestionCount;
 

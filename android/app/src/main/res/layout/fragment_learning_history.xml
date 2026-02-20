@@ -60,8 +60,25 @@
         android:paddingStart="16dp"
         android:paddingTop="16dp"
         android:paddingEnd="16dp"
-        android:paddingBottom="80dp"
+        android:paddingBottom="90dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
         tools:listitem="@layout/item_summary_word" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_history_quiz"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginBottom="24dp"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:paddingVertical="14dp"
+        android:text="@string/history_quiz_btn_word"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:backgroundTint="@color/toss_blue"
+        app:cornerRadius="12dp" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

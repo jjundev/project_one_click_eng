@@ -8,10 +8,12 @@ public class HistoryItemWrapper {
 
     private final int type;
     private final Object data;
+    private final long learnedAtEpochMs;
 
-    public HistoryItemWrapper(int type, Object data) {
+    public HistoryItemWrapper(int type, Object data, long learnedAtEpochMs) {
         this.type = type;
         this.data = data;
+        this.learnedAtEpochMs = learnedAtEpochMs;
     }
 
     public int getType() {
@@ -20,5 +22,9 @@ public class HistoryItemWrapper {
 
     public Object getData() {
         return data;
+    }
+
+    public long getLearnedAtEpochMs() {
+        return learnedAtEpochMs;
     }
 }

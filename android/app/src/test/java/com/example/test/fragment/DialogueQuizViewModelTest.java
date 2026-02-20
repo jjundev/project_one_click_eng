@@ -19,7 +19,8 @@ import org.junit.Test;
 
 public class DialogueQuizViewModelTest {
 
-  @Rule public InstantTaskExecutorRule instantExecutorRule = new InstantTaskExecutorRule();
+  @Rule
+  public InstantTaskExecutorRule instantExecutorRule = new InstantTaskExecutorRule();
 
   @Test
   public void initialize_limitsQuestionsToFive() {
@@ -112,8 +113,7 @@ public class DialogueQuizViewModelTest {
   @Test
   public void checkAnswer_ignoresCaseAndWhitespace() {
     FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
-    manager.nextQuestions =
-        Arrays.asList(new QuizData.QuizQuestion("Q1", "Look Forward To", null, null));
+    manager.nextQuestions = Arrays.asList(new QuizData.QuizQuestion("Q1", "Look Forward To", null, null));
     DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager);
 
     viewModel.initialize("{}");
@@ -137,14 +137,17 @@ public class DialogueQuizViewModelTest {
   }
 
   private static class FakeQuizGenerationManager implements IQuizGenerationManager {
-    @Nullable List<QuizData.QuizQuestion> nextQuestions;
-    @Nullable String nextError;
-    @Nullable SummaryData lastSummaryData;
+    @Nullable
+    List<QuizData.QuizQuestion> nextQuestions;
+    @Nullable
+    String nextError;
+    @Nullable
+    SummaryData lastSummaryData;
     int requestCount = 0;
 
     @Override
     public void generateQuizFromSummaryAsync(
-        @NonNull SummaryData summaryData, @NonNull QuizCallback callback) {
+        @NonNull SummaryData summaryData, int requestedQuestionCount, @NonNull QuizCallback callback) {
       requestCount++;
       lastSummaryData = summaryData;
       if (nextError != null) {

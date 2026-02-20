@@ -47,7 +47,40 @@
         android:id="@+id/learningHistoryFragment"
         android:name="com.example.test.fragment.history.LearningHistoryFragment"
         android:label="LearningHistoryFragment"
-        tools:layout="@layout/fragment_learning_history" />
+        tools:layout="@layout/fragment_learning_history">
+        <action
+            android:id="@+id/action_learningHistoryFragment_to_dialogueQuizFragment"
+            app:destination="@id/dialogueQuizFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/dialogueQuizFragment"
+        android:name="com.example.test.fragment.DialogueQuizFragment"
+        android:label="DialogueQuizFragment"
+        tools:layout="@layout/fragment_dialogue_quiz">
+        <argument
+            android:name="arg_summary_json"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+        <argument
+            android:name="arg_feature_bundle_json"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+        <argument
+            android:name="arg_requested_question_count"
+            app:argType="integer"
+            android:defaultValue="5" />
+        <argument
+            android:name="arg_finish_behavior"
+            app:argType="integer"
+            android:defaultValue="0" />
+    </fragment>
 
     <fragment
         android:id="@+id/settingFragment"
