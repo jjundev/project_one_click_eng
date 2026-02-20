@@ -12,8 +12,8 @@ import com.example.test.manager_gemini.DialogueGenerateManager;
 import com.example.test.manager_gemini.ExtraQuestionManager;
 import com.example.test.manager_gemini.SentenceFeedbackManager;
 import com.example.test.manager_gemini.SpeakingFeedbackManager;
-import com.example.test.summary.DialogueQuizLlmManager;
-import com.example.test.summary.SessionSummaryLlmManager;
+import com.example.test.manager_gemini.QuizGenerateManager;
+import com.example.test.summary.SessionSummaryManager;
 import com.example.test.tool.AudioRecorder;
 
 public final class LearningDependencyProvider {
@@ -54,13 +54,13 @@ public final class LearningDependencyProvider {
   @NonNull
   public static ISessionSummaryLlmManager provideSessionSummaryLlmManager(
       @NonNull String apiKey, @NonNull String modelName) {
-    return new SessionSummaryLlmManager(apiKey, modelName);
+    return new SessionSummaryManager(apiKey, modelName);
   }
 
   @NonNull
   public static IQuizGenerationManager provideQuizGenerationManager(
       @NonNull String apiKey, @NonNull String modelName) {
-    return new DialogueQuizLlmManager(apiKey, modelName);
+    return new QuizGenerateManager(apiKey, modelName);
   }
 
   @NonNull

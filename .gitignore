@@ -1,0 +1,21 @@
+# Gradle
+android/.gradle/
+.gradle/
+**/.gradle/
+
+# Build outputs
+**/build/
+/build/
+
+# IDE settings
+*.iml
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Local configuration / secrets
+android/local.properties
+local.properties
+*.jks
+*.keystore

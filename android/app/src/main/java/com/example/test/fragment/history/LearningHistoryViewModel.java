@@ -90,9 +90,9 @@ public class LearningHistoryViewModel extends ViewModel {
         for (HistoryItemWrapper item : allItems) {
             long epochMs = item.getLearnedAtEpochMs();
             if (epochMs >= startTime && epochMs <= endTime) {
-                if (currentTab == 0 && item.getType() == HistoryItemWrapper.TYPE_WORD) {
+                if (currentTab == 1 && item.getType() == HistoryItemWrapper.TYPE_WORD) {
                     words.add((SummaryData.WordItem) item.getData());
-                } else if (currentTab == 1 && item.getType() == HistoryItemWrapper.TYPE_EXPRESSION) {
+                } else if (currentTab == 0 && item.getType() == HistoryItemWrapper.TYPE_EXPRESSION) {
                     expressions.add((SummaryData.ExpressionItem) item.getData());
                 } else if (currentTab == 2 && item.getType() == HistoryItemWrapper.TYPE_SENTENCE) {
                     SummaryData.SentenceItem sentence = (SummaryData.SentenceItem) item.getData();

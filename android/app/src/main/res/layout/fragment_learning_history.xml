@@ -64,21 +64,17 @@
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
         tools:listitem="@layout/item_summary_word" />
 
-    <com.google.android.material.button.MaterialButton
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/btn_history_quiz"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:layout_marginHorizontal="20dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="20dp"
         android:layout_marginBottom="84dp"
-        android:insetTop="0dp"
-        android:insetBottom="0dp"
-        android:paddingVertical="14dp"
-        android:text="@string/history_quiz_btn_word"
-        android:textColor="@color/white"
-        android:textSize="16sp"
-        android:textStyle="bold"
+        app:srcCompat="@drawable/ic_quiz_fab"
+        app:tint="@color/white"
         app:backgroundTint="@color/toss_blue"
-        app:cornerRadius="12dp" />
+        app:fabSize="normal"
+        android:contentDescription="@string/history_quiz_btn_word" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

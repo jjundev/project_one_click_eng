@@ -84,7 +84,7 @@ public class SessionSummaryGenerator {
   }
 
   public SummaryData mergeWithLlm(
-      SummaryData fallback, SessionSummaryLlmManager.LlmSections llmSections) {
+      SummaryData fallback, SessionSummaryManager.LlmSections llmSections) {
     SummaryData base = fallback == null ? createEmptySummary() : copySummary(fallback);
     if (llmSections == null) {
       return base;
@@ -110,7 +110,7 @@ public class SessionSummaryGenerator {
       base.setWords(limit(llmWords, MAX_WORDS));
     }
 
-    SessionSummaryLlmManager.FutureSelfFeedbackSection llmFeedback =
+    SessionSummaryManager.FutureSelfFeedbackSection llmFeedback =
         llmSections.getFutureSelfFeedback();
     if (llmFeedback != null) {
       String fallbackPositive =
@@ -606,7 +606,7 @@ public class SessionSummaryGenerator {
   }
 
   private List<SummaryData.HighlightItem> fromLlmHighlights(
-      List<SessionSummaryLlmManager.HighlightSection> source,
+      List<SessionSummaryManager.HighlightSection> source,
       List<SummaryData.HighlightItem> fallbackHighlights) {
     List<SummaryData.HighlightItem> result = new ArrayList<>();
     if (source == null) {
@@ -617,7 +617,7 @@ public class SessionSummaryGenerator {
         fallbackHighlights == null ? new ArrayList<>() : fallbackHighlights;
 
     for (int i = 0; i < source.size(); i++) {
-      SessionSummaryLlmManager.HighlightSection item = source.get(i);
+      SessionSummaryManager.HighlightSection item = source.get(i);
       if (item == null) {
         continue;
       }
@@ -647,7 +647,7 @@ public class SessionSummaryGenerator {
   }
 
   private List<SummaryData.ExpressionItem> fromLlmExpressions(
-      List<SessionSummaryLlmManager.ExpressionSection> source,
+      List<SessionSummaryManager.ExpressionSection> source,
       List<SummaryData.ExpressionItem> fallbackExpressions) {
     List<SummaryData.ExpressionItem> result = new ArrayList<>();
     if (source == null) {
@@ -658,7 +658,7 @@ public class SessionSummaryGenerator {
         fallbackExpressions == null ? new ArrayList<>() : fallbackExpressions;
 
     for (int i = 0; i < source.size(); i++) {
-      SessionSummaryLlmManager.ExpressionSection item = source.get(i);
+      SessionSummaryManager.ExpressionSection item = source.get(i);
       if (item == null) {
         continue;
       }
@@ -713,12 +713,12 @@ public class SessionSummaryGenerator {
   }
 
   private List<SummaryData.WordItem> fromLlmWords(
-      List<SessionSummaryLlmManager.WordSection> source) {
+      List<SessionSummaryManager.WordSection> source) {
     List<SummaryData.WordItem> result = new ArrayList<>();
     if (source == null) {
       return result;
     }
-    for (SessionSummaryLlmManager.WordSection item : source) {
+    for (SessionSummaryManager.WordSection item : source) {
       if (item == null) {
         continue;
       }

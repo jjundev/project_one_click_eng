@@ -60,11 +60,11 @@ public class LearningHistoryAdapter extends RecyclerView.Adapter<RecyclerView.Vi
         int targetType = -1;
         switch (tabPosition) {
             case 0:
-                targetType = HistoryItemWrapper.TYPE_WORD;
-                break; // 단어
-            case 1:
                 targetType = HistoryItemWrapper.TYPE_EXPRESSION;
                 break; // 표현
+            case 1:
+                targetType = HistoryItemWrapper.TYPE_WORD;
+                break; // 단어
             case 2:
                 targetType = HistoryItemWrapper.TYPE_SENTENCE;
                 break; // 문장
