@@ -58,7 +58,6 @@ public class LearningHistoryFragment extends Fragment {
     }
 
     private void setupTabs() {
-        tabLayout.addTab(tabLayout.newTab().setText("전체"));
         tabLayout.addTab(tabLayout.newTab().setText("단어"));
         tabLayout.addTab(tabLayout.newTab().setText("표현"));
         tabLayout.addTab(tabLayout.newTab().setText("문장"));

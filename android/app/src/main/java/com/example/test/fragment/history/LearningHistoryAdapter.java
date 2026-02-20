@@ -57,31 +57,22 @@ public class LearningHistoryAdapter extends RecyclerView.Adapter<RecyclerView.Vi
 
     private void filter(int tabPosition) {
         filteredList.clear();
-        if (tabPosition == 0) { // 전체
-            // "원어민 모먼트"(HIGHLIGHT)는 저장 대상이 아니므로 전체 탭에서도 제외
+        int targetType = -1;
+        switch (tabPosition) {
+            case 0:
+                targetType = HistoryItemWrapper.TYPE_WORD;
+                break; // 단어
+            case 1:
+                targetType = HistoryItemWrapper.TYPE_EXPRESSION;
+                break; // 표현
+            case 2:
+                targetType = HistoryItemWrapper.TYPE_SENTENCE;
+                break; // 문장
+        }
+        if (targetType != -1) {
             for (HistoryItemWrapper item : allItems) {
-                if (item.getType() != HistoryItemWrapper.TYPE_HIGHLIGHT) {
+                if (item.getType() == targetType) {
                     filteredList.add(item);
-                }
-            }
-        } else {
-            int targetType = -1;
-            switch (tabPosition) {
-                case 1:
-                    targetType = HistoryItemWrapper.TYPE_WORD;
-                    break; // 단어
-                case 2:
-                    targetType = HistoryItemWrapper.TYPE_EXPRESSION;
-                    break; // 표현
-                case 3:
-                    targetType = HistoryItemWrapper.TYPE_SENTENCE;
-                    break; // 문장
-            }
-            if (targetType != -1) {
-                for (HistoryItemWrapper item : allItems) {
-                    if (item.getType() == targetType) {
-                        filteredList.add(item);
-                    }
                 }
             }
         }
