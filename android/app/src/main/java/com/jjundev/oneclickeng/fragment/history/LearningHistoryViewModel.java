@@ -3,7 +3,7 @@ package com.jjundev.oneclickeng.fragment.history;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.model.SummaryData;
+import com.jjundev.oneclickeng.learning.dialoguelearning.model.SummaryData;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;

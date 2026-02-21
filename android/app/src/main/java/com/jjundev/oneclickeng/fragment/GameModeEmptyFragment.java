@@ -14,6 +14,7 @@ import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.activity.MinefieldGameActivity;
 import com.jjundev.oneclickeng.activity.NativeOrNotGameActivity;
+import com.jjundev.oneclickeng.activity.RefinerGameActivity;
 import com.jjundev.oneclickeng.settings.AppSettings;
 import com.jjundev.oneclickeng.settings.AppSettingsStore;
 
@@ -37,6 +38,7 @@ public class GameModeEmptyFragment extends Fragment {
 
   private void setupClickListeners(@NonNull View view) {
     View nativeOrNotCard = view.findViewById(R.id.card_game_native_or_not);
+    View refinerCard = view.findViewById(R.id.card_game_refiner);
     View minefieldCard = view.findViewById(R.id.card_game_fill_blank);
 
     if (nativeOrNotCard != null) {
@@ -60,6 +62,17 @@ public class GameModeEmptyFragment extends Fragment {
             startActivity(new Intent(requireContext(), MinefieldGameActivity.class));
           });
     }
+
+    if (refinerCard != null) {
+      refinerCard.setOnClickListener(
+          v -> {
+            if (!hasEffectiveApiKey()) {
+              showRefinerApiKeyRequiredDialog(v);
+              return;
+            }
+            startActivity(new Intent(requireContext(), RefinerGameActivity.class));
+          });
+    }
   }
 
   private boolean hasEffectiveApiKey() {
@@ -76,8 +89,7 @@ public class GameModeEmptyFragment extends Fragment {
         .setNegativeButton(R.string.native_or_not_api_missing_cancel, null)
         .setPositiveButton(
             R.string.native_or_not_api_missing_open_settings,
-            (dialog, which) ->
-                Navigation.findNavController(anchorView).navigate(R.id.settingFragment))
+            (dialog, which) -> Navigation.findNavController(anchorView).navigate(R.id.settingFragment))
         .show();
   }
 
@@ -88,18 +100,26 @@ public class GameModeEmptyFragment extends Fragment {
         .setNegativeButton(R.string.minefield_api_missing_cancel, null)
         .setPositiveButton(
             R.string.minefield_api_missing_open_settings,
-            (dialog, which) ->
-                Navigation.findNavController(anchorView).navigate(R.id.settingFragment))
+            (dialog, which) -> Navigation.findNavController(anchorView).navigate(R.id.settingFragment))
+        .show();
+  }
+
+  private void showRefinerApiKeyRequiredDialog(@NonNull View anchorView) {
+    new MaterialAlertDialogBuilder(requireContext())
+        .setTitle(R.string.refiner_api_missing_title)
+        .setMessage(R.string.refiner_api_missing_message)
+        .setNegativeButton(R.string.refiner_api_missing_cancel, null)
+        .setPositiveButton(
+            R.string.refiner_api_missing_open_settings,
+            (dialog, which) -> Navigation.findNavController(anchorView).navigate(R.id.settingFragment))
         .show();
   }
 
   private void startCardAnimations(View view) {
     View[] cards = {
-      view.findViewById(R.id.card_game_native_or_not),
-      view.findViewById(R.id.card_game_word_speed),
-      view.findViewById(R.id.card_game_fill_blank),
-      view.findViewById(R.id.card_game_grammar_race),
-      view.findViewById(R.id.card_game_survival)
+        view.findViewById(R.id.card_game_native_or_not),
+        view.findViewById(R.id.card_game_refiner),
+        view.findViewById(R.id.card_game_fill_blank)
     };
 
     long baseDelay = 0; // Start immediately

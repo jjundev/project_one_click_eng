@@ -7,9 +7,11 @@ import static org.junit.Assert.assertTrue;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.manager_contracts.IQuizGenerationManager;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.model.QuizData;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.model.SummaryData;
+import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IQuizGenerationManager;
+import com.jjundev.oneclickeng.learning.dialoguelearning.model.QuizData;
+import com.jjundev.oneclickeng.learning.dialoguelearning.model.SummaryData;
+import com.jjundev.oneclickeng.learning.quiz.DialogueQuizViewModel;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

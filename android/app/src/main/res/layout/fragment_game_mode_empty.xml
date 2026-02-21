@@ -123,9 +123,9 @@
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_game_word_speed"
+                android:id="@+id/card_game_refiner"
                 android:layout_width="match_parent"
-                android:layout_height="120dp"
+                android:layout_height="136dp"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="24dp"
                 app:cardElevation="0dp">
@@ -133,30 +133,38 @@
                 <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:background="@drawable/bg_card_gradient_blue"
+                    android:background="@drawable/bg_card_gradient_purple"
                     android:padding="20dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="단어 스피드 퀴즈"
+                        android:text="@string/refiner_entry_title"
                         android:textColor="@color/white"
-                        android:textSize="18sp"
+                        android:textSize="20sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="bottom"
-                        android:text="빠르게 단어의 의미를 맞춰보세요"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/refiner_entry_subtitle"
                         android:textColor="@color/white_to_transparent_gradient"
-                        android:textSize="14sp" />
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="bottom|start"
+                        android:text="@string/refiner_entry_footer"
+                        android:textColor="@color/white_to_transparent_gradient"
+                        android:textSize="12sp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="top|end"
-                        android:text="⚡"
+                        android:text="✍️"
                         android:textSize="40sp" />
                 </FrameLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -204,84 +212,6 @@
                         android:layout_height="wrap_content"
                         android:layout_gravity="top|end"
                         android:text="💣"
-                        android:textSize="40sp" />
-                </FrameLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_game_grammar_race"
-                android:layout_width="match_parent"
-                android:layout_height="120dp"
-                app:cardCornerRadius="24dp"
-                android:layout_marginBottom="16dp"
-                app:cardElevation="0dp">
-
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/bg_card_gradient_blue"
-                    android:padding="20dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="문법 레이스"
-                        android:textColor="@color/white"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom"
-                        android:text="헷갈리는 문법을 게임처럼 재밌게!"
-                        android:textColor="@color/white_to_transparent_gradient"
-                        android:textSize="14sp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="top|end"
-                        android:text="🏁"
-                        android:textSize="40sp" />
-                </FrameLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_game_survival"
-                android:layout_width="match_parent"
-                android:layout_height="120dp"
-                app:cardCornerRadius="24dp"
-                android:layout_marginBottom="16dp"
-                app:cardElevation="0dp">
-
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/bg_card_gradient_purple"
-                    android:padding="20dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="최후의 1인, 서바이벌"
-                        android:textColor="@color/white"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom"
-                        android:text="틀리면 즉시 탈락! 끝까지 살아남아보세요"
-                        android:textColor="@color/white_to_transparent_gradient"
-                        android:textSize="14sp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="top|end"
-                        android:text="🏆"
                         android:textSize="40sp" />
                 </FrameLayout>
             </com.google.android.material.card.MaterialCardView>

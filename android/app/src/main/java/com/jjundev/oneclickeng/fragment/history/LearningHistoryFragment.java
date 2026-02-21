@@ -14,6 +14,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.tabs.TabLayout;
 import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
+import com.jjundev.oneclickeng.learning.dialoguelearning.model.SummaryData;
+
 import java.util.List;
 
 public class LearningHistoryFragment extends Fragment {
@@ -107,7 +109,7 @@ public class LearningHistoryFragment extends Fragment {
               int questionCount = result.getInt(HistoryQuizConfigDialog.BUNDLE_KEY_QUESTION_COUNT);
 
               int currentTab = tabLayout.getSelectedTabPosition();
-              com.jjundev.oneclickeng.fragment.dialoguelearning.model.SummaryData seed =
+              SummaryData seed =
                   viewModel.generateQuizSeed(periodBucket, currentTab);
 
               if (seed == null) {

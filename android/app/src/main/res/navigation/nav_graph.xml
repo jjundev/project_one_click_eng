@@ -27,7 +27,7 @@
 
     <fragment
         android:id="@+id/dialogueSummaryFragment"
-        android:name="com.jjundev.oneclickeng.fragment.DialogueSummaryFragment"
+        android:name="com.jjundev.oneclickeng.learning.dialoguelearning.DialogueSummaryFragment"
         android:label="DialogueSummaryFragment"
         tools:layout="@layout/fragment_dialogue_summary" />
 

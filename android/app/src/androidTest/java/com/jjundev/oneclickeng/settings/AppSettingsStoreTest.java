@@ -41,4 +41,17 @@ public class AppSettingsStoreTest {
     AppSettings settings = store.getSettings();
     assertEquals(AppSettings.DEFAULT_MODEL_MINEFIELD, settings.getLlmModelMinefield());
   }
+
+  @Test
+  public void refinerModel_defaultsToConstant() {
+    AppSettings settings = store.getSettings();
+    assertEquals(AppSettings.DEFAULT_MODEL_REFINER, settings.getLlmModelRefiner());
+  }
+
+  @Test
+  public void refinerModel_persistsAndRestores() {
+    store.setLlmModelRefiner("gemini-2.5-flash");
+    AppSettings settings = store.getSettings();
+    assertEquals("gemini-2.5-flash", settings.getLlmModelRefiner());
+  }
 }

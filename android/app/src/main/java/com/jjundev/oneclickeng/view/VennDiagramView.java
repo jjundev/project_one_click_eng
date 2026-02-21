@@ -9,7 +9,7 @@ import android.graphics.Typeface;
 import android.util.AttributeSet;
 import android.view.View;
 import androidx.annotation.Nullable;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.model.VennDiagram;
+import com.jjundev.oneclickeng.learning.dialoguelearning.model.VennDiagram;
 import java.util.List;
 
 /**

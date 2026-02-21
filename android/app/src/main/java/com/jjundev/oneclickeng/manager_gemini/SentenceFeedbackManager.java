@@ -9,14 +9,14 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.manager_contracts.ISentenceFeedbackManager;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.model.ConceptualBridge;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.model.GrammarFeedback;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.model.NaturalnessFeedback;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.model.ParaphrasingLevel;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.model.SentenceFeedback;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.model.ToneStyle;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.model.WritingScore;
+import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISentenceFeedbackManager;
+import com.jjundev.oneclickeng.learning.dialoguelearning.model.ConceptualBridge;
+import com.jjundev.oneclickeng.learning.dialoguelearning.model.GrammarFeedback;
+import com.jjundev.oneclickeng.learning.dialoguelearning.model.NaturalnessFeedback;
+import com.jjundev.oneclickeng.learning.dialoguelearning.model.ParaphrasingLevel;
+import com.jjundev.oneclickeng.learning.dialoguelearning.model.SentenceFeedback;
+import com.jjundev.oneclickeng.learning.dialoguelearning.model.ToneStyle;
+import com.jjundev.oneclickeng.learning.dialoguelearning.model.WritingScore;
 import com.jjundev.oneclickeng.tool.IncrementalJsonSectionParser;
 import java.io.IOException;
 import java.time.Instant;
@@ -33,8 +33,7 @@ import okio.BufferedSource;
  * support.
  */
 public class SentenceFeedbackManager
-    implements com.jjundev.oneclickeng.fragment.dialoguelearning.manager_contracts
-        .ISentenceFeedbackManager {
+    implements com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISentenceFeedbackManager {
 
   private static final String TAG = "SentenceFeedbackManager";
   private static final String BASE_URL = "https://generativelanguage.googleapis.com/v1beta";

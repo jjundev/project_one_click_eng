@@ -22,7 +22,7 @@ import com.google.android.material.chip.Chip;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.di.LearningDependencyProvider;
+import com.jjundev.oneclickeng.learning.dialoguelearning.di.LearningDependencyProvider;
 import com.jjundev.oneclickeng.game.minefield.MinefieldGameViewModel;
 import com.jjundev.oneclickeng.game.minefield.MinefieldGameViewModelFactory;
 import com.jjundev.oneclickeng.game.minefield.MinefieldStatsStore;

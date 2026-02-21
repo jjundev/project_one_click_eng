@@ -21,7 +21,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.button.MaterialButton;
 import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.di.LearningDependencyProvider;
+import com.jjundev.oneclickeng.learning.dialoguelearning.di.LearningDependencyProvider;
 import com.jjundev.oneclickeng.game.nativeornot.NativeOrNotGameViewModel;
 import com.jjundev.oneclickeng.game.nativeornot.NativeOrNotGameViewModelFactory;
 import com.jjundev.oneclickeng.game.nativeornot.NativeOrNotStatsStore;

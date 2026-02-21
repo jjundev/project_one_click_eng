@@ -16,7 +16,7 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.card.MaterialCardView;
 import com.jjundev.oneclickeng.R;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.model.SummaryData;
+import com.jjundev.oneclickeng.learning.dialoguelearning.model.SummaryData;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;

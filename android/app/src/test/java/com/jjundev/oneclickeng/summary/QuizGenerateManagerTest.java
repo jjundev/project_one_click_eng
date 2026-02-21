@@ -6,8 +6,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import com.jjundev.oneclickeng.fragment.dialoguelearning.model.QuizData;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.model.SummaryData;
+import com.jjundev.oneclickeng.learning.dialoguelearning.model.QuizData;
+import com.jjundev.oneclickeng.learning.dialoguelearning.model.SummaryData;
 import com.jjundev.oneclickeng.manager_gemini.QuizGenerateManager;
 import java.util.ArrayList;
 import java.util.Arrays;

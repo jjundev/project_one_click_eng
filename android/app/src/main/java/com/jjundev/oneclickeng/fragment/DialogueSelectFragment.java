@@ -20,8 +20,8 @@ import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.activity.DialogueLearningActivity;
 import com.jjundev.oneclickeng.dialog.DialogueGenerateDialog;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.di.LearningDependencyProvider;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.manager_contracts.IDialogueGenerateManager;
+import com.jjundev.oneclickeng.learning.dialoguelearning.di.LearningDependencyProvider;
+import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IDialogueGenerateManager;
 import com.jjundev.oneclickeng.others.ScriptSelectAdapter;
 import com.jjundev.oneclickeng.others.ScriptTemplate;
 import com.jjundev.oneclickeng.settings.AppSettings;
@@ -149,8 +149,7 @@ public class DialogueSelectFragment extends Fragment
         topic,
         format,
         length,
-        new com.jjundev.oneclickeng.fragment.dialoguelearning.manager_contracts
-            .IDialogueGenerateManager.ScriptGenerationCallback() {
+        new com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IDialogueGenerateManager.ScriptGenerationCallback() {
           @Override
           public void onSuccess(String jsonResult) {
             if (!isAdded()) return;

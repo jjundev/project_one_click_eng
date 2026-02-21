@@ -12,8 +12,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.manager_contracts.ISpeakingFeedbackManager;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.model.FluencyFeedback;
+import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISpeakingFeedbackManager;
+import com.jjundev.oneclickeng.learning.dialoguelearning.model.FluencyFeedback;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -30,8 +31,7 @@ import okhttp3.Response;
 
 /** Gemini Fluency Analysis Manager Uses REST API generateContent to analyze audio. */
 public class SpeakingFeedbackManager
-    implements com.jjundev.oneclickeng.fragment.dialoguelearning.manager_contracts
-        .ISpeakingFeedbackManager {
+    implements com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISpeakingFeedbackManager {
 
   private static final String TAG = "SpeakingFeedbackManager";
   private static final String BASE_URL = "https://generativelanguage.googleapis.com/v1beta";

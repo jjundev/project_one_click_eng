@@ -16,8 +16,8 @@ import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.dialog.DialogueLearningSettingDialog;
 import com.jjundev.oneclickeng.dialog.ExitConfirmDialog;
-import com.jjundev.oneclickeng.fragment.DialogueLearningFragment;
-import com.jjundev.oneclickeng.fragment.DialogueSummaryFragment;
+import com.jjundev.oneclickeng.learning.dialoguelearning.DialogueLearningFragment;
+import com.jjundev.oneclickeng.learning.dialoguelearning.DialogueSummaryFragment;
 
 public class DialogueLearningActivity extends AppCompatActivity
     implements DialogueLearningFragment.OnScriptProgressListener,

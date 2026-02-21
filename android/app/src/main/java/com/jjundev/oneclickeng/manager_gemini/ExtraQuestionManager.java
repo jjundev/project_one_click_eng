@@ -7,7 +7,8 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.jjundev.oneclickeng.fragment.dialoguelearning.manager_contracts.IExtraQuestionManager;
+import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IExtraQuestionManager;
+
 import java.util.concurrent.TimeUnit;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -18,8 +19,7 @@ import okio.BufferedSource;
 
 /** Gemini 추가 질문 처리 매니저 피드백 결과에 대한 사용자의 추가 질문을 처리합니다. */
 public class ExtraQuestionManager
-    implements com.jjundev.oneclickeng.fragment.dialoguelearning.manager_contracts
-        .IExtraQuestionManager {
+    implements com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IExtraQuestionManager {
   private static final String TAG = "ExtraQuestionManager";
   private static final String BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
   private static final String DEFAULT_MODEL_NAME = "gemini-3-flash-preview";
