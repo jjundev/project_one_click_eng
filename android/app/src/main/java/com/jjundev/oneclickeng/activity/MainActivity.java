@@ -25,8 +25,8 @@ public class MainActivity extends AppCompatActivity {
     setContentView(R.layout.activity_main);
 
     BottomNavigationView bottomNavigation = findViewById(R.id.bottom_navigation);
-    NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
-        .findFragmentById(R.id.fragment_container);
+    NavHostFragment navHostFragment =
+        (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_container);
 
     if (navHostFragment == null) {
       logDebug("NavHostFragment is null. Bottom navigation setup skipped.");
@@ -46,9 +46,10 @@ public class MainActivity extends AppCompatActivity {
     bottomNavigation.setOnItemReselectedListener(
         item -> {
           int itemId = item.getItemId();
-          int currentDestinationId = navController.getCurrentDestination() != null
-              ? navController.getCurrentDestination().getId()
-              : -1;
+          int currentDestinationId =
+              navController.getCurrentDestination() != null
+                  ? navController.getCurrentDestination().getId()
+                  : -1;
 
           if (currentDestinationId != itemId) {
             String selectedName = getResources().getResourceEntryName(itemId);
@@ -77,17 +78,21 @@ public class MainActivity extends AppCompatActivity {
           logDebug("Fragment switched: " + destinationName + " (" + destinationId + ")");
         });
 
-    getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
-      @Override
-      public void handleOnBackPressed() {
-        if (System.currentTimeMillis() - backPressedTime < 2000) {
-          finish();
-        } else {
-          Toast.makeText(MainActivity.this, "앱을 종료하려면 한번 더 눌러주세요", Toast.LENGTH_SHORT).show();
-          backPressedTime = System.currentTimeMillis();
-        }
-      }
-    });
+    getOnBackPressedDispatcher()
+        .addCallback(
+            this,
+            new OnBackPressedCallback(true) {
+              @Override
+              public void handleOnBackPressed() {
+                if (System.currentTimeMillis() - backPressedTime < 2000) {
+                  finish();
+                } else {
+                  Toast.makeText(MainActivity.this, "앱을 종료하려면 한번 더 눌러주세요", Toast.LENGTH_SHORT)
+                      .show();
+                  backPressedTime = System.currentTimeMillis();
+                }
+              }
+            });
   }
 
   private void logDebug(String message) {

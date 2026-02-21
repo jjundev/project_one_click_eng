@@ -434,5 +434,18 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- ===== 로그아웃 버튼 ===== -->
+        <TextView
+            android:id="@+id/tv_logout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="32dp"
+            android:background="?attr/selectableItemBackground"
+            android:padding="8dp"
+            android:text="로그아웃"
+            android:textColor="@color/grey_400"
+            android:textSize="12sp" />
+
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

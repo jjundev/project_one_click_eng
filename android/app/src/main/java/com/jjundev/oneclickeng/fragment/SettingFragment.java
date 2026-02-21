@@ -17,11 +17,13 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
+import com.jjundev.oneclickeng.activity.LoginActivity;
 import com.jjundev.oneclickeng.settings.AppSettings;
 import com.jjundev.oneclickeng.settings.AppSettingsStore;
 import okhttp3.MediaType;
@@ -52,6 +54,7 @@ public class SettingFragment extends Fragment {
   private TextView tvApiTestResult;
   private TextView tvAppVersion;
   private TextView tvModelReset;
+  private TextView tvLogout;
 
   private TextView tvLabelSentence;
   private TextView tvLabelSpeaking;
@@ -92,6 +95,7 @@ public class SettingFragment extends Fragment {
     tvApiTestResult = view.findViewById(R.id.tv_api_test_result);
     tvAppVersion = view.findViewById(R.id.tv_app_version);
     tvModelReset = view.findViewById(R.id.tv_model_reset);
+    tvLogout = view.findViewById(R.id.tv_logout);
 
     tvLabelSentence = view.findViewById(R.id.tv_label_sentence);
     tvLabelSpeaking = view.findViewById(R.id.tv_label_speaking);
@@ -157,6 +161,21 @@ public class SettingFragment extends Fragment {
     }
 
     btnApiTest.setOnClickListener(v -> runApiConnectionTest());
+
+    if (tvLogout != null) {
+      tvLogout.setOnClickListener(v -> performLogout());
+    }
+  }
+
+  private void performLogout() {
+    FirebaseAuth.getInstance().signOut();
+    android.content.Intent intent =
+        new android.content.Intent(requireContext(), LoginActivity.class);
+    intent.setFlags(
+        android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+            | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
+    startActivity(intent);
+    requireActivity().finish();
   }
 
   private void bindModelSpinner(
