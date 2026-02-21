@@ -1,7 +1,6 @@
 package com.jjundev.oneclickeng.fragment;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -22,167 +21,138 @@ public class DialogueQuizViewModelTest {
   @Rule public InstantTaskExecutorRule instantExecutorRule = new InstantTaskExecutorRule();
 
   @Test
-  public void initialize_limitsQuestionsToFive() {
+  public void initialize_transitionsToReadyWhenFirstStreamingQuestionArrives() {
     FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
-    manager.nextQuestions = buildChoiceQuestions(7);
     DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager);
 
     viewModel.initialize("{}");
 
-    DialogueQuizViewModel.QuizUiState state = viewModel.getUiState().getValue();
-    assertNotNull(state);
-    assertEquals(DialogueQuizViewModel.QuizUiState.Status.READY, state.getStatus());
-    assertEquals(5, state.getTotalQuestions());
-    assertEquals(1, state.getCurrentQuestionNumber());
+    DialogueQuizViewModel.QuizUiState loadingState = viewModel.getUiState().getValue();
+    assertNotNull(loadingState);
+    assertEquals(DialogueQuizViewModel.QuizUiState.Status.LOADING, loadingState.getStatus());
+
+    manager.emitQuestion(0, buildChoiceQuestion("Q1", "A1"));
+
+    DialogueQuizViewModel.QuizUiState readyState = viewModel.getUiState().getValue();
+    assertNotNull(readyState);
+    assertEquals(DialogueQuizViewModel.QuizUiState.Status.READY, readyState.getStatus());
+    assertEquals("Q1", readyState.getQuestionState().getQuestion());
+    assertEquals(5, readyState.getTotalQuestions());
+    assertEquals(1, readyState.getCurrentQuestionNumber());
   }
 
   @Test
-  public void onPrimaryAction_checksAndMovesToNextQuestion() {
+  public void onPrimaryAction_waitsUntilNextQuestionArrives() {
     FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
-    List<QuizData.QuizQuestion> questions = new ArrayList<>();
-    questions.add(new QuizData.QuizQuestion("Q1", "A1", Arrays.asList("A1", "B1"), null));
-    questions.add(new QuizData.QuizQuestion("Q2", "A2", Arrays.asList("A2", "B2"), null));
-    manager.nextQuestions = questions;
     DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager);
 
     viewModel.initialize("{}");
-    DialogueQuizViewModel.QuizUiState initial = viewModel.getUiState().getValue();
-    assertNotNull(initial);
-    assertTrue(initial.getQuestionState().isMultipleChoice());
+    manager.emitQuestion(0, buildChoiceQuestion("Q1", "A1"));
 
     viewModel.onChoiceSelected("A1");
-    viewModel.onPrimaryAction();
-    DialogueQuizViewModel.QuizUiState checked = viewModel.getUiState().getValue();
-    assertNotNull(checked);
-    assertTrue(checked.getQuestionState().isChecked());
-    assertTrue(checked.getQuestionState().isCorrect());
+    assertEquals(DialogueQuizViewModel.PrimaryActionResult.CHECKED, viewModel.onPrimaryAction());
+    assertEquals(
+        DialogueQuizViewModel.PrimaryActionResult.WAITING_NEXT_QUESTION,
+        viewModel.onPrimaryAction());
 
-    viewModel.onPrimaryAction();
-    DialogueQuizViewModel.QuizUiState second = viewModel.getUiState().getValue();
-    assertNotNull(second);
-    assertEquals(2, second.getCurrentQuestionNumber());
-    assertTrue(second.getQuestionState().isMultipleChoice());
-    assertFalse(second.getQuestionState().isChecked());
+    DialogueQuizViewModel.QuizUiState waitingState = viewModel.getUiState().getValue();
+    assertNotNull(waitingState);
+    assertEquals(DialogueQuizViewModel.QuizUiState.Status.READY, waitingState.getStatus());
+    assertEquals("Q1", waitingState.getQuestionState().getQuestion());
+    assertTrue(waitingState.getQuestionState().isChecked());
+
+    manager.emitQuestion(0, buildChoiceQuestion("Q2", "A2"));
+
+    assertEquals(
+        DialogueQuizViewModel.PrimaryActionResult.MOVED_TO_NEXT, viewModel.onPrimaryAction());
+    DialogueQuizViewModel.QuizUiState secondState = viewModel.getUiState().getValue();
+    assertNotNull(secondState);
+    assertEquals("Q2", secondState.getQuestionState().getQuestion());
+    assertEquals(2, secondState.getCurrentQuestionNumber());
   }
 
   @Test
-  public void onPrimaryAction_movesToCompleteState() {
+  public void partialStreamCompletion_allowsCompletionWithBufferedQuestions() {
     FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
-    List<QuizData.QuizQuestion> questions = new ArrayList<>();
-    questions.add(new QuizData.QuizQuestion("Q1", "A1", Arrays.asList("A1", "B1"), null));
-    questions.add(new QuizData.QuizQuestion("Q2", "A2", Arrays.asList("A2", "B2"), null));
-    manager.nextQuestions = questions;
     DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager);
 
     viewModel.initialize("{}");
+    manager.emitQuestion(0, buildChoiceQuestion("Q1", "A1"));
+    manager.emitQuestion(0, buildChoiceQuestion("Q2", "A2"));
+    manager.completeRequest(0, "partial stream interrupted");
+
+    DialogueQuizViewModel.QuizUiState completedStreamState = viewModel.getUiState().getValue();
+    assertNotNull(completedStreamState);
+    assertEquals(2, completedStreamState.getTotalQuestions());
+
     viewModel.onChoiceSelected("A1");
-    viewModel.onPrimaryAction();
-    viewModel.onPrimaryAction();
-    viewModel.onChoiceSelected("B2");
-    viewModel.onPrimaryAction();
-    viewModel.onPrimaryAction();
+    assertEquals(DialogueQuizViewModel.PrimaryActionResult.CHECKED, viewModel.onPrimaryAction());
+    assertEquals(
+        DialogueQuizViewModel.PrimaryActionResult.MOVED_TO_NEXT, viewModel.onPrimaryAction());
 
-    DialogueQuizViewModel.QuizUiState completed = viewModel.getUiState().getValue();
-    assertNotNull(completed);
-    assertEquals(DialogueQuizViewModel.QuizUiState.Status.COMPLETED, completed.getStatus());
-    assertEquals(2, completed.getTotalQuestions());
-    assertEquals(1, completed.getCorrectAnswerCount());
+    viewModel.onChoiceSelected("A2");
+    assertEquals(DialogueQuizViewModel.PrimaryActionResult.CHECKED, viewModel.onPrimaryAction());
+    assertEquals(DialogueQuizViewModel.PrimaryActionResult.COMPLETED, viewModel.onPrimaryAction());
+
+    DialogueQuizViewModel.QuizUiState finalState = viewModel.getUiState().getValue();
+    assertNotNull(finalState);
+    assertEquals(DialogueQuizViewModel.QuizUiState.Status.COMPLETED, finalState.getStatus());
+    assertEquals(2, finalState.getTotalQuestions());
+    assertEquals(2, finalState.getCorrectAnswerCount());
   }
 
   @Test
-  public void retryLoad_recoversFromFailure() {
+  public void streamFailureBeforeFirstQuestion_showsError() {
     FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
-    manager.nextError = "network_error";
     DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager);
 
     viewModel.initialize("{}");
+    manager.failRequest(0, "network_error");
+
     DialogueQuizViewModel.QuizUiState errorState = viewModel.getUiState().getValue();
     assertNotNull(errorState);
     assertEquals(DialogueQuizViewModel.QuizUiState.Status.ERROR, errorState.getStatus());
+    assertEquals("network_error", errorState.getErrorMessage());
+  }
 
-    manager.nextError = null;
-    manager.nextQuestions = buildChoiceQuestions(1);
+  @Test
+  public void retryLoad_ignoresStaleStreamingCallbacks() {
+    FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
+    DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager);
+
+    viewModel.initialize("{}");
+    manager.emitQuestion(0, buildChoiceQuestion("OLD_Q1", "A1"));
+
     viewModel.retryLoad();
-
-    DialogueQuizViewModel.QuizUiState recovered = viewModel.getUiState().getValue();
-    assertNotNull(recovered);
-    assertEquals(DialogueQuizViewModel.QuizUiState.Status.READY, recovered.getStatus());
     assertEquals(2, manager.requestCount);
-  }
 
-  @Test
-  public void checkAnswer_ignoresCaseAndWhitespace() {
-    FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
-    manager.nextQuestions =
-        Arrays.asList(
-            new QuizData.QuizQuestion(
-                "Q1", "Look Forward To", Arrays.asList("  look forward to ", "give up"), null));
-    DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager);
+    manager.emitQuestion(0, buildChoiceQuestion("OLD_Q2", "A2"));
+    manager.failRequest(0, "old_request_failed");
 
-    viewModel.initialize("{}");
-    viewModel.onChoiceSelected("  look forward to ");
-    viewModel.onPrimaryAction();
+    DialogueQuizViewModel.QuizUiState loadingState = viewModel.getUiState().getValue();
+    assertNotNull(loadingState);
+    assertEquals(DialogueQuizViewModel.QuizUiState.Status.LOADING, loadingState.getStatus());
 
-    DialogueQuizViewModel.QuizUiState state = viewModel.getUiState().getValue();
-    assertNotNull(state);
-    assertEquals(DialogueQuizViewModel.QuizUiState.Status.READY, state.getStatus());
-    assertTrue(state.getQuestionState().isChecked());
-    assertTrue(state.getQuestionState().isCorrect());
-  }
+    manager.emitQuestion(1, buildChoiceQuestion("NEW_Q1", "N1"));
 
-  @Test
-  public void initialize_skipsQuestionsWithoutEnoughChoices() {
-    FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
-    manager.nextQuestions =
-        Arrays.asList(
-            new QuizData.QuizQuestion("Q1", "A1", null, null),
-            new QuizData.QuizQuestion("Q2", "A2", Arrays.asList("A2"), null),
-            new QuizData.QuizQuestion("Q3", "A3", Arrays.asList("A3", "B3"), null),
-            new QuizData.QuizQuestion("Q4", "A4", Arrays.asList("A4", "B4", "C4"), null));
-    DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager);
-
-    viewModel.initialize("{}");
-
-    DialogueQuizViewModel.QuizUiState state = viewModel.getUiState().getValue();
-    assertNotNull(state);
-    assertEquals(DialogueQuizViewModel.QuizUiState.Status.READY, state.getStatus());
-    assertEquals(2, state.getTotalQuestions());
-    assertEquals("Q3", state.getQuestionState().getQuestion());
-  }
-
-  @Test
-  public void initialize_returnsErrorWhenAllQuestionsAreInvalid() {
-    FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
-    manager.nextQuestions =
-        Arrays.asList(
-            new QuizData.QuizQuestion("Q1", "A1", null, null),
-            new QuizData.QuizQuestion("Q2", "A2", Arrays.asList("A2"), null));
-    DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager);
-
-    viewModel.initialize("{}");
-
-    DialogueQuizViewModel.QuizUiState state = viewModel.getUiState().getValue();
-    assertNotNull(state);
-    assertEquals(DialogueQuizViewModel.QuizUiState.Status.ERROR, state.getStatus());
+    DialogueQuizViewModel.QuizUiState readyState = viewModel.getUiState().getValue();
+    assertNotNull(readyState);
+    assertEquals(DialogueQuizViewModel.QuizUiState.Status.READY, readyState.getStatus());
+    assertEquals("NEW_Q1", readyState.getQuestionState().getQuestion());
   }
 
   @NonNull
-  private static List<QuizData.QuizQuestion> buildChoiceQuestions(int count) {
-    List<QuizData.QuizQuestion> result = new ArrayList<>();
-    for (int i = 1; i <= count; i++) {
-      result.add(
-          new QuizData.QuizQuestion(
-              "Question " + i,
-              "Answer " + i,
-              Arrays.asList("Answer " + i, "Wrong " + i + " A", "Wrong " + i + " B"),
-              null));
-    }
-    return result;
+  private static QuizData.QuizQuestion buildChoiceQuestion(
+      @NonNull String question, @NonNull String answer) {
+    return new QuizData.QuizQuestion(
+        question, answer, Arrays.asList(answer, "Wrong-A", "Wrong-B"), null);
   }
 
   private static class FakeQuizGenerationManager implements IQuizGenerationManager {
-    @Nullable List<QuizData.QuizQuestion> nextQuestions;
-    @Nullable String nextError;
+    @NonNull
+    private final List<IQuizGenerationManager.QuizStreamingCallback> streamingCallbacks =
+        new ArrayList<>();
+
     @Nullable SummaryData lastSummaryData;
     int requestCount = 0;
 
@@ -196,13 +166,29 @@ public class DialogueQuizViewModelTest {
         @NonNull SummaryData summaryData,
         int requestedQuestionCount,
         @NonNull QuizCallback callback) {
+      callback.onFailure("one-shot path is not used in this test");
+    }
+
+    @Override
+    public void generateQuizFromSummaryStreamingAsync(
+        @NonNull SummaryData summaryData,
+        int requestedQuestionCount,
+        @NonNull QuizStreamingCallback callback) {
       requestCount++;
       lastSummaryData = summaryData;
-      if (nextError != null) {
-        callback.onFailure(nextError);
-        return;
-      }
-      callback.onSuccess(nextQuestions == null ? new ArrayList<>() : nextQuestions);
+      streamingCallbacks.add(callback);
+    }
+
+    void emitQuestion(int requestIndex, @NonNull QuizData.QuizQuestion question) {
+      streamingCallbacks.get(requestIndex).onQuestion(question);
+    }
+
+    void completeRequest(int requestIndex, @Nullable String warning) {
+      streamingCallbacks.get(requestIndex).onComplete(warning);
+    }
+
+    void failRequest(int requestIndex, @NonNull String error) {
+      streamingCallbacks.get(requestIndex).onFailure(error);
     }
   }
 }

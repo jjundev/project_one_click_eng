@@ -347,6 +347,17 @@
             app:backgroundTint="@color/toss_blue"
             app:cornerRadius="12dp" />
 
+        <TextView
+            android:id="@+id/tv_quiz_next_loading_notice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center"
+            android:text="@string/quiz_next_question_loading_notice"
+            android:textColor="@color/grey_600"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
     </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -18,22 +18,31 @@ import java.util.Set;
 
 public class DialogueQuizViewModel extends ViewModel {
   private static final String TAG = "JOB_J-20260217-002";
-  private static final String DEFAULT_QUIZ_ERROR = "Quiz questions are unavailable right now. Please try again.";
+  private static final String DEFAULT_QUIZ_ERROR =
+      "Quiz questions are unavailable right now. Please try again.";
+
+  public enum PrimaryActionResult {
+    NONE,
+    CHECKED,
+    MOVED_TO_NEXT,
+    WAITING_NEXT_QUESTION,
+    COMPLETED
+  }
 
   private final IQuizGenerationManager quizGenerationManager;
   private final Gson gson = new Gson();
   private final MutableLiveData<QuizUiState> uiState = new MutableLiveData<>(QuizUiState.loading());
 
-  @Nullable
-  private SummaryData summaryData;
-  @NonNull
-  private List<QuizData.QuizQuestion> questions = new ArrayList<>();
-  @Nullable
-  private QuizQuestionState currentQuestionState;
+  @Nullable private SummaryData summaryData;
+  @NonNull private List<QuizData.QuizQuestion> questions = new ArrayList<>();
+  @NonNull private final Set<String> seenQuestionKeys = new HashSet<>();
+  @Nullable private QuizQuestionState currentQuestionState;
   private int currentQuestionIndex = 0;
   private int correctAnswerCount = 0;
   private boolean hasInitialized = false;
-  private int maxQuestions = 5;
+  private int requestedQuestionCount = 5;
+  private boolean streamCompleted = false;
+  private long activeLoadRequestId = 0L;
 
   public DialogueQuizViewModel(@NonNull IQuizGenerationManager quizGenerationManager) {
     this.quizGenerationManager = quizGenerationManager;
@@ -52,7 +61,7 @@ public class DialogueQuizViewModel extends ViewModel {
       return;
     }
     hasInitialized = true;
-    maxQuestions = Math.max(1, Math.min(10, requestedQuestionCount));
+    this.requestedQuestionCount = Math.max(1, Math.min(10, requestedQuestionCount));
     summaryData = resolveSummaryData(summaryJson);
 
     uiState.setValue(QuizUiState.loading());
@@ -91,17 +100,17 @@ public class DialogueQuizViewModel extends ViewModel {
     publishCurrentQuestionState();
   }
 
-  public void onPrimaryAction() {
+  @NonNull
+  public PrimaryActionResult onPrimaryAction() {
     if (currentQuestionState == null) {
-      return;
+      return PrimaryActionResult.NONE;
     }
 
     if (!currentQuestionState.isChecked()) {
-      checkCurrentAnswer();
-      return;
+      return checkCurrentAnswer() ? PrimaryActionResult.CHECKED : PrimaryActionResult.NONE;
     }
 
-    moveToNextQuestionOrComplete();
+    return moveToNextQuestionOrComplete();
   }
 
   private void loadQuizQuestions() {
@@ -111,32 +120,62 @@ public class DialogueQuizViewModel extends ViewModel {
       return;
     }
 
-    // Loading state is already set in initialize, but we can set it again if
-    // retried.
+    long requestId = ++activeLoadRequestId;
+    streamCompleted = false;
+    currentQuestionIndex = 0;
+    correctAnswerCount = 0;
+    currentQuestionState = null;
+    questions = new ArrayList<>();
+    seenQuestionKeys.clear();
     uiState.postValue(QuizUiState.loading());
     logDebug("quiz load start");
-    quizGenerationManager.generateQuizFromSummaryAsync(
+    quizGenerationManager.generateQuizFromSummaryStreamingAsync(
         seed,
-        maxQuestions,
-        new IQuizGenerationManager.QuizCallback() {
+        requestedQuestionCount,
+        new IQuizGenerationManager.QuizStreamingCallback() {
           @Override
-          public void onSuccess(@NonNull List<QuizData.QuizQuestion> rawQuestions) {
-            questions = sanitizeQuestions(rawQuestions);
+          public void onQuestion(@NonNull QuizData.QuizQuestion rawQuestion) {
+            if (requestId != activeLoadRequestId) {
+              return;
+            }
+            QuizData.QuizQuestion question = sanitizeQuestion(rawQuestion);
+            if (question == null) {
+              return;
+            }
+            questions.add(question);
+
+            if (questions.size() == 1) {
+              currentQuestionIndex = 0;
+              currentQuestionState = QuizQuestionState.from(question);
+              publishCurrentQuestionState();
+              logDebug("quiz first question ready");
+            }
+          }
+
+          @Override
+          public void onComplete(@Nullable String warningMessage) {
+            if (requestId != activeLoadRequestId) {
+              return;
+            }
+            streamCompleted = true;
             if (questions.isEmpty()) {
               uiState.setValue(QuizUiState.error(DEFAULT_QUIZ_ERROR));
               logDebug("quiz load failed: empty_questions");
               return;
             }
-
-            currentQuestionIndex = 0;
-            correctAnswerCount = 0;
-            currentQuestionState = QuizQuestionState.from(questions.get(0));
             publishCurrentQuestionState();
-            logDebug("quiz load success: count=" + questions.size());
+            if (!isBlank(warningMessage)) {
+              logDebug("quiz stream completed with warning: " + warningMessage);
+            } else {
+              logDebug("quiz stream completed: count=" + questions.size());
+            }
           }
 
           @Override
           public void onFailure(@NonNull String error) {
+            if (requestId != activeLoadRequestId) {
+              return;
+            }
             String safeError = trimToNull(error);
             uiState.setValue(QuizUiState.error(firstNonBlank(safeError, DEFAULT_QUIZ_ERROR)));
             logDebug("quiz load failed: " + firstNonBlank(safeError, "unknown"));
@@ -144,15 +183,15 @@ public class DialogueQuizViewModel extends ViewModel {
         });
   }
 
-  private void checkCurrentAnswer() {
+  private boolean checkCurrentAnswer() {
     QuizQuestionState current = currentQuestionState;
     if (current == null) {
-      return;
+      return false;
     }
 
     String submitted = current.getSubmittedAnswer();
     if (isBlank(submitted)) {
-      return;
+      return false;
     }
 
     boolean isCorrect = normalize(submitted).equals(normalize(current.getAnswer()));
@@ -169,24 +208,34 @@ public class DialogueQuizViewModel extends ViewModel {
             + questions.size()
             + ", correct="
             + isCorrect);
+    return true;
   }
 
-  private void moveToNextQuestionOrComplete() {
+  @NonNull
+  private PrimaryActionResult moveToNextQuestionOrComplete() {
     if (questions.isEmpty()) {
       uiState.setValue(QuizUiState.error(DEFAULT_QUIZ_ERROR));
-      return;
+      return PrimaryActionResult.NONE;
     }
 
-    if (currentQuestionIndex >= questions.size() - 1) {
+    if (currentQuestionIndex < questions.size() - 1) {
+      currentQuestionIndex++;
+      currentQuestionState = QuizQuestionState.from(questions.get(currentQuestionIndex));
+      publishCurrentQuestionState();
+      logDebug("quiz next question: index=" + (currentQuestionIndex + 1) + "/" + questions.size());
+      return PrimaryActionResult.MOVED_TO_NEXT;
+    }
+
+    if (streamCompleted) {
       uiState.setValue(QuizUiState.completed(questions.size(), correctAnswerCount));
       logDebug("quiz completed: correct=" + correctAnswerCount + "/" + questions.size());
-      return;
+      return PrimaryActionResult.COMPLETED;
     }
 
-    currentQuestionIndex++;
-    currentQuestionState = QuizQuestionState.from(questions.get(currentQuestionIndex));
+    // Keep current question until the next one arrives from stream.
     publishCurrentQuestionState();
-    logDebug("quiz next question: index=" + (currentQuestionIndex + 1) + "/" + questions.size());
+    logDebug("quiz waiting for next streamed question");
+    return PrimaryActionResult.WAITING_NEXT_QUESTION;
   }
 
   private void publishCurrentQuestionState() {
@@ -196,48 +245,43 @@ public class DialogueQuizViewModel extends ViewModel {
       return;
     }
 
-    boolean isLastQuestion = currentQuestionIndex >= questions.size() - 1;
+    int totalQuestions = resolveVisibleTotalQuestions();
+    boolean isLastQuestion = streamCompleted && currentQuestionIndex >= questions.size() - 1;
     uiState.setValue(
         QuizUiState.ready(
-            state, currentQuestionIndex, questions.size(), correctAnswerCount, isLastQuestion));
+            state, currentQuestionIndex, totalQuestions, correctAnswerCount, isLastQuestion));
   }
 
-  @NonNull
-  private List<QuizData.QuizQuestion> sanitizeQuestions(
-      @Nullable List<QuizData.QuizQuestion> sourceQuestions) {
-    List<QuizData.QuizQuestion> result = new ArrayList<>();
-    if (sourceQuestions == null || sourceQuestions.isEmpty()) {
-      return result;
+  private int resolveVisibleTotalQuestions() {
+    if (streamCompleted) {
+      return Math.max(1, questions.size());
+    }
+    return Math.max(1, requestedQuestionCount);
+  }
+
+  @Nullable
+  private QuizData.QuizQuestion sanitizeQuestion(@Nullable QuizData.QuizQuestion item) {
+    if (item == null || questions.size() >= requestedQuestionCount) {
+      return null;
     }
 
-    Set<String> seenQuestions = new HashSet<>();
-    for (QuizData.QuizQuestion item : sourceQuestions) {
-      if (item == null) {
-        continue;
-      }
-
-      String question = trimToNull(item.getQuestion());
-      String answer = trimToNull(item.getAnswer());
-      if (question == null || answer == null) {
-        continue;
-      }
-
-      String dedupeKey = normalize(question);
-      if (!seenQuestions.add(dedupeKey)) {
-        continue;
-      }
-
-      List<String> choices = sanitizeChoices(item.getChoices(), answer);
-      if (choices == null || choices.size() <= 1) {
-        continue;
-      }
-      String explanation = trimToNull(item.getExplanation());
-      result.add(new QuizData.QuizQuestion(question, answer, choices, explanation));
-      if (result.size() >= maxQuestions) {
-        break;
-      }
+    String question = trimToNull(item.getQuestion());
+    String answer = trimToNull(item.getAnswer());
+    if (question == null || answer == null) {
+      return null;
     }
-    return result;
+
+    String dedupeKey = normalize(question);
+    if (!seenQuestionKeys.add(dedupeKey)) {
+      return null;
+    }
+
+    List<String> choices = sanitizeChoices(item.getChoices(), answer);
+    if (choices == null || choices.size() <= 1) {
+      return null;
+    }
+    String explanation = trimToNull(item.getExplanation());
+    return new QuizData.QuizQuestion(question, answer, choices, explanation);
   }
 
   @Nullable
@@ -324,12 +368,9 @@ public class DialogueQuizViewModel extends ViewModel {
       COMPLETED
     }
 
-    @NonNull
-    private final Status status;
-    @Nullable
-    private final String errorMessage;
-    @Nullable
-    private final QuizQuestionState questionState;
+    @NonNull private final Status status;
+    @Nullable private final String errorMessage;
+    @Nullable private final QuizQuestionState questionState;
     private final int currentQuestionIndex;
     private final int totalQuestions;
     private final int correctAnswerCount;
@@ -434,18 +475,12 @@ public class DialogueQuizViewModel extends ViewModel {
       FINISH
     }
 
-    @NonNull
-    private final String question;
-    @NonNull
-    private final String answer;
-    @Nullable
-    private final List<String> choices;
-    @Nullable
-    private final String explanation;
-    @Nullable
-    private final String selectedChoice;
-    @Nullable
-    private final String typedAnswer;
+    @NonNull private final String question;
+    @NonNull private final String answer;
+    @Nullable private final List<String> choices;
+    @Nullable private final String explanation;
+    @Nullable private final String selectedChoice;
+    @Nullable private final String typedAnswer;
     private final boolean checked;
     private final boolean correct;
 

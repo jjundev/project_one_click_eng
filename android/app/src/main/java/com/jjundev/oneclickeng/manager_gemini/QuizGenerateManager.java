@@ -16,6 +16,7 @@ import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.fragment.dialoguelearning.manager_contracts.IQuizGenerationManager;
 import com.jjundev.oneclickeng.fragment.dialoguelearning.model.QuizData;
 import com.jjundev.oneclickeng.fragment.dialoguelearning.model.SummaryData;
+import com.jjundev.oneclickeng.tool.IncrementalQuizQuestionParser;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okio.BufferedSource;
 
 /** One-shot LLM manager for quiz question generation from summary seed data. */
 public class QuizGenerateManager implements IQuizGenerationManager {
@@ -49,6 +51,13 @@ public class QuizGenerateManager implements IQuizGenerationManager {
   private final String modelName;
   private final Context context;
   private final SharedPreferences prefs;
+
+  private static final OkHttpClient streamingClient =
+      new OkHttpClient.Builder()
+          .connectTimeout(30, TimeUnit.SECONDS)
+          .readTimeout(0, TimeUnit.SECONDS)
+          .writeTimeout(30, TimeUnit.SECONDS)
+          .build();
 
   private String cachedContentName;
   private boolean cacheReady = false;
@@ -170,6 +179,172 @@ public class QuizGenerateManager implements IQuizGenerationManager {
         .start();
   }
 
+  @Override
+  public void generateQuizFromSummaryStreamingAsync(
+      @NonNull SummaryData summaryData,
+      int requestedQuestionCount,
+      @NonNull QuizStreamingCallback callback) {
+    if (callback == null) {
+      return;
+    }
+    if (summaryData == null) {
+      postFailure(callback, "Summary data is null");
+      return;
+    }
+    if (apiKey == null || apiKey.trim().isEmpty()) {
+      postFailure(callback, "API key is missing");
+      return;
+    }
+
+    final int maxQuestions = Math.max(1, Math.min(10, requestedQuestionCount));
+
+    QuizData.QuizSeed seed = buildQuizSeed(summaryData);
+    if (!hasSeed(seed)) {
+      postFailure(callback, "Quiz seed is empty");
+      return;
+    }
+
+    int expressionCount = seed.getExpressions() == null ? 0 : seed.getExpressions().size();
+    int wordCount = seed.getWords() == null ? 0 : seed.getWords().size();
+    logDebug(
+        "quiz stream request start: expressionCount="
+            + expressionCount
+            + ", wordCount="
+            + wordCount);
+
+    new Thread(
+            () -> {
+              int emittedQuestionCount = 0;
+              try {
+                JsonObject requestBody = new JsonObject();
+                if (cacheReady && cachedContentName != null) {
+                  requestBody.addProperty("cachedContent", cachedContentName);
+                } else {
+                  JsonObject sysInstruction = new JsonObject();
+                  JsonArray sysParts = new JsonArray();
+                  JsonObject sysPart = new JsonObject();
+                  sysPart.addProperty("text", getSystemPrompt());
+                  sysParts.add(sysPart);
+                  sysInstruction.add("parts", sysParts);
+                  requestBody.add("systemInstruction", sysInstruction);
+                }
+
+                JsonArray contents = new JsonArray();
+                JsonObject userContent = new JsonObject();
+                userContent.addProperty("role", "user");
+                JsonArray parts = new JsonArray();
+                JsonObject part = new JsonObject();
+                part.addProperty("text", buildUserPrompt(seed, maxQuestions));
+                parts.add(part);
+                userContent.add("parts", parts);
+                contents.add(userContent);
+                requestBody.add("contents", contents);
+
+                JsonObject generationConfig = new JsonObject();
+                generationConfig.addProperty("responseMimeType", "application/json");
+                requestBody.add("generationConfig", generationConfig);
+
+                String url =
+                    BASE_URL
+                        + "/models/"
+                        + modelName
+                        + ":streamGenerateContent?alt=sse&key="
+                        + apiKey;
+                Request request =
+                    new Request.Builder()
+                        .url(url)
+                        .post(
+                            RequestBody.create(
+                                gson.toJson(requestBody), MediaType.parse("application/json")))
+                        .build();
+
+                IncrementalQuizQuestionParser parser = new IncrementalQuizQuestionParser();
+                try (Response response = streamingClient.newCall(request).execute()) {
+                  if (!response.isSuccessful()) {
+                    logDebug("quiz stream request failed: code=" + response.code());
+                    postFailure(callback, "Quiz LLM request failed: " + response.code());
+                    return;
+                  }
+                  if (response.body() == null) {
+                    postFailure(callback, "Quiz LLM empty response body");
+                    return;
+                  }
+
+                  BufferedSource source = response.body().source();
+                  while (!source.exhausted() && emittedQuestionCount < maxQuestions) {
+                    String line = source.readUtf8Line();
+                    if (line == null || !line.startsWith("data: ")) {
+                      continue;
+                    }
+                    String data = line.substring(6).trim();
+                    if (data.isEmpty() || "[DONE]".equals(data)) {
+                      continue;
+                    }
+
+                    try {
+                      JsonObject root = JsonParser.parseString(data).getAsJsonObject();
+                      JsonArray candidates = root.getAsJsonArray("candidates");
+                      if (candidates == null || candidates.size() == 0) {
+                        continue;
+                      }
+                      JsonObject content =
+                          candidates.get(0).getAsJsonObject().getAsJsonObject("content");
+                      if (content == null) {
+                        continue;
+                      }
+                      JsonArray responseParts = content.getAsJsonArray("parts");
+                      if (responseParts == null || responseParts.size() == 0) {
+                        continue;
+                      }
+
+                      for (JsonElement responsePart : responseParts) {
+                        if (responsePart == null || !responsePart.isJsonObject()) {
+                          continue;
+                        }
+                        JsonObject responsePartObject = responsePart.getAsJsonObject();
+                        if (!responsePartObject.has("text")) {
+                          continue;
+                        }
+
+                        List<String> questionObjects =
+                            parser.addChunk(responsePartObject.get("text").getAsString());
+                        for (String questionObject : questionObjects) {
+                          if (emittedQuestionCount >= maxQuestions) {
+                            break;
+                          }
+                          QuizData.QuizQuestion parsedQuestion =
+                              parseQuestionObjectForStreaming(questionObject);
+                          if (parsedQuestion == null) {
+                            continue;
+                          }
+                          emittedQuestionCount++;
+                          QuizData.QuizQuestion callbackQuestion = parsedQuestion;
+                          mainHandler.post(() -> callback.onQuestion(callbackQuestion));
+                        }
+                      }
+                    } catch (Exception ignored) {
+                      // Ignore malformed chunk and keep streaming.
+                    }
+                  }
+                }
+
+                if (emittedQuestionCount > 0) {
+                  postComplete(callback, null);
+                  return;
+                }
+                postFailure(callback, "Failed to parse quiz questions");
+              } catch (Exception e) {
+                logDebug("quiz stream request exception: " + safeMessage(e));
+                if (emittedQuestionCount > 0) {
+                  postComplete(callback, "partial stream interrupted");
+                } else {
+                  postFailure(callback, "Quiz LLM error: " + safeMessage(e));
+                }
+              }
+            })
+        .start();
+  }
+
   @NonNull
   public static QuizData.QuizSeed buildQuizSeed(@Nullable SummaryData summaryData) {
     List<QuizData.QuizSeedExpression> expressionSeeds = new ArrayList<>();
@@ -285,6 +460,15 @@ public class QuizGenerateManager implements IQuizGenerationManager {
     mainHandler.post(() -> callback.onFailure(error));
   }
 
+  private void postFailure(@NonNull QuizStreamingCallback callback, @NonNull String error) {
+    mainHandler.post(() -> callback.onFailure(error));
+  }
+
+  private void postComplete(
+      @NonNull QuizStreamingCallback callback, @Nullable String warningMessage) {
+    mainHandler.post(() -> callback.onComplete(warningMessage));
+  }
+
   // Removed addSystemInstruction and buildSystemPrompt
 
   @NonNull
@@ -320,6 +504,28 @@ public class QuizGenerateManager implements IQuizGenerationManager {
       return null;
     }
     return null;
+  }
+
+  @Nullable
+  private static QuizData.QuizQuestion parseQuestionObjectForStreaming(
+      @Nullable String rawQuestionObject) {
+    if (rawQuestionObject == null || rawQuestionObject.trim().isEmpty()) {
+      return null;
+    }
+    try {
+      JsonObject item = JsonParser.parseString(rawQuestionObject).getAsJsonObject();
+      String question = trimToNull(readAsString(item, "question"));
+      String answer = trimToNull(readAsString(item, "answer"));
+      if (question == null || answer == null) {
+        return null;
+      }
+
+      List<String> choices = sanitizeChoices(readAsArray(item, "choices"));
+      String explanation = trimToNull(readAsString(item, "explanation"));
+      return new QuizData.QuizQuestion(question, answer, choices, explanation);
+    } catch (Exception ignored) {
+      return null;
+    }
   }
 
   @Nullable

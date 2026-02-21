@@ -51,57 +51,33 @@ public class DialogueQuizActivity extends AppCompatActivity {
     NEXT_BUTTON_ONLY
   }
 
-  @Nullable
-  private DialogueQuizViewModel viewModel;
-  @Nullable
-  private View loadingView;
-  @Nullable
-  private View errorView;
-  @Nullable
-  private View contentView;
-  @Nullable
-  private View completedView;
-  @Nullable
-  private View bottomSheetView;
-  @Nullable
-  private BottomSheetBehavior<View> bottomSheetBehavior;
-  @Nullable
-  private TextView tvErrorMessage;
-  @Nullable
-  private MaterialButton btnRetry;
-  @Nullable
-  private TextView tvProgress;
-  @Nullable
-  private ProgressBar progressBar;
-  @Nullable
-  private TextView tvQuestion;
-  @Nullable
-  private LinearLayout choiceContainer;
-  @Nullable
-  private TextInputLayout inputAnswerLayout;
-  @Nullable
-  private MaterialCardView resultCard;
-  @Nullable
-  private TextView tvResultTitle;
-  @Nullable
-  private TextView tvCorrectAnswer;
-  @Nullable
-  private TextView tvExplanation;
-  @Nullable
-  private MaterialButton btnPrimary;
-  @Nullable
-  private TextView tvCompletedSummary;
-  @Nullable
-  private MaterialButton btnFinish;
+  @Nullable private DialogueQuizViewModel viewModel;
+  @Nullable private View loadingView;
+  @Nullable private View errorView;
+  @Nullable private View contentView;
+  @Nullable private View completedView;
+  @Nullable private View bottomSheetView;
+  @Nullable private BottomSheetBehavior<View> bottomSheetBehavior;
+  @Nullable private TextView tvErrorMessage;
+  @Nullable private MaterialButton btnRetry;
+  @Nullable private TextView tvProgress;
+  @Nullable private ProgressBar progressBar;
+  @Nullable private TextView tvQuestion;
+  @Nullable private LinearLayout choiceContainer;
+  @Nullable private TextInputLayout inputAnswerLayout;
+  @Nullable private MaterialCardView resultCard;
+  @Nullable private TextView tvResultTitle;
+  @Nullable private TextView tvCorrectAnswer;
+  @Nullable private TextView tvExplanation;
+  @Nullable private MaterialButton btnPrimary;
+  @Nullable private TextView tvNextQuestionLoadingNotice;
+  @Nullable private TextView tvCompletedSummary;
+  @Nullable private MaterialButton btnFinish;
 
-  @NonNull
-  private final Handler uiHandler = new Handler(Looper.getMainLooper());
-  @Nullable
-  private Runnable showChoicesRunnable;
-  @Nullable
-  private Runnable autoCheckRunnable;
-  @Nullable
-  private Runnable showNextButtonRunnable;
+  @NonNull private final Handler uiHandler = new Handler(Looper.getMainLooper());
+  @Nullable private Runnable showChoicesRunnable;
+  @Nullable private Runnable autoCheckRunnable;
+  @Nullable private Runnable showNextButtonRunnable;
 
   private BottomSheetUiStage bottomSheetUiStage = BottomSheetUiStage.HIDDEN;
   private int renderedBottomSheetQuestionIndex = -1;
@@ -175,6 +151,7 @@ public class DialogueQuizActivity extends AppCompatActivity {
     tvCorrectAnswer = findViewById(R.id.tv_quiz_correct_answer);
     tvExplanation = findViewById(R.id.tv_quiz_explanation);
     btnPrimary = findViewById(R.id.btn_quiz_primary);
+    tvNextQuestionLoadingNotice = findViewById(R.id.tv_quiz_next_loading_notice);
     tvCompletedSummary = findViewById(R.id.tv_quiz_completed_summary);
     btnFinish = findViewById(R.id.btn_quiz_finish);
 
@@ -189,11 +166,12 @@ public class DialogueQuizActivity extends AppCompatActivity {
 
   private void initViewModel() {
     AppSettings settings = new AppSettingsStore(getApplicationContext()).getSettings();
-    DialogueQuizViewModelFactory factory = new DialogueQuizViewModelFactory(
-        LearningDependencyProvider.provideQuizGenerationManager(
-            getApplicationContext(),
-            settings.resolveEffectiveApiKey(BuildConfig.GEMINI_API_KEY),
-            settings.getLlmModelSummary()));
+    DialogueQuizViewModelFactory factory =
+        new DialogueQuizViewModelFactory(
+            LearningDependencyProvider.provideQuizGenerationManager(
+                getApplicationContext(),
+                settings.resolveEffectiveApiKey(BuildConfig.GEMINI_API_KEY),
+                settings.getLlmModelSummary()));
     viewModel = new ViewModelProvider(this, factory).get(DialogueQuizViewModel.class);
     viewModel.getUiState().observe(this, this::renderUiState);
   }
@@ -214,11 +192,30 @@ public class DialogueQuizActivity extends AppCompatActivity {
             if (bottomSheetUiStage != BottomSheetUiStage.NEXT_BUTTON_ONLY || viewModel == null) {
               return;
             }
-            cancelPendingBottomSheetTasks();
-            hideBottomSheet();
-            bottomSheetUiStage = BottomSheetUiStage.HIDDEN;
-            autoCheckPending = false;
-            viewModel.onPrimaryAction();
+            DialogueQuizViewModel.PrimaryActionResult result = viewModel.onPrimaryAction();
+            if (result == DialogueQuizViewModel.PrimaryActionResult.WAITING_NEXT_QUESTION) {
+              logDebug("quiz next requested: waiting for streamed question");
+              showNextQuestionLoadingNotice();
+              return;
+            }
+
+            hideNextQuestionLoadingNotice();
+            if (result == DialogueQuizViewModel.PrimaryActionResult.MOVED_TO_NEXT) {
+              // Do not cancel pending tasks here.
+              // The next question render may already have scheduled showChoicesRunnable.
+              logDebug("quiz next requested: moved to next question");
+              hideBottomSheet();
+              bottomSheetUiStage = BottomSheetUiStage.HIDDEN;
+              autoCheckPending = false;
+              return;
+            }
+            if (result == DialogueQuizViewModel.PrimaryActionResult.COMPLETED) {
+              logDebug("quiz next requested: completed");
+              cancelPendingBottomSheetTasks();
+              hideBottomSheet();
+              bottomSheetUiStage = BottomSheetUiStage.HIDDEN;
+              autoCheckPending = false;
+            }
           });
     }
 
@@ -350,6 +347,7 @@ public class DialogueQuizActivity extends AppCompatActivity {
     if (btnPrimary != null) {
       btnPrimary.setVisibility(View.GONE);
     }
+    hideNextQuestionLoadingNotice();
     hideBottomSheet();
   }
 
@@ -424,7 +422,8 @@ public class DialogueQuizActivity extends AppCompatActivity {
       textColor = ContextCompat.getColor(context, R.color.expression_precise_accent);
     }
 
-    boolean enabled = !isChecked && !autoCheckPending && bottomSheetUiStage == BottomSheetUiStage.CHOICES_ONLY;
+    boolean enabled =
+        !isChecked && !autoCheckPending && bottomSheetUiStage == BottomSheetUiStage.CHOICES_ONLY;
     button.setEnabled(enabled);
     button.setStrokeWidth(dpToPx(1));
     button.setStrokeColor(ColorStateList.valueOf(strokeColor));
@@ -441,11 +440,12 @@ public class DialogueQuizActivity extends AppCompatActivity {
     }
 
     if (tvResultTitle != null) {
-      int color = ContextCompat.getColor(
-          this,
-          state.isCorrect()
-              ? R.color.expression_natural_accent
-              : R.color.expression_precise_accent);
+      int color =
+          ContextCompat.getColor(
+              this,
+              state.isCorrect()
+                  ? R.color.expression_natural_accent
+                  : R.color.expression_precise_accent);
       tvResultTitle.setText(
           state.isCorrect() ? R.string.quiz_result_correct : R.string.quiz_result_incorrect);
       tvResultTitle.setTextColor(color);
@@ -470,13 +470,14 @@ public class DialogueQuizActivity extends AppCompatActivity {
       uiHandler.removeCallbacks(showChoicesRunnable);
       showChoicesRunnable = null;
     }
-    Runnable runnable = () -> {
-      showChoicesRunnable = null;
-      if (isDestroyed() || renderedBottomSheetQuestionIndex != questionIndex) {
-        return;
-      }
-      showBottomSheetChoices(questionState);
-    };
+    Runnable runnable =
+        () -> {
+          showChoicesRunnable = null;
+          if (isDestroyed() || renderedBottomSheetQuestionIndex != questionIndex) {
+            return;
+          }
+          showBottomSheetChoices(questionState);
+        };
     showChoicesRunnable = runnable;
     uiHandler.postDelayed(runnable, SHOW_CHOICES_DELAY_MS);
   }
@@ -486,23 +487,24 @@ public class DialogueQuizActivity extends AppCompatActivity {
       uiHandler.removeCallbacks(autoCheckRunnable);
       autoCheckRunnable = null;
     }
-    Runnable runnable = () -> {
-      autoCheckRunnable = null;
-      if (isDestroyed() || renderedBottomSheetQuestionIndex != questionIndex) {
-        autoCheckPending = false;
-        return;
-      }
-      hideBottomSheet();
-      bottomSheetUiStage = BottomSheetUiStage.HIDDEN;
-      if (choiceContainer != null) {
-        choiceContainer.setVisibility(View.GONE);
-      }
-      if (viewModel != null) {
-        viewModel.onPrimaryAction();
-      } else {
-        autoCheckPending = false;
-      }
-    };
+    Runnable runnable =
+        () -> {
+          autoCheckRunnable = null;
+          if (isDestroyed() || renderedBottomSheetQuestionIndex != questionIndex) {
+            autoCheckPending = false;
+            return;
+          }
+          hideBottomSheet();
+          bottomSheetUiStage = BottomSheetUiStage.HIDDEN;
+          if (choiceContainer != null) {
+            choiceContainer.setVisibility(View.GONE);
+          }
+          if (viewModel != null) {
+            viewModel.onPrimaryAction();
+          } else {
+            autoCheckPending = false;
+          }
+        };
     autoCheckRunnable = runnable;
     uiHandler.postDelayed(runnable, AUTO_CHECK_DELAY_MS);
   }
@@ -513,14 +515,15 @@ public class DialogueQuizActivity extends AppCompatActivity {
       showNextButtonRunnable = null;
     }
     showNextButtonScheduled = true;
-    Runnable runnable = () -> {
-      showNextButtonRunnable = null;
-      showNextButtonScheduled = false;
-      if (isDestroyed() || renderedBottomSheetQuestionIndex != questionIndex) {
-        return;
-      }
-      showBottomSheetNextButton(lastQuestion);
-    };
+    Runnable runnable =
+        () -> {
+          showNextButtonRunnable = null;
+          showNextButtonScheduled = false;
+          if (isDestroyed() || renderedBottomSheetQuestionIndex != questionIndex) {
+            return;
+          }
+          showBottomSheetNextButton(lastQuestion);
+        };
     showNextButtonRunnable = runnable;
     uiHandler.postDelayed(runnable, SHOW_NEXT_BUTTON_DELAY_MS);
   }
@@ -537,6 +540,7 @@ public class DialogueQuizActivity extends AppCompatActivity {
     if (btnPrimary != null) {
       btnPrimary.setVisibility(View.GONE);
     }
+    hideNextQuestionLoadingNotice();
     renderChoiceButtons(questionState);
     expandBottomSheet();
   }
@@ -555,6 +559,7 @@ public class DialogueQuizActivity extends AppCompatActivity {
       btnPrimary.setEnabled(true);
       btnPrimary.setText(lastQuestion ? R.string.quiz_primary_finish : R.string.quiz_primary_next);
     }
+    hideNextQuestionLoadingNotice();
     expandBottomSheet();
   }
 
@@ -594,12 +599,26 @@ public class DialogueQuizActivity extends AppCompatActivity {
     showNextButtonScheduled = false;
   }
 
+  private void showNextQuestionLoadingNotice() {
+    if (tvNextQuestionLoadingNotice != null) {
+      tvNextQuestionLoadingNotice.setVisibility(View.VISIBLE);
+      tvNextQuestionLoadingNotice.setText(R.string.quiz_next_question_loading_notice);
+    }
+  }
+
+  private void hideNextQuestionLoadingNotice() {
+    if (tvNextQuestionLoadingNotice != null) {
+      tvNextQuestionLoadingNotice.setVisibility(View.GONE);
+    }
+  }
+
   private void showOnly(@Nullable View target) {
     if (target != contentView) {
       cancelPendingBottomSheetTasks();
       bottomSheetUiStage = BottomSheetUiStage.HIDDEN;
       renderedBottomSheetQuestionIndex = -1;
       autoCheckPending = false;
+      hideNextQuestionLoadingNotice();
       hideBottomSheet();
     }
     setVisible(loadingView, loadingView == target);
