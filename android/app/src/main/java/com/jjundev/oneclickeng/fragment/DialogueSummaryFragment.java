@@ -280,19 +280,18 @@ public class DialogueSummaryFragment extends Fragment {
     String summaryJson = args == null ? null : args.getString(ARG_SUMMARY_JSON);
     String featureBundleJson = args == null ? null : args.getString(ARG_FEATURE_BUNDLE_JSON);
     logDebug("summary quiz selected");
-    DialogueQuizFragment target = DialogueQuizFragment.newInstance(summaryJson, featureBundleJson);
-    getActivity()
-        .getSupportFragmentManager()
-        .beginTransaction()
-        .setCustomAnimations(
-            R.anim.slide_in_right,
-            R.anim.slide_out_left,
-            R.anim.slide_in_left,
-            R.anim.slide_out_right)
-        .hide(DialogueSummaryFragment.this)
-        .add(R.id.fragment_container, target)
-        .addToBackStack(null)
-        .commit();
+    android.content.Intent intent =
+        new android.content.Intent(
+            requireContext(), com.jjundev.oneclickeng.activity.DialogueQuizActivity.class);
+    intent.putExtra(
+        com.jjundev.oneclickeng.activity.DialogueQuizActivity.EXTRA_SUMMARY_JSON, summaryJson);
+    intent.putExtra(
+        com.jjundev.oneclickeng.activity.DialogueQuizActivity.EXTRA_FEATURE_BUNDLE_JSON,
+        featureBundleJson);
+    startActivity(intent);
+    if (getActivity() != null) {
+      getActivity().overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+    }
   }
 
   private void logDebug(@NonNull String message) {

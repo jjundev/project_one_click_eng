@@ -3,11 +3,10 @@ package com.jjundev.oneclickeng.fragment.history;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
-import com.jjundev.oneclickeng.fragment.SessionSummaryBinder;
 import com.jjundev.oneclickeng.fragment.dialoguelearning.model.SummaryData;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
+import java.util.UUID;
 
 public class LearningHistoryViewModel extends ViewModel {
 
@@ -18,46 +17,98 @@ public class LearningHistoryViewModel extends ViewModel {
     return historyItems;
   }
 
-  public void loadDummyData() {
-    SummaryData dummyData = SessionSummaryBinder.createDummyData();
-    List<HistoryItemWrapper> items = new ArrayList<>();
-    Random rnd = new Random();
-    long now = System.currentTimeMillis();
-    long msInDay = 24L * 60 * 60 * 1000;
-
-    // 1. Highlights (핵심)
-    if (dummyData.getHighlights() != null) {
-      for (SummaryData.HighlightItem item : dummyData.getHighlights()) {
-        long time = now - (long) (rnd.nextDouble() * 25 * msInDay);
-        items.add(new HistoryItemWrapper(HistoryItemWrapper.TYPE_HIGHLIGHT, item, time));
-      }
+  public void loadSavedCards() {
+    com.google.firebase.auth.FirebaseUser user =
+        com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+    if (user == null) {
+      historyItems.setValue(new ArrayList<>());
+      return;
     }
 
-    // 2. Expressions (표현)
-    if (dummyData.getExpressions() != null) {
-      for (SummaryData.ExpressionItem item : dummyData.getExpressions()) {
-        long time = now - (long) (rnd.nextDouble() * 25 * msInDay);
-        items.add(new HistoryItemWrapper(HistoryItemWrapper.TYPE_EXPRESSION, item, time));
-      }
-    }
+    com.google.firebase.firestore.FirebaseFirestore.getInstance()
+        .collection("users")
+        .document(user.getUid())
+        .collection("saved_cards")
+        .addSnapshotListener(
+            (value, error) -> {
+              if (error != null) {
+                return;
+              }
+              if (value != null) {
+                List<HistoryItemWrapper> items = new ArrayList<>();
+                for (com.google.firebase.firestore.DocumentSnapshot doc : value.getDocuments()) {
+                  com.jjundev.oneclickeng.fragment.history.model.SavedCard card =
+                      doc.toObject(com.jjundev.oneclickeng.fragment.history.model.SavedCard.class);
+                  if (card != null) {
+                    if ("WORD".equals(card.getCardType())) {
+                      SummaryData.WordItem w =
+                          new SummaryData.WordItem(
+                              card.getEnglish(),
+                              card.getKorean(),
+                              card.getExampleEnglish(),
+                              card.getExampleKorean());
+                      items.add(
+                          new HistoryItemWrapper(
+                              HistoryItemWrapper.TYPE_WORD, w, card.getTimestamp()));
+                    } else if ("EXPRESSION".equals(card.getCardType())) {
+                      SummaryData.ExpressionItem e =
+                          new SummaryData.ExpressionItem(
+                              card.getType(),
+                              card.getKoreanPrompt(),
+                              card.getBefore(),
+                              card.getAfter(),
+                              card.getExplanation(),
+                              card.getAfterHighlights());
+                      items.add(
+                          new HistoryItemWrapper(
+                              HistoryItemWrapper.TYPE_EXPRESSION, e, card.getTimestamp()));
+                    } else if ("SENTENCE".equals(card.getCardType())) {
+                      SummaryData.SentenceItem s =
+                          new SummaryData.SentenceItem(card.getEnglish(), card.getKorean());
+                      items.add(
+                          new HistoryItemWrapper(
+                              HistoryItemWrapper.TYPE_SENTENCE, s, card.getTimestamp()));
+                    }
+                  }
+                }
+                items.sort(
+                    (a, b) -> Long.compare(b.getLearnedAtEpochMs(), a.getLearnedAtEpochMs()));
+                historyItems.setValue(items);
+              }
+            });
+  }
 
-    // 3. Words (단어)
-    if (dummyData.getWords() != null) {
-      for (SummaryData.WordItem item : dummyData.getWords()) {
-        long time = now - (long) (rnd.nextDouble() * 25 * msInDay);
-        items.add(new HistoryItemWrapper(HistoryItemWrapper.TYPE_WORD, item, time));
-      }
-    }
+  public void removeCard(HistoryItemWrapper itemWrapper) {
+    com.google.firebase.auth.FirebaseUser user =
+        com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+    if (user == null) return;
 
-    // 4. Sentences (문장)
-    if (dummyData.getLikedSentences() != null) {
-      for (SummaryData.SentenceItem item : dummyData.getLikedSentences()) {
-        long time = now - (long) (rnd.nextDouble() * 25 * msInDay);
-        items.add(new HistoryItemWrapper(HistoryItemWrapper.TYPE_SENTENCE, item, time));
-      }
-    }
+    Object itemData = itemWrapper.getData();
+    String cardId = generateDeterministicId(itemData);
 
-    historyItems.setValue(items);
+    com.google.firebase.firestore.FirebaseFirestore.getInstance()
+        .collection("users")
+        .document(user.getUid())
+        .collection("saved_cards")
+        .document(cardId)
+        .delete();
+  }
+
+  private String generateDeterministicId(Object itemData) {
+    String uniqueString = "";
+    if (itemData instanceof SummaryData.WordItem) {
+      SummaryData.WordItem w = (SummaryData.WordItem) itemData;
+      uniqueString = w.getEnglish() + "_" + w.getKorean();
+    } else if (itemData instanceof SummaryData.SentenceItem) {
+      SummaryData.SentenceItem s = (SummaryData.SentenceItem) itemData;
+      uniqueString = s.getEnglish() + "_" + s.getKorean();
+    } else if (itemData instanceof SummaryData.ExpressionItem) {
+      SummaryData.ExpressionItem e = (SummaryData.ExpressionItem) itemData;
+      uniqueString = e.getBefore() + "_" + e.getAfter();
+    } else {
+      uniqueString = UUID.randomUUID().toString();
+    }
+    return UUID.nameUUIDFromBytes(uniqueString.getBytes()).toString();
   }
 
   public SummaryData generateQuizSeed(int periodBucket, int currentTab) {

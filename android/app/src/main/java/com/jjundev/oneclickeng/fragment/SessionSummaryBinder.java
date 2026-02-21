@@ -18,17 +18,23 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.core.content.ContextCompat;
 import androidx.core.widget.ImageViewCompat;
 import com.facebook.shimmer.ShimmerFrameLayout;
 import com.google.android.material.card.MaterialCardView;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.fragment.dialoguelearning.model.SummaryData;
+import com.jjundev.oneclickeng.fragment.history.model.SavedCard;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 /** Binds SummaryData to the Summary Fragment UI. */
 public class SessionSummaryBinder {
@@ -193,7 +199,7 @@ public class SessionSummaryBinder {
       if (afterTextView != null) {
         afterTextView.setText(buildHighlightedAfterText(itemView, item, isPreciseType));
       }
-      bindSaveButton(itemView, R.id.btn_save_expression);
+      bindSaveButton(itemView, R.id.btn_save_expression, item);
       container.addView(itemView);
     }
   }
@@ -402,7 +408,7 @@ public class SessionSummaryBinder {
           .setText(item.getExampleEnglish());
       ((TextView) itemView.findViewById(R.id.tv_summary_word_example_ko))
           .setText(item.getExampleKorean());
-      bindSaveButton(itemView, R.id.btn_save_word);
+      bindSaveButton(itemView, R.id.btn_save_word, item);
       container.addView(itemView);
     }
   }
@@ -476,12 +482,12 @@ public class SessionSummaryBinder {
       View itemView = inflater.inflate(R.layout.item_summary_sentence, container, false);
       ((TextView) itemView.findViewById(R.id.tv_summary_sentence_en)).setText(item.getEnglish());
       ((TextView) itemView.findViewById(R.id.tv_summary_sentence_ko)).setText(item.getKorean());
-      bindSaveButton(itemView, R.id.btn_save_sentence);
+      bindSaveButton(itemView, R.id.btn_save_sentence, item);
       container.addView(itemView);
     }
   }
 
-  private static void bindSaveButton(View itemView, int buttonResId) {
+  private static void bindSaveButton(View itemView, int buttonResId, Object itemData) {
     ImageButton saveButton = itemView.findViewById(buttonResId);
     if (saveButton == null) {
       return;
@@ -499,10 +505,98 @@ public class SessionSummaryBinder {
           updateSaveButtonState(saveButton, isSaved);
           updateSaveStatusLabel(itemView, isSaved);
           updateSavedCardBorder(itemView, isSaved);
+
+          if (isSaved) {
+            saveCardToFirebase(itemView, itemData);
+          } else {
+            removeCardFromFirebase(itemData);
+          }
         };
 
     saveButton.setOnClickListener(v -> toggleSaveState.run());
     itemView.setOnClickListener(v -> toggleSaveState.run());
+  }
+
+  private static String generateDeterministicId(Object itemData) {
+    String uniqueString = "";
+    if (itemData instanceof SummaryData.WordItem) {
+      SummaryData.WordItem w = (SummaryData.WordItem) itemData;
+      uniqueString = w.getEnglish() + "_" + w.getKorean();
+    } else if (itemData instanceof SummaryData.SentenceItem) {
+      SummaryData.SentenceItem s = (SummaryData.SentenceItem) itemData;
+      uniqueString = s.getEnglish() + "_" + s.getKorean();
+    } else if (itemData instanceof SummaryData.ExpressionItem) {
+      SummaryData.ExpressionItem e = (SummaryData.ExpressionItem) itemData;
+      uniqueString = e.getBefore() + "_" + e.getAfter();
+    } else {
+      uniqueString = UUID.randomUUID().toString();
+    }
+    return UUID.nameUUIDFromBytes(uniqueString.getBytes()).toString();
+  }
+
+  private static void saveCardToFirebase(View itemView, Object itemData) {
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+    if (user == null) {
+      Toast.makeText(itemView.getContext(), "로그인이 필요합니다.", Toast.LENGTH_SHORT).show();
+      return;
+    }
+
+    SavedCard card = new SavedCard();
+    card.setId(generateDeterministicId(itemData));
+    card.setTimestamp(System.currentTimeMillis());
+
+    if (itemData instanceof SummaryData.WordItem) {
+      SummaryData.WordItem w = (SummaryData.WordItem) itemData;
+      card.setCardType("WORD");
+      card.setEnglish(w.getEnglish());
+      card.setKorean(w.getKorean());
+      card.setExampleEnglish(w.getExampleEnglish());
+      card.setExampleKorean(w.getExampleKorean());
+    } else if (itemData instanceof SummaryData.SentenceItem) {
+      SummaryData.SentenceItem s = (SummaryData.SentenceItem) itemData;
+      card.setCardType("SENTENCE");
+      card.setEnglish(s.getEnglish());
+      card.setKorean(s.getKorean());
+    } else if (itemData instanceof SummaryData.ExpressionItem) {
+      SummaryData.ExpressionItem e = (SummaryData.ExpressionItem) itemData;
+      card.setCardType("EXPRESSION");
+      card.setType(e.getType());
+      card.setKoreanPrompt(e.getKoreanPrompt());
+      card.setBefore(e.getBefore());
+      card.setAfter(e.getAfter());
+      card.setExplanation(e.getExplanation());
+      card.setAfterHighlights(e.getAfterHighlights());
+    }
+
+    FirebaseFirestore.getInstance()
+        .collection("users")
+        .document(user.getUid())
+        .collection("saved_cards")
+        .document(card.getId())
+        .set(card)
+        .addOnSuccessListener(
+            aVoid -> {
+              // Toast.makeText(itemView.getContext(), "기록장에 저장되었습니다.",
+              // Toast.LENGTH_SHORT).show();
+            })
+        .addOnFailureListener(
+            e -> {
+              // Toast.makeText(itemView.getContext(), "저장 실패: " + e.getMessage(),
+              // Toast.LENGTH_SHORT).show();
+            });
+  }
+
+  private static void removeCardFromFirebase(Object itemData) {
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+    if (user == null) return;
+
+    String cardId = generateDeterministicId(itemData);
+    FirebaseFirestore.getInstance()
+        .collection("users")
+        .document(user.getUid())
+        .collection("saved_cards")
+        .document(cardId)
+        .delete();
   }
 
   private static void updateSaveButtonState(ImageButton saveButton, boolean isSaved) {

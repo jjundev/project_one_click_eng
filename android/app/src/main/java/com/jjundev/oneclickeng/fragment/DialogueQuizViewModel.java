@@ -18,16 +18,18 @@ import java.util.Set;
 
 public class DialogueQuizViewModel extends ViewModel {
   private static final String TAG = "JOB_J-20260217-002";
-  private static final String DEFAULT_QUIZ_ERROR =
-      "Quiz questions are unavailable right now. Please try again.";
+  private static final String DEFAULT_QUIZ_ERROR = "Quiz questions are unavailable right now. Please try again.";
 
   private final IQuizGenerationManager quizGenerationManager;
   private final Gson gson = new Gson();
   private final MutableLiveData<QuizUiState> uiState = new MutableLiveData<>(QuizUiState.loading());
 
-  @Nullable private SummaryData summaryData;
-  @NonNull private List<QuizData.QuizQuestion> questions = new ArrayList<>();
-  @Nullable private QuizQuestionState currentQuestionState;
+  @Nullable
+  private SummaryData summaryData;
+  @NonNull
+  private List<QuizData.QuizQuestion> questions = new ArrayList<>();
+  @Nullable
+  private QuizQuestionState currentQuestionState;
   private int currentQuestionIndex = 0;
   private int correctAnswerCount = 0;
   private boolean hasInitialized = false;
@@ -322,9 +324,12 @@ public class DialogueQuizViewModel extends ViewModel {
       COMPLETED
     }
 
-    @NonNull private final Status status;
-    @Nullable private final String errorMessage;
-    @Nullable private final QuizQuestionState questionState;
+    @NonNull
+    private final Status status;
+    @Nullable
+    private final String errorMessage;
+    @Nullable
+    private final QuizQuestionState questionState;
     private final int currentQuestionIndex;
     private final int totalQuestions;
     private final int correctAnswerCount;
@@ -429,12 +434,18 @@ public class DialogueQuizViewModel extends ViewModel {
       FINISH
     }
 
-    @NonNull private final String question;
-    @NonNull private final String answer;
-    @Nullable private final List<String> choices;
-    @Nullable private final String explanation;
-    @Nullable private final String selectedChoice;
-    @Nullable private final String typedAnswer;
+    @NonNull
+    private final String question;
+    @NonNull
+    private final String answer;
+    @Nullable
+    private final List<String> choices;
+    @Nullable
+    private final String explanation;
+    @Nullable
+    private final String selectedChoice;
+    @Nullable
+    private final String typedAnswer;
     private final boolean checked;
     private final boolean correct;
 

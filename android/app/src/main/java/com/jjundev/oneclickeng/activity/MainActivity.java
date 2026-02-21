@@ -66,8 +66,6 @@ public class MainActivity extends AppCompatActivity {
           if (destinationId == R.id.scriptSelectFragment
               || destinationId == R.id.dialogueSummaryFragment) {
             menuId = R.id.studyModeSelectFragment;
-          } else if (destinationId == R.id.dialogueQuizFragment) {
-            menuId = R.id.learningHistoryFragment;
           }
 
           if (bottomNavigation.getMenu().findItem(menuId) != null) {

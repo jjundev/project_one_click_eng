@@ -34,6 +34,10 @@
             android:name=".activity.MainActivity"
             android:screenOrientation="portrait"
             android:exported="false" />
+        <activity
+            android:name=".activity.DialogueQuizActivity"
+            android:screenOrientation="portrait"
+            android:exported="false" />
     </application>
 
 </manifest>

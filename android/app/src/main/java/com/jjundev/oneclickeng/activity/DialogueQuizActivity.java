@@ -1,6 +1,7 @@
-package com.jjundev.oneclickeng.fragment;
+package com.jjundev.oneclickeng.activity;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.os.Build;
 import android.os.Bundle;
@@ -9,14 +10,17 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
-import androidx.fragment.app.Fragment;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.button.MaterialButton;
@@ -24,19 +28,18 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textfield.TextInputLayout;
 import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
+import com.jjundev.oneclickeng.fragment.DialogueQuizViewModel;
+import com.jjundev.oneclickeng.fragment.DialogueQuizViewModelFactory;
 import com.jjundev.oneclickeng.fragment.dialoguelearning.di.LearningDependencyProvider;
 import com.jjundev.oneclickeng.settings.AppSettings;
 import com.jjundev.oneclickeng.settings.AppSettingsStore;
 import java.util.List;
 
-public class DialogueQuizFragment extends Fragment {
-  public static final String ARG_SUMMARY_JSON = "arg_summary_json";
-  public static final String ARG_FEATURE_BUNDLE_JSON = "arg_feature_bundle_json";
-  public static final String ARG_REQUESTED_QUESTION_COUNT = "arg_requested_question_count";
-  public static final String ARG_FINISH_BEHAVIOR = "arg_finish_behavior";
+public class DialogueQuizActivity extends AppCompatActivity {
+  public static final String EXTRA_SUMMARY_JSON = "extra_summary_json";
+  public static final String EXTRA_FEATURE_BUNDLE_JSON = "extra_feature_bundle_json";
+  public static final String EXTRA_REQUESTED_QUESTION_COUNT = "extra_requested_question_count";
 
-  public static final int FINISH_ACTIVITY = 0;
-  public static final int POP_BACK_STACK = 1;
   private static final String TAG = "JOB_J-20260217-002";
   private static final long SHOW_CHOICES_DELAY_MS = 500L;
   private static final long AUTO_CHECK_DELAY_MS = 200L;
@@ -48,32 +51,57 @@ public class DialogueQuizFragment extends Fragment {
     NEXT_BUTTON_ONLY
   }
 
-  @Nullable private DialogueQuizViewModel viewModel;
-  @Nullable private View loadingView;
-  @Nullable private View errorView;
-  @Nullable private View contentView;
-  @Nullable private View completedView;
-  @Nullable private View bottomSheetView;
-  @Nullable private BottomSheetBehavior<View> bottomSheetBehavior;
-  @Nullable private TextView tvErrorMessage;
-  @Nullable private MaterialButton btnRetry;
-  @Nullable private TextView tvProgress;
-  @Nullable private ProgressBar progressBar;
-  @Nullable private TextView tvQuestion;
-  @Nullable private LinearLayout choiceContainer;
-  @Nullable private TextInputLayout inputAnswerLayout;
-  @Nullable private MaterialCardView resultCard;
-  @Nullable private TextView tvResultTitle;
-  @Nullable private TextView tvCorrectAnswer;
-  @Nullable private TextView tvExplanation;
-  @Nullable private MaterialButton btnPrimary;
-  @Nullable private TextView tvCompletedSummary;
-  @Nullable private MaterialButton btnFinish;
+  @Nullable
+  private DialogueQuizViewModel viewModel;
+  @Nullable
+  private View loadingView;
+  @Nullable
+  private View errorView;
+  @Nullable
+  private View contentView;
+  @Nullable
+  private View completedView;
+  @Nullable
+  private View bottomSheetView;
+  @Nullable
+  private BottomSheetBehavior<View> bottomSheetBehavior;
+  @Nullable
+  private TextView tvErrorMessage;
+  @Nullable
+  private MaterialButton btnRetry;
+  @Nullable
+  private TextView tvProgress;
+  @Nullable
+  private ProgressBar progressBar;
+  @Nullable
+  private TextView tvQuestion;
+  @Nullable
+  private LinearLayout choiceContainer;
+  @Nullable
+  private TextInputLayout inputAnswerLayout;
+  @Nullable
+  private MaterialCardView resultCard;
+  @Nullable
+  private TextView tvResultTitle;
+  @Nullable
+  private TextView tvCorrectAnswer;
+  @Nullable
+  private TextView tvExplanation;
+  @Nullable
+  private MaterialButton btnPrimary;
+  @Nullable
+  private TextView tvCompletedSummary;
+  @Nullable
+  private MaterialButton btnFinish;
 
-  @NonNull private final Handler uiHandler = new Handler(Looper.getMainLooper());
-  @Nullable private Runnable showChoicesRunnable;
-  @Nullable private Runnable autoCheckRunnable;
-  @Nullable private Runnable showNextButtonRunnable;
+  @NonNull
+  private final Handler uiHandler = new Handler(Looper.getMainLooper());
+  @Nullable
+  private Runnable showChoicesRunnable;
+  @Nullable
+  private Runnable autoCheckRunnable;
+  @Nullable
+  private Runnable showNextButtonRunnable;
 
   private BottomSheetUiStage bottomSheetUiStage = BottomSheetUiStage.HIDDEN;
   private int renderedBottomSheetQuestionIndex = -1;
@@ -81,95 +109,74 @@ public class DialogueQuizFragment extends Fragment {
   private boolean autoCheckPending = false;
   private boolean showNextButtonScheduled = false;
 
-  public static DialogueQuizFragment newInstance(String summaryJson) {
-    return newInstance(summaryJson, null);
-  }
-
-  public static DialogueQuizFragment newInstance(
-      @Nullable String summaryJson, @Nullable String featureBundleJson) {
-    DialogueQuizFragment fragment = new DialogueQuizFragment();
-    Bundle args = new Bundle();
-    args.putString(ARG_SUMMARY_JSON, summaryJson);
-    args.putString(ARG_FEATURE_BUNDLE_JSON, featureBundleJson);
-    fragment.setArguments(args);
-    return fragment;
-  }
-
-  @Nullable
   @Override
-  public View onCreateView(
-      @NonNull LayoutInflater inflater,
-      @Nullable ViewGroup container,
-      @Nullable Bundle savedInstanceState) {
-    return inflater.inflate(R.layout.fragment_dialogue_quiz, container, false);
-  }
+  protected void onCreate(@Nullable Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    setContentView(R.layout.activity_dialogue_quiz);
 
-  @Override
-  public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-    super.onViewCreated(view, savedInstanceState);
-    bindViews(view);
+    getOnBackPressedDispatcher()
+        .addCallback(
+            this,
+            new OnBackPressedCallback(true) {
+              @Override
+              public void handleOnBackPressed() {
+                showExitConfirmDialog();
+              }
+            });
+
+    View rootView = findViewById(android.R.id.content);
+    ViewCompat.setOnApplyWindowInsetsListener(
+        rootView,
+        (v, windowInsets) -> {
+          Insets imeInsets = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
+          Insets systemBarInsets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+          v.setPadding(
+              systemBarInsets.left,
+              systemBarInsets.top,
+              systemBarInsets.right,
+              Math.max(imeInsets.bottom, systemBarInsets.bottom));
+          return WindowInsetsCompat.CONSUMED;
+        });
+
+    bindViews();
     initViewModel();
     bindListeners();
 
-    Bundle args = getArguments();
-    String summaryJson = args == null ? null : args.getString(ARG_SUMMARY_JSON);
-    int requestedQuestionCount = args == null ? 5 : args.getInt(ARG_REQUESTED_QUESTION_COUNT, 5);
+    Intent intent = getIntent();
+    String summaryJson = intent.getStringExtra(EXTRA_SUMMARY_JSON);
+    int requestedQuestionCount = intent.getIntExtra(EXTRA_REQUESTED_QUESTION_COUNT, 5);
     if (viewModel != null) {
       viewModel.initialize(summaryJson, requestedQuestionCount);
     }
-    logDebug("quiz fragment entered");
+    logDebug("quiz activity entered");
   }
 
   @Override
-  public void onDestroyView() {
-    super.onDestroyView();
+  protected void onDestroy() {
+    super.onDestroy();
     cancelPendingBottomSheetTasks();
-    loadingView = null;
-    errorView = null;
-    contentView = null;
-    completedView = null;
-    bottomSheetView = null;
-    bottomSheetBehavior = null;
-    tvErrorMessage = null;
-    btnRetry = null;
-    tvProgress = null;
-    progressBar = null;
-    tvQuestion = null;
-    choiceContainer = null;
-    inputAnswerLayout = null;
-    resultCard = null;
-    tvResultTitle = null;
-    tvCorrectAnswer = null;
-    tvExplanation = null;
-    btnPrimary = null;
-    tvCompletedSummary = null;
-    btnFinish = null;
-    bottomSheetUiStage = BottomSheetUiStage.HIDDEN;
-    renderedBottomSheetQuestionIndex = -1;
-    autoCheckPending = false;
-    showNextButtonScheduled = false;
   }
 
-  private void bindViews(@NonNull View root) {
-    loadingView = root.findViewById(R.id.layout_quiz_loading);
-    errorView = root.findViewById(R.id.layout_quiz_error);
-    contentView = root.findViewById(R.id.layout_quiz_content);
-    completedView = root.findViewById(R.id.layout_quiz_completed);
-    bottomSheetView = root.findViewById(R.id.bottom_sheet_quiz);
-    tvErrorMessage = root.findViewById(R.id.tv_quiz_error_message);
-    btnRetry = root.findViewById(R.id.btn_quiz_retry);
-    tvProgress = root.findViewById(R.id.tv_quiz_progress);
-    progressBar = root.findViewById(R.id.progress_quiz);
-    tvQuestion = root.findViewById(R.id.tv_quiz_question);
-    choiceContainer = root.findViewById(R.id.layout_quiz_choice_container);
-    inputAnswerLayout = root.findViewById(R.id.layout_quiz_answer_input);
-    resultCard = root.findViewById(R.id.card_quiz_result);
-    tvResultTitle = root.findViewById(R.id.tv_quiz_result_title);
-    tvCorrectAnswer = root.findViewById(R.id.tv_quiz_correct_answer);
-    tvExplanation = root.findViewById(R.id.tv_quiz_explanation);
-    btnPrimary = root.findViewById(R.id.btn_quiz_primary);
-    tvCompletedSummary = root.findViewById(R.id.tv_quiz_completed_summary);
-    btnFinish = root.findViewById(R.id.btn_quiz_finish);
+  private void bindViews() {
+    loadingView = findViewById(R.id.layout_quiz_loading);
+    errorView = findViewById(R.id.layout_quiz_error);
+    contentView = findViewById(R.id.layout_quiz_content);
+    completedView = findViewById(R.id.layout_quiz_completed);
+    bottomSheetView = findViewById(R.id.bottom_sheet_quiz);
+    tvErrorMessage = findViewById(R.id.tv_quiz_error_message);
+    btnRetry = findViewById(R.id.btn_quiz_retry);
+    tvProgress = findViewById(R.id.tv_quiz_progress);
+    progressBar = findViewById(R.id.progress_quiz);
+    tvQuestion = findViewById(R.id.tv_quiz_question);
+    choiceContainer = findViewById(R.id.layout_quiz_choice_container);
+    inputAnswerLayout = findViewById(R.id.layout_quiz_answer_input);
+    resultCard = findViewById(R.id.card_quiz_result);
+    tvResultTitle = findViewById(R.id.tv_quiz_result_title);
+    tvCorrectAnswer = findViewById(R.id.tv_quiz_correct_answer);
+    tvExplanation = findViewById(R.id.tv_quiz_explanation);
+    btnPrimary = findViewById(R.id.btn_quiz_primary);
+    tvCompletedSummary = findViewById(R.id.tv_quiz_completed_summary);
+    btnFinish = findViewById(R.id.btn_quiz_finish);
 
     if (bottomSheetView != null) {
       bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetView);
@@ -181,16 +188,14 @@ public class DialogueQuizFragment extends Fragment {
   }
 
   private void initViewModel() {
-    AppSettings settings =
-        new AppSettingsStore(requireContext().getApplicationContext()).getSettings();
-    DialogueQuizViewModelFactory factory =
-        new DialogueQuizViewModelFactory(
-            LearningDependencyProvider.provideQuizGenerationManager(
-                requireContext().getApplicationContext(),
-                settings.resolveEffectiveApiKey(BuildConfig.GEMINI_API_KEY),
-                settings.getLlmModelSummary()));
+    AppSettings settings = new AppSettingsStore(getApplicationContext()).getSettings();
+    DialogueQuizViewModelFactory factory = new DialogueQuizViewModelFactory(
+        LearningDependencyProvider.provideQuizGenerationManager(
+            getApplicationContext(),
+            settings.resolveEffectiveApiKey(BuildConfig.GEMINI_API_KEY),
+            settings.getLlmModelSummary()));
     viewModel = new ViewModelProvider(this, factory).get(DialogueQuizViewModel.class);
-    viewModel.getUiState().observe(getViewLifecycleOwner(), this::renderUiState);
+    viewModel.getUiState().observe(this, this::renderUiState);
   }
 
   private void bindListeners() {
@@ -220,20 +225,7 @@ public class DialogueQuizFragment extends Fragment {
     if (btnFinish != null) {
       btnFinish.setOnClickListener(
           v -> {
-            Bundle bundle = getArguments();
-            int finishBehavior =
-                bundle != null
-                    ? bundle.getInt(ARG_FINISH_BEHAVIOR, FINISH_ACTIVITY)
-                    : FINISH_ACTIVITY;
-            if (finishBehavior == POP_BACK_STACK) {
-              if (getActivity() != null) {
-                getActivity().getOnBackPressedDispatcher().onBackPressed();
-              }
-            } else {
-              if (getActivity() != null) {
-                getActivity().finish();
-              }
-            }
+            navigateToMainActivity();
           });
     }
   }
@@ -363,13 +355,12 @@ public class DialogueQuizFragment extends Fragment {
 
   private void renderChoiceButtons(@NonNull DialogueQuizViewModel.QuizQuestionState state) {
     LinearLayout container = choiceContainer;
-    Context context = getContext();
-    if (container == null || context == null) {
+    if (container == null) {
       return;
     }
 
     container.removeAllViews();
-    LayoutInflater inflater = LayoutInflater.from(context);
+    LayoutInflater inflater = LayoutInflater.from(this);
     List<String> choices = state.getChoices();
     if (choices == null) {
       return;
@@ -433,8 +424,7 @@ public class DialogueQuizFragment extends Fragment {
       textColor = ContextCompat.getColor(context, R.color.expression_precise_accent);
     }
 
-    boolean enabled =
-        !isChecked && !autoCheckPending && bottomSheetUiStage == BottomSheetUiStage.CHOICES_ONLY;
+    boolean enabled = !isChecked && !autoCheckPending && bottomSheetUiStage == BottomSheetUiStage.CHOICES_ONLY;
     button.setEnabled(enabled);
     button.setStrokeWidth(dpToPx(1));
     button.setStrokeColor(ColorStateList.valueOf(strokeColor));
@@ -451,12 +441,11 @@ public class DialogueQuizFragment extends Fragment {
     }
 
     if (tvResultTitle != null) {
-      int color =
-          ContextCompat.getColor(
-              requireContext(),
-              state.isCorrect()
-                  ? R.color.expression_natural_accent
-                  : R.color.expression_precise_accent);
+      int color = ContextCompat.getColor(
+          this,
+          state.isCorrect()
+              ? R.color.expression_natural_accent
+              : R.color.expression_precise_accent);
       tvResultTitle.setText(
           state.isCorrect() ? R.string.quiz_result_correct : R.string.quiz_result_incorrect);
       tvResultTitle.setTextColor(color);
@@ -481,14 +470,13 @@ public class DialogueQuizFragment extends Fragment {
       uiHandler.removeCallbacks(showChoicesRunnable);
       showChoicesRunnable = null;
     }
-    Runnable runnable =
-        () -> {
-          showChoicesRunnable = null;
-          if (!isViewReady() || renderedBottomSheetQuestionIndex != questionIndex) {
-            return;
-          }
-          showBottomSheetChoices(questionState);
-        };
+    Runnable runnable = () -> {
+      showChoicesRunnable = null;
+      if (isDestroyed() || renderedBottomSheetQuestionIndex != questionIndex) {
+        return;
+      }
+      showBottomSheetChoices(questionState);
+    };
     showChoicesRunnable = runnable;
     uiHandler.postDelayed(runnable, SHOW_CHOICES_DELAY_MS);
   }
@@ -498,24 +486,23 @@ public class DialogueQuizFragment extends Fragment {
       uiHandler.removeCallbacks(autoCheckRunnable);
       autoCheckRunnable = null;
     }
-    Runnable runnable =
-        () -> {
-          autoCheckRunnable = null;
-          if (!isViewReady() || renderedBottomSheetQuestionIndex != questionIndex) {
-            autoCheckPending = false;
-            return;
-          }
-          hideBottomSheet();
-          bottomSheetUiStage = BottomSheetUiStage.HIDDEN;
-          if (choiceContainer != null) {
-            choiceContainer.setVisibility(View.GONE);
-          }
-          if (viewModel != null) {
-            viewModel.onPrimaryAction();
-          } else {
-            autoCheckPending = false;
-          }
-        };
+    Runnable runnable = () -> {
+      autoCheckRunnable = null;
+      if (isDestroyed() || renderedBottomSheetQuestionIndex != questionIndex) {
+        autoCheckPending = false;
+        return;
+      }
+      hideBottomSheet();
+      bottomSheetUiStage = BottomSheetUiStage.HIDDEN;
+      if (choiceContainer != null) {
+        choiceContainer.setVisibility(View.GONE);
+      }
+      if (viewModel != null) {
+        viewModel.onPrimaryAction();
+      } else {
+        autoCheckPending = false;
+      }
+    };
     autoCheckRunnable = runnable;
     uiHandler.postDelayed(runnable, AUTO_CHECK_DELAY_MS);
   }
@@ -526,15 +513,14 @@ public class DialogueQuizFragment extends Fragment {
       showNextButtonRunnable = null;
     }
     showNextButtonScheduled = true;
-    Runnable runnable =
-        () -> {
-          showNextButtonRunnable = null;
-          showNextButtonScheduled = false;
-          if (!isViewReady() || renderedBottomSheetQuestionIndex != questionIndex) {
-            return;
-          }
-          showBottomSheetNextButton(lastQuestion);
-        };
+    Runnable runnable = () -> {
+      showNextButtonRunnable = null;
+      showNextButtonScheduled = false;
+      if (isDestroyed() || renderedBottomSheetQuestionIndex != questionIndex) {
+        return;
+      }
+      showBottomSheetNextButton(lastQuestion);
+    };
     showNextButtonRunnable = runnable;
     uiHandler.postDelayed(runnable, SHOW_NEXT_BUTTON_DELAY_MS);
   }
@@ -608,10 +594,6 @@ public class DialogueQuizFragment extends Fragment {
     showNextButtonScheduled = false;
   }
 
-  private boolean isViewReady() {
-    return isAdded() && getView() != null;
-  }
-
   private void showOnly(@Nullable View target) {
     if (target != contentView) {
       cancelPendingBottomSheetTasks();
@@ -641,6 +623,55 @@ public class DialogueQuizFragment extends Fragment {
   @NonNull
   private static String normalize(@Nullable String value) {
     return value == null ? "" : value.trim().toLowerCase();
+  }
+
+  private void showExitConfirmDialog() {
+    android.app.Dialog dialog = new android.app.Dialog(this);
+    dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+    dialog.setContentView(R.layout.dialog_exit_confirm);
+
+    if (dialog.getWindow() != null) {
+      dialog
+          .getWindow()
+          .setBackgroundDrawable(
+              new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+      android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+      int dialogWidth = (int) (metrics.widthPixels * 0.9);
+      dialog.getWindow().setLayout(dialogWidth, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+    }
+
+    TextView tvHeader = dialog.findViewById(R.id.tv_header);
+    TextView tvMessage = dialog.findViewById(R.id.tv_message);
+    if (tvHeader != null) {
+      tvHeader.setText("퀴즈 종료");
+    }
+    if (tvMessage != null) {
+      tvMessage.setText("현재 진행 중인 퀴즈 내역이 저장되지 않습니다.\n정말 종료하시겠습니까?");
+    }
+
+    View btnCancel = dialog.findViewById(R.id.btn_cancel);
+    View btnConfirm = dialog.findViewById(R.id.btn_confirm);
+
+    if (btnCancel != null) {
+      btnCancel.setOnClickListener(v -> dialog.dismiss());
+    }
+
+    if (btnConfirm != null) {
+      btnConfirm.setOnClickListener(
+          v -> {
+            dialog.dismiss();
+            navigateToMainActivity();
+          });
+    }
+
+    dialog.show();
+  }
+
+  private void navigateToMainActivity() {
+    Intent intent = new Intent(this, MainActivity.class);
+    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+    startActivity(intent);
+    finish();
   }
 
   private void logDebug(@NonNull String message) {

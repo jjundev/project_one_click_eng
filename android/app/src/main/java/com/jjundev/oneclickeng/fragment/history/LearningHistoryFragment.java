@@ -24,6 +24,7 @@ public class LearningHistoryFragment extends Fragment {
   private LearningHistoryAdapter adapter;
   private TabLayout tabLayout;
   private RecyclerView recyclerView;
+  private View emptyStateLayout;
 
   @Nullable
   @Override
@@ -46,6 +47,7 @@ public class LearningHistoryFragment extends Fragment {
   private void initViews(View view) {
     tabLayout = view.findViewById(R.id.tab_layout_history);
     recyclerView = view.findViewById(R.id.rv_learning_history);
+    emptyStateLayout = view.findViewById(R.id.layout_empty_state);
 
     setupTabs();
 
@@ -57,6 +59,35 @@ public class LearningHistoryFragment extends Fragment {
             });
     recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
     recyclerView.setAdapter(adapter);
+
+    com.jjundev.oneclickeng.utils.SwipeHelper swipeHelper =
+        new com.jjundev.oneclickeng.utils.SwipeHelper(requireContext(), recyclerView) {
+          @Override
+          public void instantiateUnderlayButton(
+              RecyclerView.ViewHolder viewHolder, java.util.List<UnderlayButton> underlayButtons) {
+            underlayButtons.add(
+                new UnderlayButton(
+                    requireContext(),
+                    "",
+                    androidx.core.content.ContextCompat.getDrawable(
+                        requireContext(), R.drawable.ic_delete_sweep),
+                    R.color.purple_700,
+                    new UnderlayButtonClickListener() {
+                      @Override
+                      public void onClick(int pos) {
+                        HistoryItemWrapper itemToSwipe = adapter.getItem(pos);
+                        if (itemToSwipe != null && viewModel != null) {
+                          viewModel.removeCard(itemToSwipe);
+                          android.widget.Toast.makeText(
+                                  requireContext(),
+                                  "카드가 삭제되었습니다.",
+                                  android.widget.Toast.LENGTH_SHORT)
+                              .show();
+                        }
+                      }
+                    }));
+          }
+        };
 
     View btnQuiz = view.findViewById(R.id.btn_history_quiz);
     if (btnQuiz != null) {
@@ -86,22 +117,26 @@ public class LearningHistoryFragment extends Fragment {
                         android.widget.Toast.LENGTH_SHORT)
                     .show();
               } else {
-                Bundle args = new Bundle();
-                args.putString(
-                    com.jjundev.oneclickeng.fragment.DialogueQuizFragment.ARG_SUMMARY_JSON,
+                android.content.Intent intent =
+                    new android.content.Intent(
+                        requireContext(),
+                        com.jjundev.oneclickeng.activity.DialogueQuizActivity.class);
+                intent.putExtra(
+                    com.jjundev.oneclickeng.activity.DialogueQuizActivity.EXTRA_SUMMARY_JSON,
                     new com.google.gson.Gson().toJson(seed));
-                args.putInt(
-                    com.jjundev.oneclickeng.fragment.DialogueQuizFragment
-                        .ARG_REQUESTED_QUESTION_COUNT,
+                intent.putExtra(
+                    com.jjundev.oneclickeng.activity.DialogueQuizActivity
+                        .EXTRA_REQUESTED_QUESTION_COUNT,
                     questionCount);
-                args.putInt(
-                    com.jjundev.oneclickeng.fragment.DialogueQuizFragment.ARG_FINISH_BEHAVIOR,
-                    com.jjundev.oneclickeng.fragment.DialogueQuizFragment.POP_BACK_STACK);
                 try {
-                  androidx.navigation.fragment.NavHostFragment.findNavController(this)
-                      .navigate(R.id.action_learningHistoryFragment_to_dialogueQuizFragment, args);
+                  startActivity(intent);
+                  // Enter animation for the Activity
+                  if (getActivity() != null) {
+                    getActivity()
+                        .overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+                  }
                 } catch (Exception e) {
-                  logDebug("Navigation failed: " + e.getMessage());
+                  logDebug("Activity start failed: " + e.getMessage());
                 }
               }
             });
@@ -131,8 +166,7 @@ public class LearningHistoryFragment extends Fragment {
 
   private void initViewModel() {
     viewModel = new ViewModelProvider(this).get(LearningHistoryViewModel.class);
-    // Load dummy data
-    viewModel.loadDummyData();
+    viewModel.loadSavedCards();
   }
 
   private void observeViewModel() {
@@ -153,12 +187,20 @@ public class LearningHistoryFragment extends Fragment {
 
     adapter.submitList(allItems, tabPosition);
 
-    if (recyclerView != null) {
-      android.view.animation.LayoutAnimationController controller =
-          android.view.animation.AnimationUtils.loadLayoutAnimation(
-              recyclerView.getContext(), R.anim.layout_anim_slide_fade_in);
-      recyclerView.setLayoutAnimation(controller);
-      recyclerView.scheduleLayoutAnimation();
+    boolean isEmpty = adapter.getItemCount() == 0;
+    if (isEmpty) {
+      if (recyclerView != null) recyclerView.setVisibility(View.GONE);
+      if (emptyStateLayout != null) emptyStateLayout.setVisibility(View.VISIBLE);
+    } else {
+      if (recyclerView != null) {
+        recyclerView.setVisibility(View.VISIBLE);
+        android.view.animation.LayoutAnimationController controller =
+            android.view.animation.AnimationUtils.loadLayoutAnimation(
+                recyclerView.getContext(), R.anim.layout_anim_slide_fade_in);
+        recyclerView.setLayoutAnimation(controller);
+        recyclerView.scheduleLayoutAnimation();
+      }
+      if (emptyStateLayout != null) emptyStateLayout.setVisibility(View.GONE);
     }
   }
 

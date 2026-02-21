@@ -44,6 +44,13 @@ public class LearningHistoryAdapter extends RecyclerView.Adapter<RecyclerView.Vi
     filter(tabPosition);
   }
 
+  public HistoryItemWrapper getItem(int position) {
+    if (position >= 0 && position < filteredList.size()) {
+      return filteredList.get(position);
+    }
+    return null;
+  }
+
   private void filter(int tabPosition) {
     filteredList.clear();
     int targetType = -1;

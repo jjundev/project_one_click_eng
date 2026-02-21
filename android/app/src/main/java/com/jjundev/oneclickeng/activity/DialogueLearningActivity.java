@@ -17,7 +17,6 @@ import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.dialog.DialogueLearningSettingDialog;
 import com.jjundev.oneclickeng.dialog.ExitConfirmDialog;
 import com.jjundev.oneclickeng.fragment.DialogueLearningFragment;
-import com.jjundev.oneclickeng.fragment.DialogueQuizFragment;
 import com.jjundev.oneclickeng.fragment.DialogueSummaryFragment;
 
 public class DialogueLearningActivity extends AppCompatActivity
@@ -80,9 +79,8 @@ public class DialogueLearningActivity extends AppCompatActivity
                 androidx.fragment.app.Fragment currentFragment =
                     getSupportFragmentManager().findFragmentById(R.id.fragment_container);
 
-                if (currentFragment instanceof DialogueSummaryFragment
-                    || currentFragment instanceof DialogueQuizFragment) {
-                  // Summary/Quiz Fragment인 경우 이전 화면(LearningFragment)으로 돌아감
+                if (currentFragment instanceof DialogueSummaryFragment) {
+                  // Summary Fragment인 경우 이전 화면(LearningFragment)으로 돌아감
                   getSupportFragmentManager().popBackStack();
                 } else {
                   // 그 외(LearningFragment 등)인 경우 종료 확인 다이얼로그 표시
