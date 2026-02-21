@@ -29,6 +29,32 @@ public class LearningModeSelectFragment extends Fragment {
 
     setupClickListeners(view);
     startSlotMachineAnimations(view);
+    startCardAnimations(view);
+  }
+
+  private void startCardAnimations(View view) {
+    View[] cards = {
+        view.findViewById(R.id.card_script_mode),
+        view.findViewById(R.id.card_free_mode),
+        view.findViewById(R.id.card_mode_speaking),
+        view.findViewById(R.id.card_mode)
+    };
+
+    long baseDelay = 0; // Start simultaneously with slot machine animations
+
+    for (int i = 0; i < cards.length; i++) {
+      View card = cards[i];
+      if (card != null) {
+        card.setAlpha(0f);
+        card.setTranslationX(-100f);
+        card.animate()
+            .alpha(1f)
+            .translationX(0f)
+            .setStartDelay(baseDelay + (i * 150L))
+            .setDuration(500)
+            .start();
+      }
+    }
   }
 
   private void startSlotMachineAnimations(View view) {

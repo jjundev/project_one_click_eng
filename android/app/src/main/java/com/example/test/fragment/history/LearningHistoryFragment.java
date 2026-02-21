@@ -23,6 +23,7 @@ public class LearningHistoryFragment extends Fragment {
   private LearningHistoryViewModel viewModel;
   private LearningHistoryAdapter adapter;
   private TabLayout tabLayout;
+  private RecyclerView recyclerView;
 
   @Nullable
   @Override
@@ -44,16 +45,15 @@ public class LearningHistoryFragment extends Fragment {
 
   private void initViews(View view) {
     tabLayout = view.findViewById(R.id.tab_layout_history);
-    RecyclerView recyclerView = view.findViewById(R.id.rv_learning_history);
+    recyclerView = view.findViewById(R.id.rv_learning_history);
 
     setupTabs();
 
-    adapter =
-        new LearningHistoryAdapter(
-            item -> {
-              // Handle save/unsave click later
-              logDebug("Item clicked: " + item.getType());
-            });
+    adapter = new LearningHistoryAdapter(
+        item -> {
+          // Handle save/unsave click later
+          logDebug("Item clicked: " + item.getType());
+        });
     recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
     recyclerView.setAdapter(adapter);
 
@@ -75,14 +75,14 @@ public class LearningHistoryFragment extends Fragment {
               int questionCount = result.getInt(HistoryQuizConfigDialog.BUNDLE_KEY_QUESTION_COUNT);
 
               int currentTab = tabLayout.getSelectedTabPosition();
-              com.example.test.fragment.dialoguelearning.model.SummaryData seed =
-                  viewModel.generateQuizSeed(periodBucket, currentTab);
+              com.example.test.fragment.dialoguelearning.model.SummaryData seed = viewModel
+                  .generateQuizSeed(periodBucket, currentTab);
 
               if (seed == null) {
                 android.widget.Toast.makeText(
-                        requireContext(),
-                        R.string.history_quiz_err_no_items,
-                        android.widget.Toast.LENGTH_SHORT)
+                    requireContext(),
+                    R.string.history_quiz_err_no_items,
+                    android.widget.Toast.LENGTH_SHORT)
                     .show();
               } else {
                 Bundle args = new Bundle();
@@ -118,7 +118,8 @@ public class LearningHistoryFragment extends Fragment {
           }
 
           @Override
-          public void onTabUnselected(TabLayout.Tab tab) {}
+          public void onTabUnselected(TabLayout.Tab tab) {
+          }
 
           @Override
           public void onTabReselected(TabLayout.Tab tab) {
@@ -147,9 +148,18 @@ public class LearningHistoryFragment extends Fragment {
 
   private void filterData(int tabPosition) {
     List<HistoryItemWrapper> allItems = viewModel.getHistoryItems().getValue();
-    if (allItems == null) return;
+    if (allItems == null)
+      return;
 
     adapter.submitList(allItems, tabPosition);
+
+    if (recyclerView != null) {
+      android.view.animation.LayoutAnimationController controller = android.view.animation.AnimationUtils
+          .loadLayoutAnimation(
+              recyclerView.getContext(), R.anim.layout_anim_slide_fade_in);
+      recyclerView.setLayoutAnimation(controller);
+      recyclerView.scheduleLayoutAnimation();
+    }
   }
 
   private void logDebug(String message) {

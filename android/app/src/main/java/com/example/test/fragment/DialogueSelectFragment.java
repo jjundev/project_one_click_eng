@@ -88,16 +88,21 @@ public class DialogueSelectFragment extends Fragment
     templateList.add(
         new ScriptTemplate("🚕", "택시 목적지 말하기", "실전 생활 표현", "기사님, 강남역으로 가주세요. 얼마나 걸릴까요?"));
 
-    adapter =
-        new ScriptSelectAdapter(
-            templateList,
-            template -> {
-              String json = scriptGenerator.getPredefinedScript(template.getTitle());
-              startScriptStudy(json);
-            });
+    adapter = new ScriptSelectAdapter(
+        templateList,
+        template -> {
+          String json = scriptGenerator.getPredefinedScript(template.getTitle());
+          startScriptStudy(json);
+        });
 
     rvScripts.setLayoutManager(new GridLayoutManager(getContext(), 2));
     rvScripts.setAdapter(adapter);
+
+    // Apply layout animation to the RecyclerView
+    android.view.animation.LayoutAnimationController controller = android.view.animation.AnimationUtils
+        .loadLayoutAnimation(
+            rvScripts.getContext(), R.anim.layout_anim_slide_fade_in);
+    rvScripts.setLayoutAnimation(controller);
 
     updateEmptyState();
   }
@@ -143,11 +148,11 @@ public class DialogueSelectFragment extends Fragment
         topic,
         format,
         length,
-        new com.example.test.fragment.dialoguelearning.manager_contracts.IDialogueGenerateManager
-            .ScriptGenerationCallback() {
+        new com.example.test.fragment.dialoguelearning.manager_contracts.IDialogueGenerateManager.ScriptGenerationCallback() {
           @Override
           public void onSuccess(String jsonResult) {
-            if (!isAdded()) return;
+            if (!isAdded())
+              return;
 
             if (dialog != null) {
               dialog.dismiss();
@@ -158,7 +163,8 @@ public class DialogueSelectFragment extends Fragment
 
           @Override
           public void onError(Throwable t) {
-            if (!isAdded()) return;
+            if (!isAdded())
+              return;
 
             if (dialog != null) {
               dialog.showLoading(false);
@@ -169,7 +175,8 @@ public class DialogueSelectFragment extends Fragment
   }
 
   private void startScriptStudy(String scriptJson) {
-    if (getActivity() == null) return;
+    if (getActivity() == null)
+      return;
 
     Intent intent = new Intent(getActivity(), DialogueLearningActivity.class);
     intent.putExtra("SCRIPT_DATA", scriptJson);
@@ -185,14 +192,14 @@ public class DialogueSelectFragment extends Fragment
     } else {
       layoutEmptyState.setVisibility(View.GONE);
       rvScripts.setVisibility(View.VISIBLE);
+      rvScripts.scheduleLayoutAnimation();
     }
   }
 
   private void hideKeyboard() {
     View view = getActivity().getCurrentFocus();
     if (view != null) {
-      InputMethodManager imm =
-          (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+      InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
       imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
     }
   }
