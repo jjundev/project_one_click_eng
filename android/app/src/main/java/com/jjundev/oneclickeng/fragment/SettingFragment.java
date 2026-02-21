@@ -57,6 +57,7 @@ public class SettingFragment extends Fragment {
   private Spinner spinnerModelScript;
   private Spinner spinnerModelSummary;
   private Spinner spinnerModelExtra;
+  private Spinner spinnerModelMinefield;
   private Button btnApiTest;
   private TextView tvApiTestResult;
   private TextView tvAppVersion;
@@ -68,6 +69,7 @@ public class SettingFragment extends Fragment {
   private TextView tvLabelScript;
   private TextView tvLabelSummary;
   private TextView tvLabelExtra;
+  private TextView tvLabelMinefield;
 
   @Nullable private ArrayAdapter<String> modelAdapter;
 
@@ -101,6 +103,7 @@ public class SettingFragment extends Fragment {
     spinnerModelScript = view.findViewById(R.id.spinner_model_script);
     spinnerModelSummary = view.findViewById(R.id.spinner_model_summary);
     spinnerModelExtra = view.findViewById(R.id.spinner_model_extra);
+    spinnerModelMinefield = view.findViewById(R.id.spinner_model_minefield);
     btnApiTest = view.findViewById(R.id.btn_api_test);
     tvApiTestResult = view.findViewById(R.id.tv_api_test_result);
     tvAppVersion = view.findViewById(R.id.tv_app_version);
@@ -112,6 +115,7 @@ public class SettingFragment extends Fragment {
     tvLabelScript = view.findViewById(R.id.tv_label_script);
     tvLabelSummary = view.findViewById(R.id.tv_label_summary);
     tvLabelExtra = view.findViewById(R.id.tv_label_extra);
+    tvLabelMinefield = view.findViewById(R.id.tv_label_minefield);
 
     if (tvAppVersion != null) {
       tvAppVersion.setText(BuildConfig.VERSION_NAME);
@@ -130,6 +134,7 @@ public class SettingFragment extends Fragment {
     spinnerModelScript.setAdapter(modelAdapter);
     spinnerModelSummary.setAdapter(modelAdapter);
     spinnerModelExtra.setAdapter(modelAdapter);
+    spinnerModelMinefield.setAdapter(modelAdapter);
   }
 
   private void setupListeners() {
@@ -169,6 +174,8 @@ public class SettingFragment extends Fragment {
         spinnerModelSummary, selected -> saveModelSelection(selected, ModelTarget.SUMMARY));
     bindModelSpinner(
         spinnerModelExtra, selected -> saveModelSelection(selected, ModelTarget.EXTRA));
+    bindModelSpinner(
+        spinnerModelMinefield, selected -> saveModelSelection(selected, ModelTarget.MINEFIELD));
 
     if (tvModelReset != null) {
       tvModelReset.setOnClickListener(v -> resetToDefaults());
@@ -295,6 +302,11 @@ public class SettingFragment extends Fragment {
         store.setLlmModelExtra(selectedModel);
         updateModelIndicatorHelper(selectedModel, AppSettings.DEFAULT_MODEL_EXTRA, tvLabelExtra);
         break;
+      case MINEFIELD:
+        store.setLlmModelMinefield(selectedModel);
+        updateModelIndicatorHelper(
+            selectedModel, AppSettings.DEFAULT_MODEL_MINEFIELD, tvLabelMinefield);
+        break;
       default:
         return;
     }
@@ -329,6 +341,7 @@ public class SettingFragment extends Fragment {
     store.setLlmModelScript(AppSettings.DEFAULT_MODEL_SCRIPT);
     store.setLlmModelSummary(AppSettings.DEFAULT_MODEL_SUMMARY);
     store.setLlmModelExtra(AppSettings.DEFAULT_MODEL_EXTRA);
+    store.setLlmModelMinefield(AppSettings.DEFAULT_MODEL_MINEFIELD);
 
     // 2. Update UI
     if (modelAdapter != null) {
@@ -337,6 +350,8 @@ public class SettingFragment extends Fragment {
       setSpinnerSelection(spinnerModelScript, AppSettings.DEFAULT_MODEL_SCRIPT, modelAdapter);
       setSpinnerSelection(spinnerModelSummary, AppSettings.DEFAULT_MODEL_SUMMARY, modelAdapter);
       setSpinnerSelection(spinnerModelExtra, AppSettings.DEFAULT_MODEL_EXTRA, modelAdapter);
+      setSpinnerSelection(
+          spinnerModelMinefield, AppSettings.DEFAULT_MODEL_MINEFIELD, modelAdapter);
 
       // Reset indicators
       updateModelIndicatorHelper(
@@ -349,6 +364,10 @@ public class SettingFragment extends Fragment {
           AppSettings.DEFAULT_MODEL_SUMMARY, AppSettings.DEFAULT_MODEL_SUMMARY, tvLabelSummary);
       updateModelIndicatorHelper(
           AppSettings.DEFAULT_MODEL_EXTRA, AppSettings.DEFAULT_MODEL_EXTRA, tvLabelExtra);
+      updateModelIndicatorHelper(
+          AppSettings.DEFAULT_MODEL_MINEFIELD,
+          AppSettings.DEFAULT_MODEL_MINEFIELD,
+          tvLabelMinefield);
     }
 
     // 3. Show feedback
@@ -376,6 +395,7 @@ public class SettingFragment extends Fragment {
     setSpinnerSelection(spinnerModelScript, settings.getLlmModelScript(), modelAdapter);
     setSpinnerSelection(spinnerModelSummary, settings.getLlmModelSummary(), modelAdapter);
     setSpinnerSelection(spinnerModelExtra, settings.getLlmModelExtra(), modelAdapter);
+    setSpinnerSelection(spinnerModelMinefield, settings.getLlmModelMinefield(), modelAdapter);
 
     updateModelIndicatorHelper(
         settings.getLlmModelSentence(), AppSettings.DEFAULT_MODEL_SENTENCE, tvLabelSentence);
@@ -387,6 +407,8 @@ public class SettingFragment extends Fragment {
         settings.getLlmModelSummary(), AppSettings.DEFAULT_MODEL_SUMMARY, tvLabelSummary);
     updateModelIndicatorHelper(
         settings.getLlmModelExtra(), AppSettings.DEFAULT_MODEL_EXTRA, tvLabelExtra);
+    updateModelIndicatorHelper(
+        settings.getLlmModelMinefield(), AppSettings.DEFAULT_MODEL_MINEFIELD, tvLabelMinefield);
 
     bindingState = false;
   }
@@ -510,6 +532,7 @@ public class SettingFragment extends Fragment {
     SPEAKING,
     SCRIPT,
     SUMMARY,
-    EXTRA
+    EXTRA,
+    MINEFIELD
   }
 }

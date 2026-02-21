@@ -2,6 +2,8 @@ package com.jjundev.oneclickeng.fragment.dialoguelearning.di;
 
 import android.content.Context;
 import androidx.annotation.NonNull;
+import com.jjundev.oneclickeng.game.minefield.manager.IMinefieldGenerationManager;
+import com.jjundev.oneclickeng.game.nativeornot.manager.INativeOrNotGenerationManager;
 import com.jjundev.oneclickeng.fragment.dialoguelearning.manager_contracts.IDialogueGenerateManager;
 import com.jjundev.oneclickeng.fragment.dialoguelearning.manager_contracts.IExtraQuestionManager;
 import com.jjundev.oneclickeng.fragment.dialoguelearning.manager_contracts.IQuizGenerationManager;
@@ -10,6 +12,8 @@ import com.jjundev.oneclickeng.fragment.dialoguelearning.manager_contracts.ISess
 import com.jjundev.oneclickeng.fragment.dialoguelearning.manager_contracts.ISpeakingFeedbackManager;
 import com.jjundev.oneclickeng.manager_gemini.DialogueGenerateManager;
 import com.jjundev.oneclickeng.manager_gemini.ExtraQuestionManager;
+import com.jjundev.oneclickeng.manager_gemini.MinefieldGenerateManager;
+import com.jjundev.oneclickeng.manager_gemini.NativeOrNotGenerateManager;
 import com.jjundev.oneclickeng.manager_gemini.QuizGenerateManager;
 import com.jjundev.oneclickeng.manager_gemini.SentenceFeedbackManager;
 import com.jjundev.oneclickeng.manager_gemini.SpeakingFeedbackManager;
@@ -61,6 +65,18 @@ public final class LearningDependencyProvider {
   public static IQuizGenerationManager provideQuizGenerationManager(
       @NonNull Context appContext, @NonNull String apiKey, @NonNull String modelName) {
     return new QuizGenerateManager(appContext, apiKey, modelName);
+  }
+
+  @NonNull
+  public static INativeOrNotGenerationManager provideNativeOrNotGenerationManager(
+      @NonNull Context appContext, @NonNull String apiKey, @NonNull String modelName) {
+    return new NativeOrNotGenerateManager(appContext, apiKey, modelName);
+  }
+
+  @NonNull
+  public static IMinefieldGenerationManager provideMinefieldGenerationManager(
+      @NonNull Context appContext, @NonNull String apiKey, @NonNull String modelName) {
+    return new MinefieldGenerateManager(appContext, apiKey, modelName);
   }
 
   @NonNull

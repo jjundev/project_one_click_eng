@@ -38,6 +38,15 @@
             android:name=".activity.DialogueQuizActivity"
             android:screenOrientation="portrait"
             android:exported="false" />
+        <activity
+            android:name=".activity.NativeOrNotGameActivity"
+            android:screenOrientation="portrait"
+            android:exported="false" />
+        <activity
+            android:name=".activity.MinefieldGameActivity"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="false" />
     </application>
 
 </manifest>

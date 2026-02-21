@@ -9,6 +9,7 @@ public final class AppSettings {
   public static final String DEFAULT_MODEL_SCRIPT = "gemini-3-flash-preview";
   public static final String DEFAULT_MODEL_SUMMARY = "gemini-3-flash-preview";
   public static final String DEFAULT_MODEL_EXTRA = "gemini-3-flash-preview";
+  public static final String DEFAULT_MODEL_MINEFIELD = "gemini-3-flash-preview";
   public static final String TTS_PROVIDER_ANDROID = "android";
   public static final String TTS_PROVIDER_GOOGLE = "google";
   public static final String DEFAULT_TTS_PROVIDER = TTS_PROVIDER_ANDROID;
@@ -23,6 +24,7 @@ public final class AppSettings {
   @NonNull private final String llmModelScript;
   @NonNull private final String llmModelSummary;
   @NonNull private final String llmModelExtra;
+  @NonNull private final String llmModelMinefield;
   @NonNull private final String ttsProvider;
   private final float ttsSpeechRate;
   @NonNull private final String ttsLocaleTag;
@@ -36,6 +38,7 @@ public final class AppSettings {
       @Nullable String llmModelScript,
       @Nullable String llmModelSummary,
       @Nullable String llmModelExtra,
+      @Nullable String llmModelMinefield,
       @Nullable String ttsProvider,
       float ttsSpeechRate,
       @Nullable String ttsLocaleTag) {
@@ -47,6 +50,7 @@ public final class AppSettings {
     this.llmModelScript = normalizeOrDefault(llmModelScript, DEFAULT_MODEL_SCRIPT);
     this.llmModelSummary = normalizeOrDefault(llmModelSummary, DEFAULT_MODEL_SUMMARY);
     this.llmModelExtra = normalizeOrDefault(llmModelExtra, DEFAULT_MODEL_EXTRA);
+    this.llmModelMinefield = normalizeOrDefault(llmModelMinefield, DEFAULT_MODEL_MINEFIELD);
     this.ttsProvider = normalizeOrDefault(ttsProvider, DEFAULT_TTS_PROVIDER);
     this.ttsSpeechRate = clamp(ttsSpeechRate, 0.5f, 1.5f);
     this.ttsLocaleTag = normalizeOrDefault(ttsLocaleTag, DEFAULT_TTS_LOCALE_TAG);
@@ -89,6 +93,11 @@ public final class AppSettings {
   @NonNull
   public String getLlmModelExtra() {
     return llmModelExtra;
+  }
+
+  @NonNull
+  public String getLlmModelMinefield() {
+    return llmModelMinefield;
   }
 
   @NonNull
