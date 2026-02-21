@@ -2,18 +2,42 @@ package com.jjundev.oneclickeng.activity;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.CancellationSignal;
+import android.util.Log;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 import android.widget.VideoView;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+import androidx.credentials.CredentialManager;
+import androidx.credentials.CredentialManagerCallback;
+import androidx.credentials.CustomCredential;
+import androidx.credentials.GetCredentialRequest;
+import androidx.credentials.GetCredentialResponse;
+import androidx.credentials.exceptions.GetCredentialException;
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.firebase.auth.AuthCredential;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.GoogleAuthProvider;
 import com.jjundev.oneclickeng.R;
 
 public class LoginActivity extends AppCompatActivity {
 
     private VideoView videoViewBackground;
     private BottomSheetBehavior<LinearLayout> bottomSheetBehavior;
+    private static final String TAG = "LoginActivity";
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // Check if user is already signed in
+        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+            navigateToMain();
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,8 +102,7 @@ public class LoginActivity extends AppCompatActivity {
         });
 
         findViewById(R.id.btnGoogleLogin).setOnClickListener(v -> {
-            Toast.makeText(this, "구글 로그인 클릭", Toast.LENGTH_SHORT).show();
-            navigateToMain();
+            signInWithGoogle();
         });
     }
 
@@ -88,5 +111,66 @@ public class LoginActivity extends AppCompatActivity {
         Intent intent = new Intent(this, MainActivity.class);
         startActivity(intent);
         finish();
+    }
+
+    private void signInWithGoogle() {
+        GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
+                .setFilterByAuthorizedAccounts(false)
+                .setServerClientId(getString(R.string.default_web_client_id))
+                .setAutoSelectEnabled(true)
+                .build();
+
+        GetCredentialRequest request = new GetCredentialRequest.Builder()
+                .addCredentialOption(googleIdOption)
+                .build();
+
+        CredentialManager credentialManager = CredentialManager.create(this);
+        credentialManager.getCredentialAsync(
+                this,
+                request,
+                new CancellationSignal(),
+                ContextCompat.getMainExecutor(this),
+                new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
+                    @Override
+                    public void onResult(GetCredentialResponse result) {
+                        try {
+                            if (result.getCredential() instanceof CustomCredential) {
+                                CustomCredential credential = (CustomCredential) result.getCredential();
+                                if (credential.getType()
+                                        .equals(GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL)) {
+                                    GoogleIdTokenCredential googleIdTokenCredential = GoogleIdTokenCredential
+                                            .createFrom(credential.getData());
+                                    String idToken = googleIdTokenCredential.getIdToken();
+                                    firebaseAuthWithGoogle(idToken);
+                                }
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Parsing credential failed", e);
+                            Toast.makeText(LoginActivity.this, "구글 로그인 중 오류 발생", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    @Override
+                    public void onError(GetCredentialException e) {
+                        Log.e(TAG, "Google Sign-In failed", e);
+//                        Toast.makeText(LoginActivity.this, "구글 로그인 실패", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void firebaseAuthWithGoogle(String idToken) {
+        AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
+        FirebaseAuth.getInstance().signInWithCredential(credential)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        Log.d(TAG, "signInWithCredential:success");
+                        Toast.makeText(LoginActivity.this, "로그인 성공!", Toast.LENGTH_SHORT).show();
+                        navigateToMain();
+                    } else {
+                        Log.w(TAG, "signInWithCredential:failure", task.getException());
+                        Toast.makeText(LoginActivity.this, "Firebase 인증 실패: " + task.getException().getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 }
