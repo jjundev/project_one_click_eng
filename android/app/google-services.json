@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "804702971455",
+    "project_id": "one-click-eng",
+    "storage_bucket": "one-click-eng.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:804702971455:android:3b7419ecca1da7fd6aba8a",
+        "android_client_info": {
+          "package_name": "com.jjundev.oneclickeng"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "804702971455-j3gj4i3kbsi7vrffoegqrqu2qfjr4lv9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.jjundev.oneclickeng",
+            "certificate_hash": "f70dabc6d0103fd903393176cba1862bc5131762"
+          }
+        },
+        {
+          "client_id": "804702971455-8ic489hpdacvi8rk6n7vo476c82nr00g.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6YpD-gHjSzK-ZlhGYVmFayK8YNsag2Ck"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "804702971455-8ic489hpdacvi8rk6n7vo476c82nr00g.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

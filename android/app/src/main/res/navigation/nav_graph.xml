@@ -7,7 +7,7 @@
 
     <fragment
         android:id="@+id/studyModeSelectFragment"
-        android:name="com.example.test.fragment.LearningModeSelectFragment"
+        android:name="com.jjundev.oneclickeng.fragment.LearningModeSelectFragment"
         android:label="StudyModeSelectFragment"
         tools:layout="@layout/fragment_learning_mode_select">
         <action
@@ -21,31 +21,31 @@
 
     <fragment
         android:id="@+id/scriptSelectFragment"
-        android:name="com.example.test.fragment.DialogueSelectFragment"
+        android:name="com.jjundev.oneclickeng.fragment.DialogueSelectFragment"
         android:label="ScriptSelectFragment"
         tools:layout="@layout/fragment_dialogue_select" />
 
     <fragment
         android:id="@+id/dialogueSummaryFragment"
-        android:name="com.example.test.fragment.DialogueSummaryFragment"
+        android:name="com.jjundev.oneclickeng.fragment.DialogueSummaryFragment"
         android:label="DialogueSummaryFragment"
         tools:layout="@layout/fragment_dialogue_summary" />
 
     <fragment
         android:id="@+id/englishShortsEmptyFragment"
-        android:name="com.example.test.fragment.EnglishShortsEmptyFragment"
+        android:name="com.jjundev.oneclickeng.fragment.EnglishShortsEmptyFragment"
         android:label="EnglishShortsEmptyFragment"
         tools:layout="@layout/fragment_english_shorts_empty" />
 
     <fragment
         android:id="@+id/gameModeEmptyFragment"
-        android:name="com.example.test.fragment.GameModeEmptyFragment"
+        android:name="com.jjundev.oneclickeng.fragment.GameModeEmptyFragment"
         android:label="GameModeEmptyFragment"
         tools:layout="@layout/fragment_game_mode_empty" />
 
     <fragment
         android:id="@+id/learningHistoryFragment"
-        android:name="com.example.test.fragment.history.LearningHistoryFragment"
+        android:name="com.jjundev.oneclickeng.fragment.history.LearningHistoryFragment"
         android:label="LearningHistoryFragment"
         tools:layout="@layout/fragment_learning_history">
         <action
@@ -59,7 +59,7 @@
 
     <fragment
         android:id="@+id/dialogueQuizFragment"
-        android:name="com.example.test.fragment.DialogueQuizFragment"
+        android:name="com.jjundev.oneclickeng.fragment.DialogueQuizFragment"
         android:label="DialogueQuizFragment"
         tools:layout="@layout/fragment_dialogue_quiz">
         <argument
@@ -84,7 +84,7 @@
 
     <fragment
         android:id="@+id/settingFragment"
-        android:name="com.example.test.fragment.SettingFragment"
+        android:name="com.jjundev.oneclickeng.fragment.SettingFragment"
         android:label="SettingFragment"
         tools:layout="@layout/fragment_setting" />
 

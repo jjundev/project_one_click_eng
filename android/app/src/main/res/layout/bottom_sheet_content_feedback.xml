@@ -713,7 +713,7 @@
                         app:strokeWidth="0dp"
                         app:cardBackgroundColor="#FFFFFF">
 
-                        <com.example.test.view.VennDiagramView
+                        <com.jjundev.oneclickeng.view.VennDiagramView
                             android:id="@+id/view_conceptual_bridge_venn"
                             android:layout_width="match_parent"
                             android:layout_height="160dp" />
