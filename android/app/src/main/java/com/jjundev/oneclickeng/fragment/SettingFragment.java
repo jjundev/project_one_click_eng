@@ -12,12 +12,16 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.AppCompatButton;
 import androidx.fragment.app.Fragment;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -43,6 +47,9 @@ public class SettingFragment extends Fragment {
   @NonNull private final Gson gson = new Gson();
 
   private boolean bindingState;
+
+  private LinearLayout layoutProfileNickname;
+  private TextView tvProfileNicknameValue;
 
   private EditText etApiKeyOverride;
   private Spinner spinnerModelSentence;
@@ -85,6 +92,9 @@ public class SettingFragment extends Fragment {
   }
 
   private void bindViews(@NonNull View view) {
+    layoutProfileNickname = view.findViewById(R.id.layout_profile_nickname);
+    tvProfileNicknameValue = view.findViewById(R.id.tv_profile_nickname_value);
+
     etApiKeyOverride = view.findViewById(R.id.et_api_key_override);
     spinnerModelSentence = view.findViewById(R.id.spinner_model_sentence);
     spinnerModelSpeaking = view.findViewById(R.id.spinner_model_speaking);
@@ -123,6 +133,10 @@ public class SettingFragment extends Fragment {
   }
 
   private void setupListeners() {
+    if (layoutProfileNickname != null) {
+      layoutProfileNickname.setOnClickListener(v -> showNicknameEditDialog());
+    }
+
     etApiKeyOverride.addTextChangedListener(
         new TextWatcher() {
           @Override
@@ -169,6 +183,9 @@ public class SettingFragment extends Fragment {
 
   private void performLogout() {
     FirebaseAuth.getInstance().signOut();
+    if (appSettingsStore != null) {
+      appSettingsStore.setUserNickname("");
+    }
     android.content.Intent intent =
         new android.content.Intent(requireContext(), LoginActivity.class);
     intent.setFlags(
@@ -176,6 +193,59 @@ public class SettingFragment extends Fragment {
             | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
     startActivity(intent);
     requireActivity().finish();
+  }
+
+  private String getEffectiveNickname() {
+    String storedNickname = appSettingsStore.getSettings().getUserNickname();
+    if (!storedNickname.isEmpty()) {
+      return storedNickname;
+    }
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+    if (user != null && user.getDisplayName() != null && !user.getDisplayName().isEmpty()) {
+      return user.getDisplayName();
+    }
+    return "학습자";
+  }
+
+  private void showNicknameEditDialog() {
+    View dialogView =
+        LayoutInflater.from(getContext()).inflate(R.layout.dialog_profile_nickname, null);
+
+    EditText etNicknameInput = dialogView.findViewById(R.id.et_nickname_input);
+    AppCompatButton btnCancel = dialogView.findViewById(R.id.btn_nickname_cancel);
+    AppCompatButton btnSave = dialogView.findViewById(R.id.btn_nickname_save);
+
+    String currentNickname = appSettingsStore.getSettings().getUserNickname();
+    if (!currentNickname.isEmpty()) {
+      etNicknameInput.setText(currentNickname);
+      etNicknameInput.setSelection(currentNickname.length());
+    }
+
+    android.app.Dialog dialog = new android.app.Dialog(requireContext());
+    dialog.setContentView(dialogView);
+    if (dialog.getWindow() != null) {
+      dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0));
+
+      // Set width to 90% of screen width
+      android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+      int width = (int) (metrics.widthPixels * 0.9f);
+      dialog.getWindow().setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT);
+    }
+
+    btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+    btnSave.setOnClickListener(
+        v -> {
+          String newNickname = etNicknameInput.getText().toString().trim();
+          appSettingsStore.setUserNickname(newNickname);
+          if (tvProfileNicknameValue != null) {
+            tvProfileNicknameValue.setText(getEffectiveNickname());
+          }
+          Toast.makeText(getContext(), "닉네임이 저장되었습니다.", Toast.LENGTH_SHORT).show();
+          dialog.dismiss();
+        });
+
+    dialog.show();
   }
 
   private void bindModelSpinner(
@@ -294,6 +364,11 @@ public class SettingFragment extends Fragment {
     }
     AppSettings settings = store.getSettings();
     bindingState = true;
+
+    if (tvProfileNicknameValue != null) {
+      tvProfileNicknameValue.setText(getEffectiveNickname());
+    }
+
     etApiKeyOverride.setText(settings.getLlmApiKeyOverride());
 
     setSpinnerSelection(spinnerModelSentence, settings.getLlmModelSentence(), modelAdapter);

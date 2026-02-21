@@ -16,6 +16,7 @@ public final class AppSettings {
   public static final String DEFAULT_TTS_LOCALE_TAG = "en-US";
 
   private final boolean muteAllPlayback;
+  @NonNull private final String userNickname;
   @NonNull private final String llmApiKeyOverride;
   @NonNull private final String llmModelSentence;
   @NonNull private final String llmModelSpeaking;
@@ -28,6 +29,7 @@ public final class AppSettings {
 
   public AppSettings(
       boolean muteAllPlayback,
+      @Nullable String userNickname,
       @Nullable String llmApiKeyOverride,
       @Nullable String llmModelSentence,
       @Nullable String llmModelSpeaking,
@@ -38,6 +40,7 @@ public final class AppSettings {
       float ttsSpeechRate,
       @Nullable String ttsLocaleTag) {
     this.muteAllPlayback = muteAllPlayback;
+    this.userNickname = normalizeOrEmpty(userNickname);
     this.llmApiKeyOverride = normalizeOrEmpty(llmApiKeyOverride);
     this.llmModelSentence = normalizeOrDefault(llmModelSentence, DEFAULT_MODEL_SENTENCE);
     this.llmModelSpeaking = normalizeOrDefault(llmModelSpeaking, DEFAULT_MODEL_SPEAKING);
@@ -51,6 +54,11 @@ public final class AppSettings {
 
   public boolean isMuteAllPlayback() {
     return muteAllPlayback;
+  }
+
+  @NonNull
+  public String getUserNickname() {
+    return userNickname;
   }
 
   @NonNull

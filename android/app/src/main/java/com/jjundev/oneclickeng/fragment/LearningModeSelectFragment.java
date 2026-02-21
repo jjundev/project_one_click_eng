@@ -4,12 +4,16 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.jjundev.oneclickeng.R;
+import com.jjundev.oneclickeng.settings.AppSettingsStore;
 import com.jjundev.oneclickeng.widget.SlotMachineTextView;
 
 public class LearningModeSelectFragment extends Fragment {
@@ -30,6 +34,30 @@ public class LearningModeSelectFragment extends Fragment {
     setupClickListeners(view);
     startSlotMachineAnimations(view);
     startCardAnimations(view);
+    setupGreeting(view);
+  }
+
+  private void setupGreeting(View view) {
+    TextView tvGreeting = view.findViewById(R.id.tv_greeting);
+    if (tvGreeting == null) return;
+
+    String nickname = "";
+    if (getContext() != null) {
+      AppSettingsStore appSettingsStore =
+          new AppSettingsStore(getContext().getApplicationContext());
+      nickname = appSettingsStore.getSettings().getUserNickname();
+    }
+
+    if (nickname.isEmpty()) {
+      FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+      if (user != null && user.getDisplayName() != null && !user.getDisplayName().isEmpty()) {
+        nickname = user.getDisplayName();
+      } else {
+        nickname = "학습자";
+      }
+    }
+
+    tvGreeting.setText(getString(R.string.greeting_format, nickname));
   }
 
   private void startCardAnimations(View view) {
