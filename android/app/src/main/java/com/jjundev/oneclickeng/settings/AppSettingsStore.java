@@ -15,13 +15,12 @@ public final class AppSettingsStore {
   private static final String KEY_LLM_MODEL_SCRIPT = "llm_model_script";
   private static final String KEY_LLM_MODEL_SUMMARY = "llm_model_summary";
   private static final String KEY_LLM_MODEL_EXTRA = "llm_model_extra";
-  private static final String KEY_LLM_MODEL_MINEFIELD = "llm_model_minefield";
-  private static final String KEY_LLM_MODEL_REFINER = "llm_model_refiner";
   private static final String KEY_TTS_PROVIDER = "tts_provider";
   private static final String KEY_TTS_SPEECH_RATE = "tts_speech_rate";
   private static final String KEY_TTS_LOCALE_TAG = "tts_locale_tag";
 
-  @NonNull private final SharedPreferences preferences;
+  @NonNull
+  private final SharedPreferences preferences;
 
   public AppSettingsStore(@NonNull Context context) {
     preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
@@ -38,8 +37,6 @@ public final class AppSettingsStore {
         preferences.getString(KEY_LLM_MODEL_SCRIPT, AppSettings.DEFAULT_MODEL_SCRIPT),
         preferences.getString(KEY_LLM_MODEL_SUMMARY, AppSettings.DEFAULT_MODEL_SUMMARY),
         preferences.getString(KEY_LLM_MODEL_EXTRA, AppSettings.DEFAULT_MODEL_EXTRA),
-        preferences.getString(KEY_LLM_MODEL_MINEFIELD, AppSettings.DEFAULT_MODEL_MINEFIELD),
-        preferences.getString(KEY_LLM_MODEL_REFINER, AppSettings.DEFAULT_MODEL_REFINER),
         preferences.getString(KEY_TTS_PROVIDER, AppSettings.DEFAULT_TTS_PROVIDER),
         preferences.getFloat(KEY_TTS_SPEECH_RATE, AppSettings.DEFAULT_TTS_SPEECH_RATE),
         preferences.getString(KEY_TTS_LOCALE_TAG, AppSettings.DEFAULT_TTS_LOCALE_TAG));
@@ -99,24 +96,6 @@ public final class AppSettingsStore {
         .edit()
         .putString(
             KEY_LLM_MODEL_EXTRA, normalizeOrDefault(modelName, AppSettings.DEFAULT_MODEL_EXTRA))
-        .apply();
-  }
-
-  public void setLlmModelMinefield(@Nullable String modelName) {
-    preferences
-        .edit()
-        .putString(
-            KEY_LLM_MODEL_MINEFIELD,
-            normalizeOrDefault(modelName, AppSettings.DEFAULT_MODEL_MINEFIELD))
-        .apply();
-  }
-
-  public void setLlmModelRefiner(@Nullable String modelName) {
-    preferences
-        .edit()
-        .putString(
-            KEY_LLM_MODEL_REFINER,
-            normalizeOrDefault(modelName, AppSettings.DEFAULT_MODEL_REFINER))
         .apply();
   }
 

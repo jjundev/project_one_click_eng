@@ -38,13 +38,15 @@ import okhttp3.Response;
 
 public class SettingFragment extends Fragment {
   private static final String TAG = "JOB_J-20260216-003";
-  private static final String GEMINI_BASE_URL =
-      "https://generativelanguage.googleapis.com/v1beta/models/";
+  private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
   private static final MediaType JSON_MEDIA_TYPE = MediaType.parse("application/json");
 
-  @Nullable private AppSettingsStore appSettingsStore;
-  @NonNull private final OkHttpClient apiTestClient = new OkHttpClient();
-  @NonNull private final Gson gson = new Gson();
+  @Nullable
+  private AppSettingsStore appSettingsStore;
+  @NonNull
+  private final OkHttpClient apiTestClient = new OkHttpClient();
+  @NonNull
+  private final Gson gson = new Gson();
 
   private boolean bindingState;
 
@@ -57,8 +59,6 @@ public class SettingFragment extends Fragment {
   private Spinner spinnerModelScript;
   private Spinner spinnerModelSummary;
   private Spinner spinnerModelExtra;
-  private Spinner spinnerModelMinefield;
-  private Spinner spinnerModelRefiner;
   private Button btnApiTest;
   private TextView tvApiTestResult;
   private TextView tvAppVersion;
@@ -70,10 +70,9 @@ public class SettingFragment extends Fragment {
   private TextView tvLabelScript;
   private TextView tvLabelSummary;
   private TextView tvLabelExtra;
-  private TextView tvLabelMinefield;
-  private TextView tvLabelRefiner;
 
-  @Nullable private ArrayAdapter<String> modelAdapter;
+  @Nullable
+  private ArrayAdapter<String> modelAdapter;
 
   @Nullable
   @Override
@@ -105,8 +104,6 @@ public class SettingFragment extends Fragment {
     spinnerModelScript = view.findViewById(R.id.spinner_model_script);
     spinnerModelSummary = view.findViewById(R.id.spinner_model_summary);
     spinnerModelExtra = view.findViewById(R.id.spinner_model_extra);
-    spinnerModelMinefield = view.findViewById(R.id.spinner_model_minefield);
-    spinnerModelRefiner = view.findViewById(R.id.spinner_model_refiner);
     btnApiTest = view.findViewById(R.id.btn_api_test);
     tvApiTestResult = view.findViewById(R.id.tv_api_test_result);
     tvAppVersion = view.findViewById(R.id.tv_app_version);
@@ -118,8 +115,6 @@ public class SettingFragment extends Fragment {
     tvLabelScript = view.findViewById(R.id.tv_label_script);
     tvLabelSummary = view.findViewById(R.id.tv_label_summary);
     tvLabelExtra = view.findViewById(R.id.tv_label_extra);
-    tvLabelMinefield = view.findViewById(R.id.tv_label_minefield);
-    tvLabelRefiner = view.findViewById(R.id.tv_label_refiner);
 
     if (tvAppVersion != null) {
       tvAppVersion.setText(BuildConfig.VERSION_NAME);
@@ -127,19 +122,16 @@ public class SettingFragment extends Fragment {
   }
 
   private void setupAdapters() {
-    modelAdapter =
-        new ArrayAdapter<>(
-            requireContext(),
-            android.R.layout.simple_spinner_item,
-            getResources().getStringArray(R.array.settings_llm_model_presets));
+    modelAdapter = new ArrayAdapter<>(
+        requireContext(),
+        android.R.layout.simple_spinner_item,
+        getResources().getStringArray(R.array.settings_llm_model_presets));
     modelAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
     spinnerModelSentence.setAdapter(modelAdapter);
     spinnerModelSpeaking.setAdapter(modelAdapter);
     spinnerModelScript.setAdapter(modelAdapter);
     spinnerModelSummary.setAdapter(modelAdapter);
     spinnerModelExtra.setAdapter(modelAdapter);
-    spinnerModelMinefield.setAdapter(modelAdapter);
-    spinnerModelRefiner.setAdapter(modelAdapter);
   }
 
   private void setupListeners() {
@@ -150,10 +142,12 @@ public class SettingFragment extends Fragment {
     etApiKeyOverride.addTextChangedListener(
         new TextWatcher() {
           @Override
-          public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+          public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+          }
 
           @Override
-          public void onTextChanged(CharSequence s, int start, int before, int count) {}
+          public void onTextChanged(CharSequence s, int start, int before, int count) {
+          }
 
           @Override
           public void afterTextChanged(Editable s) {
@@ -179,10 +173,6 @@ public class SettingFragment extends Fragment {
         spinnerModelSummary, selected -> saveModelSelection(selected, ModelTarget.SUMMARY));
     bindModelSpinner(
         spinnerModelExtra, selected -> saveModelSelection(selected, ModelTarget.EXTRA));
-    bindModelSpinner(
-        spinnerModelMinefield, selected -> saveModelSelection(selected, ModelTarget.MINEFIELD));
-    bindModelSpinner(
-        spinnerModelRefiner, selected -> saveModelSelection(selected, ModelTarget.REFINER));
 
     if (tvModelReset != null) {
       tvModelReset.setOnClickListener(v -> resetToDefaults());
@@ -200,8 +190,7 @@ public class SettingFragment extends Fragment {
     if (appSettingsStore != null) {
       appSettingsStore.setUserNickname("");
     }
-    android.content.Intent intent =
-        new android.content.Intent(requireContext(), LoginActivity.class);
+    android.content.Intent intent = new android.content.Intent(requireContext(), LoginActivity.class);
     intent.setFlags(
         android.content.Intent.FLAG_ACTIVITY_NEW_TASK
             | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -222,8 +211,7 @@ public class SettingFragment extends Fragment {
   }
 
   private void showNicknameEditDialog() {
-    View dialogView =
-        LayoutInflater.from(getContext()).inflate(R.layout.dialog_profile_nickname, null);
+    View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_profile_nickname, null);
 
     EditText etNicknameInput = dialogView.findViewById(R.id.et_nickname_input);
     AppCompatButton btnCancel = dialogView.findViewById(R.id.btn_nickname_cancel);
@@ -276,7 +264,8 @@ public class SettingFragment extends Fragment {
           }
 
           @Override
-          public void onNothingSelected(AdapterView<?> parent) {}
+          public void onNothingSelected(AdapterView<?> parent) {
+          }
         });
   }
 
@@ -308,16 +297,6 @@ public class SettingFragment extends Fragment {
       case EXTRA:
         store.setLlmModelExtra(selectedModel);
         updateModelIndicatorHelper(selectedModel, AppSettings.DEFAULT_MODEL_EXTRA, tvLabelExtra);
-        break;
-      case MINEFIELD:
-        store.setLlmModelMinefield(selectedModel);
-        updateModelIndicatorHelper(
-            selectedModel, AppSettings.DEFAULT_MODEL_MINEFIELD, tvLabelMinefield);
-        break;
-      case REFINER:
-        store.setLlmModelRefiner(selectedModel);
-        updateModelIndicatorHelper(
-            selectedModel, AppSettings.DEFAULT_MODEL_REFINER, tvLabelRefiner);
         break;
       default:
         return;
@@ -353,8 +332,6 @@ public class SettingFragment extends Fragment {
     store.setLlmModelScript(AppSettings.DEFAULT_MODEL_SCRIPT);
     store.setLlmModelSummary(AppSettings.DEFAULT_MODEL_SUMMARY);
     store.setLlmModelExtra(AppSettings.DEFAULT_MODEL_EXTRA);
-    store.setLlmModelMinefield(AppSettings.DEFAULT_MODEL_MINEFIELD);
-    store.setLlmModelRefiner(AppSettings.DEFAULT_MODEL_REFINER);
 
     // 2. Update UI
     if (modelAdapter != null) {
@@ -363,9 +340,6 @@ public class SettingFragment extends Fragment {
       setSpinnerSelection(spinnerModelScript, AppSettings.DEFAULT_MODEL_SCRIPT, modelAdapter);
       setSpinnerSelection(spinnerModelSummary, AppSettings.DEFAULT_MODEL_SUMMARY, modelAdapter);
       setSpinnerSelection(spinnerModelExtra, AppSettings.DEFAULT_MODEL_EXTRA, modelAdapter);
-      setSpinnerSelection(
-          spinnerModelMinefield, AppSettings.DEFAULT_MODEL_MINEFIELD, modelAdapter);
-      setSpinnerSelection(spinnerModelRefiner, AppSettings.DEFAULT_MODEL_REFINER, modelAdapter);
 
       // Reset indicators
       updateModelIndicatorHelper(
@@ -378,17 +352,11 @@ public class SettingFragment extends Fragment {
           AppSettings.DEFAULT_MODEL_SUMMARY, AppSettings.DEFAULT_MODEL_SUMMARY, tvLabelSummary);
       updateModelIndicatorHelper(
           AppSettings.DEFAULT_MODEL_EXTRA, AppSettings.DEFAULT_MODEL_EXTRA, tvLabelExtra);
-      updateModelIndicatorHelper(
-          AppSettings.DEFAULT_MODEL_MINEFIELD,
-          AppSettings.DEFAULT_MODEL_MINEFIELD,
-          tvLabelMinefield);
-      updateModelIndicatorHelper(
-          AppSettings.DEFAULT_MODEL_REFINER, AppSettings.DEFAULT_MODEL_REFINER, tvLabelRefiner);
     }
 
     // 3. Show feedback
     android.widget.Toast.makeText(
-            requireContext(), "모든 모델 설정이 초기화되었습니다.", android.widget.Toast.LENGTH_SHORT)
+        requireContext(), "모든 모델 설정이 초기화되었습니다.", android.widget.Toast.LENGTH_SHORT)
         .show();
   }
 
@@ -411,8 +379,6 @@ public class SettingFragment extends Fragment {
     setSpinnerSelection(spinnerModelScript, settings.getLlmModelScript(), modelAdapter);
     setSpinnerSelection(spinnerModelSummary, settings.getLlmModelSummary(), modelAdapter);
     setSpinnerSelection(spinnerModelExtra, settings.getLlmModelExtra(), modelAdapter);
-    setSpinnerSelection(spinnerModelMinefield, settings.getLlmModelMinefield(), modelAdapter);
-    setSpinnerSelection(spinnerModelRefiner, settings.getLlmModelRefiner(), modelAdapter);
 
     updateModelIndicatorHelper(
         settings.getLlmModelSentence(), AppSettings.DEFAULT_MODEL_SENTENCE, tvLabelSentence);
@@ -424,10 +390,6 @@ public class SettingFragment extends Fragment {
         settings.getLlmModelSummary(), AppSettings.DEFAULT_MODEL_SUMMARY, tvLabelSummary);
     updateModelIndicatorHelper(
         settings.getLlmModelExtra(), AppSettings.DEFAULT_MODEL_EXTRA, tvLabelExtra);
-    updateModelIndicatorHelper(
-        settings.getLlmModelMinefield(), AppSettings.DEFAULT_MODEL_MINEFIELD, tvLabelMinefield);
-    updateModelIndicatorHelper(
-        settings.getLlmModelRefiner(), AppSettings.DEFAULT_MODEL_REFINER, tvLabelRefiner);
 
     bindingState = false;
   }
@@ -458,61 +420,59 @@ public class SettingFragment extends Fragment {
     String modelName = settings.getLlmModelSentence();
     setApiTestInProgress(true);
     new Thread(
-            () -> {
-              boolean success;
-              String resultMessage;
-              try {
-                JsonObject requestBody = new JsonObject();
-                JsonArray contents = new JsonArray();
-                JsonObject userContent = new JsonObject();
-                userContent.addProperty("role", "user");
-                JsonArray parts = new JsonArray();
-                JsonObject part = new JsonObject();
-                part.addProperty("text", "ping");
-                parts.add(part);
-                userContent.add("parts", parts);
-                contents.add(userContent);
-                requestBody.add("contents", contents);
-                JsonObject generationConfig = new JsonObject();
-                generationConfig.addProperty("maxOutputTokens", 8);
-                requestBody.add("generationConfig", generationConfig);
+        () -> {
+          boolean success;
+          String resultMessage;
+          try {
+            JsonObject requestBody = new JsonObject();
+            JsonArray contents = new JsonArray();
+            JsonObject userContent = new JsonObject();
+            userContent.addProperty("role", "user");
+            JsonArray parts = new JsonArray();
+            JsonObject part = new JsonObject();
+            part.addProperty("text", "ping");
+            parts.add(part);
+            userContent.add("parts", parts);
+            contents.add(userContent);
+            requestBody.add("contents", contents);
+            JsonObject generationConfig = new JsonObject();
+            generationConfig.addProperty("maxOutputTokens", 8);
+            requestBody.add("generationConfig", generationConfig);
 
-                String requestUrl = GEMINI_BASE_URL + modelName + ":generateContent?key=" + apiKey;
-                Request request =
-                    new Request.Builder()
-                        .url(requestUrl)
-                        .post(RequestBody.create(gson.toJson(requestBody), JSON_MEDIA_TYPE))
-                        .build();
+            String requestUrl = GEMINI_BASE_URL + modelName + ":generateContent?key=" + apiKey;
+            Request request = new Request.Builder()
+                .url(requestUrl)
+                .post(RequestBody.create(gson.toJson(requestBody), JSON_MEDIA_TYPE))
+                .build();
 
-                try (Response response = apiTestClient.newCall(request).execute()) {
-                  success = response.isSuccessful();
-                  if (success) {
-                    resultMessage = getString(R.string.settings_api_test_success);
-                  } else {
-                    resultMessage =
-                        getString(R.string.settings_api_test_fail_code, response.code());
-                  }
-                }
-              } catch (Exception e) {
-                success = false;
-                String message = e.getMessage();
-                if (message == null || message.trim().isEmpty()) {
-                  message = "unknown";
-                }
-                resultMessage = getString(R.string.settings_api_test_fail_message, message);
+            try (Response response = apiTestClient.newCall(request).execute()) {
+              success = response.isSuccessful();
+              if (success) {
+                resultMessage = getString(R.string.settings_api_test_success);
+              } else {
+                resultMessage = getString(R.string.settings_api_test_fail_code, response.code());
               }
+            }
+          } catch (Exception e) {
+            success = false;
+            String message = e.getMessage();
+            if (message == null || message.trim().isEmpty()) {
+              message = "unknown";
+            }
+            resultMessage = getString(R.string.settings_api_test_fail_message, message);
+          }
 
-              boolean finalSuccess = success;
-              String finalMessage = resultMessage;
-              if (isAdded()) {
-                requireActivity()
-                    .runOnUiThread(
-                        () -> {
-                          setApiTestInProgress(false);
-                          showApiTestResult(finalSuccess, finalMessage);
-                        });
-              }
-            })
+          boolean finalSuccess = success;
+          String finalMessage = resultMessage;
+          if (isAdded()) {
+            requireActivity()
+                .runOnUiThread(
+                    () -> {
+                      setApiTestInProgress(false);
+                      showApiTestResult(finalSuccess, finalMessage);
+                    });
+          }
+        })
         .start();
   }
 
@@ -551,8 +511,6 @@ public class SettingFragment extends Fragment {
     SPEAKING,
     SCRIPT,
     SUMMARY,
-    EXTRA,
-    MINEFIELD,
-    REFINER
+    EXTRA
   }
 }
