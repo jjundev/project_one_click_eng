@@ -1,0 +1,18 @@
+Create a mobile screen called "bottom_sheet_content_before_speaking" with the following UI layout:
+
+- Text label, text: "영작할 문장:", text color #333333, 16sp font, bold
+- Card
+  - Text label, text: "안녕하세요! 치즈 피자 하나요!", text color #1A1A1A, 16sp font
+- Container
+  - Divider line, size 96×96dp, (hidden)
+  - Divider line, size 96×96dp, (hidden)
+  - Divider line, size 96×96dp, (hidden)
+  - Icon button, size 96×96dp
+- Text label, text: "마이크 버튼을 누르고 답변을 시작하세요", text color #666666, 14sp font
+- Text label, text: "채팅으로 입력하기", text color #888888, 12sp font
+
+Requirements:
+- Mobile portrait layout (390×844dp)
+- Material Design 3 style
+- Maintain exact colors, text, sizes, and hierarchy described above
+- Use the specified colors and dimensions faithfully

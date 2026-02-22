@@ -1,0 +1,12 @@
+Create a mobile screen called "fragment_dialogue_learning" with the following UI layout:
+
+- androidx.recyclerview.widget.RecyclerView
+- Layout container, vertical arrangement
+  - Divider line, size 40×4dp
+  - Container
+
+Requirements:
+- Mobile portrait layout (390×844dp)
+- Material Design 3 style
+- Maintain exact colors, text, sizes, and hierarchy described above
+- Use the specified colors and dimensions faithfully

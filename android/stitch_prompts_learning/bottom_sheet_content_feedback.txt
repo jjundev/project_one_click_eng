@@ -1,0 +1,212 @@
+Create a mobile screen called "bottom_sheet_content_feedback" with the following UI layout:
+
+- Layout container, vertical arrangement
+  - Layout container, vertical arrangement
+    - Text label, text: "영작할 문장:", text color #333333, 16sp font, bold
+    - Card
+      - Text label, text: "This is sentence_to_translate.", text color #1A1A1A, 16sp font
+    - Text label, text: "영작한 문장:", text color #333333, 16sp font, bold
+    - Card
+      - Layout container, horizontal arrangement
+        - Text label, text color #1A1A1A, 16sp font
+        - Image, size 24×24dp
+  - Layout container, vertical arrangement
+    - Divider line, background #E0E0E0
+    - Text label, text: "스피킹 점수", text color #333333, 16sp font, bold
+    - Layout container, horizontal arrangement
+      - Text label, text: "78", text color #4CAF50, 48sp font, bold
+      - Text label, text: "/100", text color #9E9E9E, 20sp font
+    - Text label, text: "몇몇 부분만 고치면 완벽해져요!", text color #666666, 16sp font
+    - Layout container, horizontal arrangement
+      - Card
+        - Layout container, vertical arrangement
+          - Text label, text: "유창성", text color #1A1A1A, 14sp font, bold
+          - Text label, text: "8 / 10", text color #4CAF50, 14sp font, bold
+      - Card
+        - Layout container, vertical arrangement
+          - Text label, text: "자신감", text color #1A1A1A, 14sp font, bold
+          - Text label, text: "8 / 10", text color #4CAF50, 14sp font, bold
+      - Card
+        - Layout container, vertical arrangement
+          - Text label, text: "망설임", text color #1A1A1A, 14sp font, bold
+          - Text label, text: "1회", text color #FF9800, 14sp font, bold
+  - Layout container, vertical arrangement
+    - Divider line, background #E0E0E0
+    - Container, (hidden)
+      - Layout container, vertical arrangement
+        - Divider line, size 80×16dp
+        - Divider line, size 72×72dp
+        - Divider line, size 200×16dp
+    - Text label, text: "영작 점수", text color #333333, 16sp font, bold, (hidden)
+    - Layout container, horizontal arrangement, (hidden)
+      - Text label, text: "78", text color #4CAF50, 48sp font, bold
+      - Text label, text: "/100", text color #9E9E9E, 20sp font
+    - Text label, text: "몇몇 부분만 고치면 완벽해져요!", text color #666666, 16sp font, (hidden)
+    - Container, (hidden)
+      - Layout container, vertical arrangement
+        - Divider line, size 140×16dp
+        - Card
+          - Layout container, vertical arrangement
+            - Card
+              - Divider line
+            - Divider line
+            - Divider line, size 200×14dp
+    - Text label, text: "기초 문법(Grammar)", text color #333333, 16sp font, bold, (hidden)
+    - Card, (hidden)
+      - Layout container, vertical arrangement
+        - Card
+          - Layout container, horizontal arrangement
+            - Text label, text: "I saw him.", text color #1A1A1A, 14sp font
+            - Image, size 24×24dp
+        - Text label, text: "어제(yesterday)처럼 정확한 때가 주어지면 과거시제를 쓰는 것이 더 자연스러워요!", text color #666666, 14sp font
+    - Container, (hidden)
+      - Layout container, vertical arrangement
+        - Divider line, size 220×16dp
+        - Card
+          - Layout container, vertical arrangement
+            - Divider line, size 160×14dp
+            - Card
+              - Divider line
+            - Divider line
+            - Divider line, size 240×14dp
+            - Card
+              - Divider line
+    - Text label, text: "원어민의 사고 이해(Conceptual Bridge)", text color #333333, 16sp font, bold, (hidden)
+    - Card, (hidden)
+      - Layout container, vertical arrangement
+        - Text label, text: "영작한 문장을 직역하면, ", text color #333333, 14sp font, bold
+        - Card
+          - Text label, text: "예약하겠습니다", text color #1A1A1A, 14sp font
+        - Text label, text: "마치 의사 선생님과 예약한 느낌이에요!", text color #666666, 14sp font
+        - Text label, text: "plan과 appointment의 차이를 벤다이어그램으로 확인해보세요!", text color #666666, 14sp font
+        - Card
+          - com.jjundev.oneclickeng.view.VennDiagramView
+    - Container, (hidden)
+      - Layout container, vertical arrangement
+        - Divider line, size 240×16dp
+        - Card
+          - Layout container, vertical arrangement
+            - Divider line, size 120×14dp
+            - Card
+              - Layout container, vertical arrangement
+                - Divider line
+                - Divider line, size 160×14dp
+            - Divider line
+            - Divider line, size 220×14dp
+    - Text label, text: "자연스러움(Naturalness & Collocation)", text color #333333, 16sp font, bold, (hidden)
+    - Card, (hidden)
+      - Layout container, vertical arrangement
+        - Text label, text: "자연스러운 문장:", text color #333333, 14sp font, bold
+        - Card
+          - Layout container, vertical arrangement
+            - Layout container, horizontal arrangement
+              - Text label, text: "I made a mistake.", text color #1A1A1A, 14sp font
+              - Image, size 24×24dp
+            - Text label, text: "(해석: 실수했어요.)", text color #757575, 13sp font
+        - Text label, text: "원어민들은 실수할 때 'do'보다는 'make'를 더 많이 써요!", text color #666666, 14sp font
+        - Text label, text: "Reason 1", text color #1A1A1A, 14sp font
+        - Text label, text: "Reason 2", text color #1A1A1A, 14sp font
+    - Container, (hidden)
+      - Layout container, vertical arrangement
+        - Divider line, size 220×16dp
+        - Card
+          - Layout container, vertical arrangement
+            - Divider line, size 240×14dp
+            - Divider line
+            - Card
+              - Layout container, vertical arrangement
+                - Divider line
+                - Divider line, size 180×14dp
+    - Text label, text: "문맥 기반 톤 및 스타일(Tone & Style)", text color #333333, 16sp font, bold, (hidden)
+    - Card, (hidden)
+      - Layout container, vertical arrangement
+        - Text label, text: "슬라이더를 조정해서 다양한 톤으로 바꾸어보세요!", text color #666666, 14sp font
+        - Layout container, vertical arrangement
+          - Layout container, horizontal arrangement
+            - Text label, text: "격식", text color #9E9E9E, 12sp font
+            - Text label, text: "캐주얼", text color #9E9E9E, 12sp font
+          - SeekBar
+        - Card
+          - Layout container, vertical arrangement
+            - Layout container, horizontal arrangement
+              - Text label, text: "I would appreciate it", text color #1A1A1A, 14sp font
+              - Image, size 24×24dp
+            - Text label, text: "(해석: 감사하겠습니다.)", text color #757575, 13sp font
+    - Container, (hidden)
+      - Layout container, vertical arrangement
+        - Divider line, size 220×16dp
+        - Card
+          - Layout container, vertical arrangement
+            - Divider line, size 60×14dp
+            - Card
+              - Layout container, vertical arrangement
+                - Divider line
+                - Divider line, size 160×14dp
+            - Divider line, size 60×14dp
+            - Card
+              - Layout container, vertical arrangement
+                - Divider line
+                - Divider line, size 140×14dp
+            - Divider line, size 60×14dp
+            - Card
+              - Layout container, vertical arrangement
+                - Divider line
+                - Divider line, size 180×14dp
+    - Text label, text: "확장된 문장 재구성(Paraphrasing)", text color #333333, 16sp font, bold, (hidden)
+    - Card, (hidden)
+      - Layout container, vertical arrangement
+        - Text label, text: "Level 1", text color #333333, 14sp font, bold
+        - Card
+          - Layout container, vertical arrangement
+            - Layout container, horizontal arrangement
+              - Text label, text color #1A1A1A, 14sp font
+              - Image, size 24×24dp
+              - Text label, text: "저장됨", text color #FFC107, 12sp font, bold, (hidden)
+              - Icon button, size 24×24dp
+            - Text label, text color #757575, 13sp font
+        - Text label, text: "Level 2", text color #333333, 14sp font, bold
+        - Card
+          - Layout container, vertical arrangement
+            - Layout container, horizontal arrangement
+              - Text label, text color #1A1A1A, 14sp font
+              - Image, size 24×24dp
+              - Text label, text: "저장됨", text color #FFC107, 12sp font, bold, (hidden)
+              - Icon button, size 24×24dp
+            - Text label, text color #757575, 13sp font
+        - Text label, text: "Level 3", text color #333333, 14sp font, bold
+        - Card
+          - Layout container, vertical arrangement
+            - Layout container, horizontal arrangement
+              - Text label, text color #1A1A1A, 14sp font
+              - Image, size 24×24dp
+              - Text label, text: "저장됨", text color #FFC107, 12sp font, bold, (hidden)
+              - Icon button, size 24×24dp
+            - Text label, text color #757575, 13sp font
+    - Divider line, background #E0E0E0
+  - Layout container, vertical arrangement, (hidden)
+    - Text label, text: "AI 추가 질문", text color #333333, 16sp font, bold
+    - Text label, text: "추가로 궁금한 부분이 있나요?", text color #666666, 16sp font
+    - Layout container, horizontal arrangement
+      - Text input field, text color #333333, 14sp font, size 0×48dp
+      - Icon button, size 48×48dp
+    - Card, (hidden)
+      - Layout container, vertical arrangement
+        - Text label, text: "Q:", text color #333333, 16sp font, bold
+        - Text label, text color #1A1A1A, 16sp font
+        - Text label, text: "A:", text color #333333, 16sp font, bold
+        - Container, (hidden)
+          - Layout container, vertical arrangement
+            - Divider line
+            - Divider line
+            - Divider line, size 200×14dp
+        - Text label, text: "This is extra_ai_response.", text color #1A1A1A, 16sp font, (hidden)
+    - Divider line, background #E0E0E0
+  - Layout container, horizontal arrangement, (hidden)
+    - Button, text: "다시 영작하기", 14sp font, background #E53935, size 0×56dp
+    - Button, text: "다음 >", 14sp font, background #4CAF50, size 0×56dp
+
+Requirements:
+- Mobile portrait layout (390×844dp)
+- Material Design 3 style
+- Maintain exact colors, text, sizes, and hierarchy described above
+- Use the specified colors and dimensions faithfully

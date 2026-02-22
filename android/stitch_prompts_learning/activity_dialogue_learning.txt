@@ -1,0 +1,18 @@
+Create a mobile screen called "activity_dialogue_learning" with the following UI layout:
+
+- Top app bar, background #82B1FF
+  - Layout container, horizontal arrangement
+    - Icon button, size 48×48dp
+    - Layout container, vertical arrangement
+      - Text label, text: "레스토랑 주문하기", text color #FF000000, 16sp font, bold
+      - Layout container, horizontal arrangement
+        - Progress indicator, size 100×4dp
+        - Text label, text: "1 of 20"
+    - Icon button, size 48×48dp
+- androidx.fragment.app.FragmentContainerView
+
+Requirements:
+- Mobile portrait layout (390×844dp)
+- Material Design 3 style
+- Maintain exact colors, text, sizes, and hierarchy described above
+- Use the specified colors and dimensions faithfully

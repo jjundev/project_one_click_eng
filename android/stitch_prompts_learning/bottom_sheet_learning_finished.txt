@@ -1,0 +1,14 @@
+Create a mobile screen called "bottom_sheet_learning_finished" with the following UI layout:
+
+- Layout container, vertical arrangement
+  - Card, size 80×80dp
+    - Image, size 48×48dp
+  - Text label, text: "학습 완료!", text color #1A1A1A, 22sp font, bold
+  - Text label, text: "학습 요약을 확인하고 오늘 학습을 마무리해보세요.", text color #666666, 14sp font
+  - Button, text: "학습 요약 보기", 16sp font, bold, background #4CAF50
+
+Requirements:
+- Mobile portrait layout (390×844dp)
+- Material Design 3 style
+- Maintain exact colors, text, sizes, and hierarchy described above
+- Use the specified colors and dimensions faithfully

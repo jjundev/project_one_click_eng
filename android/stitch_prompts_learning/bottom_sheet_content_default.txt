@@ -1,0 +1,16 @@
+Create a mobile screen called "bottom_sheet_content_default" with the following UI layout:
+
+- Text label, text: "영작할 문장:", text color #333333, 16sp font, bold
+- Card
+  - Text label, text: "안녕하세요! 치즈 피자 하나요!", text color #1A1A1A, 16sp font
+- Text label, text: "This message is from Gemini Nano...", text color #2196F3, 16sp font, bold, (hidden)
+- Layout container, horizontal arrangement
+  - Text input field, text color #333333, 14sp font, size 0×48dp
+  - Icon button, size 48×48dp
+  - Icon button, size 48×48dp
+
+Requirements:
+- Mobile portrait layout (390×844dp)
+- Material Design 3 style
+- Maintain exact colors, text, sizes, and hierarchy described above
+- Use the specified colors and dimensions faithfully

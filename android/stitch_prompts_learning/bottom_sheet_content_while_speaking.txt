@@ -1,0 +1,21 @@
+Create a mobile screen called "bottom_sheet_content_while_speaking" with the following UI layout:
+
+- Text label, text: "영작할 문장:", text color #333333, 16sp font, bold
+- Card
+  - Text label, text: "안녕하세요! 치즈 피자 하나요!", text color #1A1A1A, 16sp font
+- Container
+  - com.jjundev.oneclickeng.view.WaveformView
+  - Divider line, size 96×96dp, (hidden)
+  - Divider line, size 96×96dp, (hidden)
+  - Divider line, size 96×96dp, (hidden)
+  - Progress indicator, size 96×96dp, (hidden)
+  - Icon button, size 96×96dp
+  - Progress indicator, size 96×96dp, (hidden)
+- Text label, text: "답변이 끝나면 마이크 버튼을 다시 누르세요", text color #E91E63, 14sp font, bold
+- Text label, text: "처음부터 말하기", text color #888888, 12sp font
+
+Requirements:
+- Mobile portrait layout (390×844dp)
+- Material Design 3 style
+- Maintain exact colors, text, sizes, and hierarchy described above
+- Use the specified colors and dimensions faithfully

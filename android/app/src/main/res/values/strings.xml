@@ -218,9 +218,14 @@
     <string name="refiner_word_count_max_format">단어 수 %1$d / %2$d</string>
     <string name="refiner_word_count_exact_format">단어 수 %1$d / %2$d (정확히)</string>
     <string name="refiner_input_hint">문장을 입력하세요</string>
+    <string name="refiner_back_button">뒤로가기</string>
     <string name="refiner_submit">판정 요청</string>
+    <string name="refiner_submit_evaluating">판정 중...</string>
     <string name="refiner_submit_invalid">제약 조건을 모두 충족한 문장을 입력해 주세요.</string>
     <string name="refiner_hint_button">힌트 보기 (-30)</string>
+    <string name="refiner_hint_show_button">힌트 보기</string>
+    <string name="refiner_hint_hide_button">힌트 숨기기</string>
+    <string name="refiner_mic_disabled_desc">음성 입력(준비 중)</string>
     <string name="refiner_hint_format">힌트: %1$s</string>
     <string name="refiner_feedback_level_format">🏅 내 문장 레벨: %1$s</string>
     <string name="refiner_feedback_sentence_format">\"%1$s\"</string>
@@ -239,6 +244,7 @@
     <string name="refiner_next_question">다음 문제</string>
     <string name="refiner_next_show_result">라운드 결과 보기</string>
     <string name="refiner_completed_title">라운드 완료!</string>
+    <string name="refiner_completed_sheet_subtitle">이번 라운드 결과를 확인하고 다음 학습으로 이동하세요.</string>
     <string name="refiner_completed_total_score_format">총점: %1$d점</string>
     <string name="refiner_completed_lexical_avg_format">평균 어휘 수준: %1$d점</string>
     <string name="refiner_completed_syntax_avg_format">평균 구문 복잡도: %1$d점</string>
