@@ -39,12 +39,12 @@ public class LearningModeSelectFragment extends Fragment {
 
   private void setupGreeting(View view) {
     TextView tvGreeting = view.findViewById(R.id.tv_greeting);
-    if (tvGreeting == null) return;
+    if (tvGreeting == null)
+      return;
 
     String nickname = "";
     if (getContext() != null) {
-      AppSettingsStore appSettingsStore =
-          new AppSettingsStore(getContext().getApplicationContext());
+      AppSettingsStore appSettingsStore = new AppSettingsStore(getContext().getApplicationContext());
       nickname = appSettingsStore.getSettings().getUserNickname();
     }
 
@@ -62,10 +62,7 @@ public class LearningModeSelectFragment extends Fragment {
 
   private void startCardAnimations(View view) {
     View[] cards = {
-      view.findViewById(R.id.card_script_mode),
-      view.findViewById(R.id.card_free_mode),
-      view.findViewById(R.id.card_mode_speaking),
-      view.findViewById(R.id.card_mode)
+        view.findViewById(R.id.card_script_mode)
     };
 
     long baseDelay = 0; // Start simultaneously with slot machine animations
@@ -102,9 +99,5 @@ public class LearningModeSelectFragment extends Fragment {
               Navigation.findNavController(v)
                   .navigate(R.id.action_studyModeSelectFragment_to_scriptSelectFragment);
             });
-
-    view.findViewById(R.id.card_free_mode)
-        .setOnClickListener(
-            v -> Toast.makeText(getContext(), "AI 자유 대화 모드 진입", Toast.LENGTH_SHORT).show());
   }
 }
