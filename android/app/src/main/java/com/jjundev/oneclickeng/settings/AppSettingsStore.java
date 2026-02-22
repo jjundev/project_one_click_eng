@@ -19,8 +19,7 @@ public final class AppSettingsStore {
   private static final String KEY_TTS_SPEECH_RATE = "tts_speech_rate";
   private static final String KEY_TTS_LOCALE_TAG = "tts_locale_tag";
 
-  @NonNull
-  private final SharedPreferences preferences;
+  @NonNull private final SharedPreferences preferences;
 
   public AppSettingsStore(@NonNull Context context) {
     preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);

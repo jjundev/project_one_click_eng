@@ -33,7 +33,8 @@ import okio.BufferedSource;
  * support.
  */
 public class SentenceFeedbackManager
-    implements com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISentenceFeedbackManager {
+    implements com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts
+        .ISentenceFeedbackManager {
 
   private static final String TAG = "SentenceFeedbackManager";
   private static final String BASE_URL = "https://generativelanguage.googleapis.com/v1beta";

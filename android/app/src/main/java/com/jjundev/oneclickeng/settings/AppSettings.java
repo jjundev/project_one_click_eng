@@ -16,25 +16,16 @@ public final class AppSettings {
   public static final String DEFAULT_TTS_LOCALE_TAG = "en-US";
 
   private final boolean muteAllPlayback;
-  @NonNull
-  private final String userNickname;
-  @NonNull
-  private final String llmApiKeyOverride;
-  @NonNull
-  private final String llmModelSentence;
-  @NonNull
-  private final String llmModelSpeaking;
-  @NonNull
-  private final String llmModelScript;
-  @NonNull
-  private final String llmModelSummary;
-  @NonNull
-  private final String llmModelExtra;
-  @NonNull
-  private final String ttsProvider;
+  @NonNull private final String userNickname;
+  @NonNull private final String llmApiKeyOverride;
+  @NonNull private final String llmModelSentence;
+  @NonNull private final String llmModelSpeaking;
+  @NonNull private final String llmModelScript;
+  @NonNull private final String llmModelSummary;
+  @NonNull private final String llmModelExtra;
+  @NonNull private final String ttsProvider;
   private final float ttsSpeechRate;
-  @NonNull
-  private final String ttsLocaleTag;
+  @NonNull private final String ttsLocaleTag;
 
   public AppSettings(
       boolean muteAllPlayback,

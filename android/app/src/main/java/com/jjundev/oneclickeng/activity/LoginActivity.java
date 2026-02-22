@@ -1,6 +1,7 @@
 package com.jjundev.oneclickeng.activity;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.util.Log;
@@ -45,6 +46,7 @@ public class LoginActivity extends AppCompatActivity {
     setContentView(R.layout.activity_login);
 
     videoViewBackground = findViewById(R.id.videoViewBackground);
+    setupBackgroundVideo();
 
     // Setup bottom sheet
     LinearLayout bottomSheet = findViewById(R.id.bottomSheetLogin);
@@ -210,5 +212,34 @@ public class LoginActivity extends AppCompatActivity {
                 setLoadingState(false);
               }
             });
+  }
+
+  private void setupBackgroundVideo() {
+    Uri videoUri =
+        Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.video_login_activity);
+    videoViewBackground.setVideoURI(videoUri);
+
+    videoViewBackground.setOnPreparedListener(
+        mp -> {
+          mp.setLooping(true);
+          mp.setVolume(0f, 0f);
+          mp.start();
+        });
+  }
+
+  @Override
+  protected void onResume() {
+    super.onResume();
+    if (videoViewBackground != null && !videoViewBackground.isPlaying()) {
+      videoViewBackground.start();
+    }
+  }
+
+  @Override
+  protected void onPause() {
+    super.onPause();
+    if (videoViewBackground != null && videoViewBackground.isPlaying()) {
+      videoViewBackground.pause();
+    }
   }
 }

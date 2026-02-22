@@ -5,7 +5,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -39,12 +38,12 @@ public class LearningModeSelectFragment extends Fragment {
 
   private void setupGreeting(View view) {
     TextView tvGreeting = view.findViewById(R.id.tv_greeting);
-    if (tvGreeting == null)
-      return;
+    if (tvGreeting == null) return;
 
     String nickname = "";
     if (getContext() != null) {
-      AppSettingsStore appSettingsStore = new AppSettingsStore(getContext().getApplicationContext());
+      AppSettingsStore appSettingsStore =
+          new AppSettingsStore(getContext().getApplicationContext());
       nickname = appSettingsStore.getSettings().getUserNickname();
     }
 
@@ -61,9 +60,7 @@ public class LearningModeSelectFragment extends Fragment {
   }
 
   private void startCardAnimations(View view) {
-    View[] cards = {
-        view.findViewById(R.id.card_script_mode)
-    };
+    View[] cards = {view.findViewById(R.id.card_script_mode)};
 
     long baseDelay = 0; // Start simultaneously with slot machine animations
 

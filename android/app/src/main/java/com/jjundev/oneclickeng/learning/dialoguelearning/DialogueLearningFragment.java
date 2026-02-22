@@ -61,6 +61,7 @@ import com.jjundev.oneclickeng.learning.dialoguelearning.state.DialogueUiEvent;
 import com.jjundev.oneclickeng.learning.dialoguelearning.state.FeedbackUiState;
 import com.jjundev.oneclickeng.learning.dialoguelearning.state.ScriptUiState;
 import com.jjundev.oneclickeng.learning.dialoguelearning.state.SpeakingUiState;
+import com.jjundev.oneclickeng.learning.dialoguelearning.summary.BookmarkedParaphrase;
 import com.jjundev.oneclickeng.learning.dialoguelearning.ui.BottomSheetSceneRenderer;
 import com.jjundev.oneclickeng.learning.dialoguelearning.ui.ChatAdapter;
 import com.jjundev.oneclickeng.learning.dialoguelearning.ui.ChatMessage;
@@ -74,7 +75,6 @@ import com.jjundev.oneclickeng.learning.dialoguelearning.ui.LearningSceneResolve
 import com.jjundev.oneclickeng.learning.dialoguelearning.ui.RecordingUiController;
 import com.jjundev.oneclickeng.settings.AppSettings;
 import com.jjundev.oneclickeng.settings.AppSettingsStore;
-import com.jjundev.oneclickeng.learning.dialoguelearning.summary.BookmarkedParaphrase;
 import com.jjundev.oneclickeng.tool.AudioRecorder;
 import com.jjundev.oneclickeng.view.WaveformView;
 import java.io.ByteArrayOutputStream;

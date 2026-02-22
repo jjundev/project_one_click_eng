@@ -149,7 +149,8 @@ public class DialogueSelectFragment extends Fragment
         topic,
         format,
         length,
-        new com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IDialogueGenerateManager.ScriptGenerationCallback() {
+        new com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts
+            .IDialogueGenerateManager.ScriptGenerationCallback() {
           @Override
           public void onSuccess(String jsonResult) {
             if (!isAdded()) return;

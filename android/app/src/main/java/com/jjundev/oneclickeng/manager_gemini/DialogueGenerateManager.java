@@ -11,7 +11,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.annotations.SerializedName;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IDialogueGenerateManager;
-
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -23,8 +22,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-public class DialogueGenerateManager
-    implements IDialogueGenerateManager {
+public class DialogueGenerateManager implements IDialogueGenerateManager {
   private static final String TAG = "DialogueGenerateManager";
   private static final String DEFAULT_MODEL_NAME = "gemini-3-flash-preview";
   private static final String BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
@@ -50,8 +48,7 @@ public class DialogueGenerateManager
   public interface ScriptGenerationCallback
       extends IDialogueGenerateManager.ScriptGenerationCallback {}
 
-  public interface InitCallback
-      extends IDialogueGenerateManager.InitCallback {}
+  public interface InitCallback extends IDialogueGenerateManager.InitCallback {}
 
   interface ValidationCallback {
     void onValid(String cacheName, long remainingSeconds);
@@ -134,10 +131,7 @@ public class DialogueGenerateManager
   }
 
   @Override
-  public void initializeCache(
-      IDialogueGenerateManager
-              .InitCallback
-          callback) {
+  public void initializeCache(IDialogueGenerateManager.InitCallback callback) {
     String savedCacheName = prefs.getString(KEY_CACHE_NAME, null);
 
     if (savedCacheName != null) {
@@ -188,10 +182,7 @@ public class DialogueGenerateManager
     }
   }
 
-  private void createCache(
-      IDialogueGenerateManager
-              .InitCallback
-          callback) {
+  private void createCache(IDialogueGenerateManager.InitCallback callback) {
     new Thread(
             () -> {
               try {
@@ -343,9 +334,7 @@ public class DialogueGenerateManager
       String topic,
       String format,
       int length,
-      IDialogueGenerateManager
-              .ScriptGenerationCallback
-          callback) {
+      IDialogueGenerateManager.ScriptGenerationCallback callback) {
     if (cacheReady && cachedContentName != null) {
       generateScriptWithCache(level, topic, "dialogue", length, callback);
     } else {
@@ -359,9 +348,7 @@ public class DialogueGenerateManager
       String topic,
       String format,
       int length,
-      IDialogueGenerateManager
-              .ScriptGenerationCallback
-          callback) {
+      IDialogueGenerateManager.ScriptGenerationCallback callback) {
     new Thread(
             () -> {
               try {
@@ -404,9 +391,7 @@ public class DialogueGenerateManager
       String topic,
       String format,
       int length,
-      IDialogueGenerateManager
-              .ScriptGenerationCallback
-          callback) {
+      IDialogueGenerateManager.ScriptGenerationCallback callback) {
     new Thread(
             () -> {
               try {
@@ -455,9 +440,7 @@ public class DialogueGenerateManager
   private void sendAndParseRequest(
       JsonObject requestBody,
       boolean usedCache,
-      IDialogueGenerateManager
-              .ScriptGenerationCallback
-          callback) {
+      IDialogueGenerateManager.ScriptGenerationCallback callback) {
     try {
       Log.d(TAG, "Sending script generation request. Used cache: " + usedCache);
       String jsonBody = gson.toJson(requestBody);

@@ -24,8 +24,7 @@ import com.jjundev.oneclickeng.settings.AppSettingsStore;
 public class SettingFragment extends Fragment {
   private static final String TAG = "SettingFragment";
 
-  @Nullable
-  private AppSettingsStore appSettingsStore;
+  @Nullable private AppSettingsStore appSettingsStore;
 
   private boolean bindingState;
 
@@ -79,7 +78,8 @@ public class SettingFragment extends Fragment {
     if (appSettingsStore != null) {
       appSettingsStore.setUserNickname("");
     }
-    android.content.Intent intent = new android.content.Intent(requireContext(), LoginActivity.class);
+    android.content.Intent intent =
+        new android.content.Intent(requireContext(), LoginActivity.class);
     intent.setFlags(
         android.content.Intent.FLAG_ACTIVITY_NEW_TASK
             | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -100,7 +100,8 @@ public class SettingFragment extends Fragment {
   }
 
   private void showNicknameEditDialog() {
-    View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_profile_nickname, null);
+    View dialogView =
+        LayoutInflater.from(getContext()).inflate(R.layout.dialog_profile_nickname, null);
 
     EditText etNicknameInput = dialogView.findViewById(R.id.et_nickname_input);
     AppCompatButton btnCancel = dialogView.findViewById(R.id.btn_nickname_cancel);

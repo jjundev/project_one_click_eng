@@ -57,9 +57,9 @@
     <color name="expression_precise_icon">#EF767A</color>
 
     <color name="shorts_surface_dark">#060910</color>
-    <color name="shorts_scrim_top">#CC05080F</color>
-    <color name="shorts_scrim_bottom_mid">#590A111D</color>
-    <color name="shorts_scrim_bottom_end">#E50A111D</color>
+    <color name="shorts_scrim_top">#4D05080F</color>
+    <color name="shorts_scrim_bottom_mid">#330A111D</color>
+    <color name="shorts_scrim_bottom_end">#800A111D</color>
     <color name="shorts_action_button_bg">#66202A3A</color>
     <color name="shorts_action_button_stroke">#99FFFFFF</color>
     <color name="shorts_action_icon">#FFFFFFFF</color>

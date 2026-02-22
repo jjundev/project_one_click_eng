@@ -11,7 +11,6 @@ import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IQuiz
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.QuizData;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.SummaryData;
 import com.jjundev.oneclickeng.learning.quiz.DialogueQuizViewModel;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

@@ -482,7 +482,7 @@
         android:layout_height="wrap_content"
         app:cardBackgroundColor="@color/white"
         app:cardCornerRadius="32dp"
-        app:cardElevation="16dp"
+        app:cardElevation="0dp"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
         app:behavior_peekHeight="0dp"
         app:behavior_hideable="true">

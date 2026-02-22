@@ -251,7 +251,7 @@
                     android:layout_weight="1"
                     android:layout_marginStart="6dp"
                     android:background="@drawable/bg_close_button_primary"
-                    android:elevation="2dp"
+                    android:elevation="0dp"
                     android:stateListAnimator="@null"
                     android:text="@string/history_quiz_config_confirm"
                     android:textAllCaps="false"

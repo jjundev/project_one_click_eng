@@ -132,13 +132,20 @@
     <string name="dialogue_learning_settings_section_tts_placeholder">속도 및 로케일 컨트롤은 다음 작업에서 연결됩니다.</string>
     <string name="dialogue_learning_settings_close">닫기</string>
 
-    <string name="english_shorts_header_label">ENGLISH SHORTS</string>
+    <string name="english_shorts_header_label">일일 영어 학습 Shorts</string>
     <string name="english_shorts_action_like_content_desc">Like this short</string>
     <string name="english_shorts_action_bookmark_content_desc">Bookmark this short</string>
     <string name="english_shorts_action_share_content_desc">Share this short</string>
     <string name="english_shorts_action_like_toast">Like tapped (demo)</string>
+    <string name="english_shorts_action_dislike_content_desc">Dislike this short</string>
+    <string name="english_shorts_action_dislike_toast">Dislike tapped (demo)</string>
     <string name="english_shorts_action_bookmark_toast">Bookmark tapped (demo)</string>
     <string name="english_shorts_action_share_toast">Share tapped (demo)</string>
+    <string name="english_shorts_thumbnail_desc">Shorts thumbnail</string>
+    <string name="english_shorts_loading">쇼츠를 불러오는 중...</string>
+    <string name="english_shorts_empty">아직 준비된 쇼츠가 없어요</string>
+    <string name="english_shorts_error_default">콘텐츠를 불러올 수 없어요</string>
+    <string name="english_shorts_retry">다시 시도</string>
 
     <string-array name="settings_llm_model_presets">
         <item>gemini-3-flash-preview</item>

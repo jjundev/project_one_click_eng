@@ -8,18 +8,17 @@ import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IQuiz
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISentenceFeedbackManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISessionSummaryLlmManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISpeakingFeedbackManager;
+import com.jjundev.oneclickeng.learning.dialoguelearning.summary.SessionSummaryManager;
 import com.jjundev.oneclickeng.manager_gemini.DialogueGenerateManager;
 import com.jjundev.oneclickeng.manager_gemini.ExtraQuestionManager;
 import com.jjundev.oneclickeng.manager_gemini.QuizGenerateManager;
 import com.jjundev.oneclickeng.manager_gemini.SentenceFeedbackManager;
 import com.jjundev.oneclickeng.manager_gemini.SpeakingFeedbackManager;
-import com.jjundev.oneclickeng.learning.dialoguelearning.summary.SessionSummaryManager;
 import com.jjundev.oneclickeng.tool.AudioRecorder;
 
 public final class LearningDependencyProvider {
 
-  private LearningDependencyProvider() {
-  }
+  private LearningDependencyProvider() {}
 
   @NonNull
   public static ISpeakingFeedbackManager provideSpeakingFeedbackManager(

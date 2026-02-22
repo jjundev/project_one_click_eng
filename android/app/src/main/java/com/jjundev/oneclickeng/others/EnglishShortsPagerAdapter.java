@@ -1,19 +1,26 @@
 package com.jjundev.oneclickeng.others;
 
-import android.content.Context;
-import android.graphics.Color;
-import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
-import androidx.core.graphics.ColorUtils;
+import androidx.annotation.Nullable;
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.Player;
+import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.ui.PlayerView;
 import androidx.recyclerview.widget.RecyclerView;
 import com.jjundev.oneclickeng.R;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Adapter for the English Shorts ViewPager2. Each page displays a full-screen video with a tag
+ * badge.
+ */
 public class EnglishShortsPagerAdapter
     extends RecyclerView.Adapter<EnglishShortsPagerAdapter.ShortViewHolder> {
 
@@ -21,6 +28,13 @@ public class EnglishShortsPagerAdapter
 
   public EnglishShortsPagerAdapter(@NonNull List<EnglishShortsItem> items) {
     this.items = new ArrayList<>(items);
+  }
+
+  /** Replaces the current item list and refreshes the adapter. */
+  public void submitList(@NonNull List<EnglishShortsItem> newItems) {
+    items.clear();
+    items.addAll(newItems);
+    notifyDataSetChanged();
   }
 
   @NonNull
@@ -38,60 +52,117 @@ public class EnglishShortsPagerAdapter
   }
 
   @Override
+  public void onViewRecycled(@NonNull ShortViewHolder holder) {
+    super.onViewRecycled(holder);
+    holder.releasePlayer();
+  }
+
+  @Override
   public int getItemCount() {
     return items.size();
   }
 
-  static class ShortViewHolder extends RecyclerView.ViewHolder {
-    @NonNull private final View pageRoot;
-    @NonNull private final View accentWash;
-    @NonNull private final TextView tvLessonTag;
-    @NonNull private final TextView tvLearningSentence;
-    @NonNull private final TextView tvPronunciationHint;
-    @NonNull private final TextView tvPracticePrompt;
+  /** Pauses all currently playing videos in the attached RecyclerView. */
+  public void pauseAll(@Nullable RecyclerView recyclerView) {
+    if (recyclerView == null) return;
+    for (int i = 0; i < recyclerView.getChildCount(); i++) {
+      RecyclerView.ViewHolder holder = recyclerView.getChildViewHolder(recyclerView.getChildAt(i));
+      if (holder instanceof ShortViewHolder) {
+        ((ShortViewHolder) holder).pause();
+      }
+    }
+  }
 
-    @NonNull
-    private final GradientDrawable pageBackground =
-        new GradientDrawable(
-            GradientDrawable.Orientation.TL_BR, new int[] {Color.BLACK, Color.DKGRAY});
+  /** Plays the video at the given position and pauses all others. */
+  public void playAtPosition(@Nullable RecyclerView recyclerView, int position) {
+    if (recyclerView == null) return;
+    pauseAll(recyclerView);
+    RecyclerView.ViewHolder holder = recyclerView.findViewHolderForAdapterPosition(position);
+    if (holder instanceof ShortViewHolder) {
+      ((ShortViewHolder) holder).play();
+    }
+  }
+
+  /** ViewHolder for a single Shorts page. */
+  public static class ShortViewHolder extends RecyclerView.ViewHolder {
+    @NonNull private final PlayerView playerView;
+    @NonNull private final ImageView ivThumbnail;
+    @NonNull private final TextView tvTag;
+
+    @Nullable private ExoPlayer player;
+    @Nullable private EnglishShortsItem currentItem;
 
     ShortViewHolder(@NonNull View itemView) {
       super(itemView);
-      pageRoot = itemView.findViewById(R.id.shorts_page_root);
-      accentWash = itemView.findViewById(R.id.v_accent_wash);
-      tvLessonTag = itemView.findViewById(R.id.tv_short_lesson_badge);
-      tvLearningSentence = itemView.findViewById(R.id.tv_short_sentence);
-      tvPronunciationHint = itemView.findViewById(R.id.tv_short_hint);
-      tvPracticePrompt = itemView.findViewById(R.id.tv_short_prompt);
-      pageBackground.setCornerRadius(0f);
-      pageRoot.setBackground(pageBackground);
+      playerView = itemView.findViewById(R.id.player_view);
+      ivThumbnail = itemView.findViewById(R.id.iv_thumbnail);
+      tvTag = itemView.findViewById(R.id.tv_short_tag);
     }
 
     void bind(@NonNull EnglishShortsItem item) {
-      pageBackground.setColors(
-          new int[] {item.getGradientStartColor(), item.getGradientEndColor()});
-      accentWash.setBackgroundColor(ColorUtils.setAlphaComponent(item.getAccentColor(), 88));
-      tvLessonTag.setBackground(
-          createBadgeBackground(itemView.getContext(), item.getAccentColor()));
-      tvLessonTag.setText(item.getLessonTag());
-      tvLearningSentence.setText(item.getLearningSentence());
-      tvPronunciationHint.setText(item.getPronunciationHint());
-      tvPracticePrompt.setText(item.getPracticePrompt());
+      this.currentItem = item;
+      tvTag.setText(item.getTag());
+      ivThumbnail.setVisibility(View.VISIBLE);
+      releasePlayer();
     }
 
-    @NonNull
-    private GradientDrawable createBadgeBackground(@NonNull Context context, int accentColor) {
-      GradientDrawable drawable = new GradientDrawable();
-      drawable.setShape(GradientDrawable.RECTANGLE);
-      drawable.setCornerRadius(dp(context, 100));
-      drawable.setColor(ColorUtils.setAlphaComponent(accentColor, 110));
-      drawable.setStroke(dp(context, 1), ColorUtils.setAlphaComponent(Color.WHITE, 120));
-      return drawable;
+    /** Starts playback if a player is ready, or initializes it. */
+    public void play() {
+      if (currentItem == null) return;
+      String videoUrl = currentItem.getVideoUrl();
+      if (videoUrl == null || videoUrl.isEmpty()) return;
+
+      if (player == null) {
+        androidx.media3.datasource.DataSource.Factory cacheDataSourceFactory =
+            new androidx.media3.datasource.cache.CacheDataSource.Factory()
+                .setCache(
+                    com.jjundev.oneclickeng.OneClickEngApplication.getCache(
+                        itemView.getContext().getApplicationContext()))
+                .setUpstreamDataSourceFactory(
+                    new androidx.media3.datasource.DefaultHttpDataSource.Factory());
+
+        player =
+            new ExoPlayer.Builder(itemView.getContext())
+                .setMediaSourceFactory(
+                    new androidx.media3.exoplayer.source.DefaultMediaSourceFactory(
+                        cacheDataSourceFactory))
+                .build();
+        playerView.setPlayer(player);
+
+        // Remove surrounding quotes from JSON parsing if they exist
+        if (videoUrl.startsWith("\"") && videoUrl.endsWith("\"") && videoUrl.length() > 2) {
+          videoUrl = videoUrl.substring(1, videoUrl.length() - 1);
+        }
+
+        MediaItem mediaItem = MediaItem.fromUri(Uri.parse(videoUrl));
+        player.setMediaItem(mediaItem);
+        player.setRepeatMode(Player.REPEAT_MODE_ONE);
+        player.setVolume(0f);
+        player.addListener(
+            new Player.Listener() {
+              @Override
+              public void onRenderedFirstFrame() {
+                ivThumbnail.setVisibility(View.GONE);
+              }
+            });
+        player.prepare();
+      }
+      player.play();
     }
 
-    private static int dp(@NonNull Context context, int dp) {
-      float density = context.getResources().getDisplayMetrics().density;
-      return Math.round(dp * density);
+    /** Pauses playback and releases the player to free decoders. */
+    public void pause() {
+      releasePlayer();
+    }
+
+    /** Releases the ExoPlayer instance to free resources. */
+    public void releasePlayer() {
+      if (player != null) {
+        player.release();
+        player = null;
+      }
+      playerView.setPlayer(null);
+      ivThumbnail.setVisibility(View.VISIBLE);
     }
   }
 }

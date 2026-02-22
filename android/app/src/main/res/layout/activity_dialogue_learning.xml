@@ -10,10 +10,11 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#82B1FF"
+        android:background="@color/white"
         app:contentInsetStart="0dp"
         app:contentInsetEnd="0dp"
         android:elevation="0dp"
+        android:paddingVertical="5dp"
         app:popupTheme="@style/ThemeOverlay.AppCompat.Light">
 
         <LinearLayout

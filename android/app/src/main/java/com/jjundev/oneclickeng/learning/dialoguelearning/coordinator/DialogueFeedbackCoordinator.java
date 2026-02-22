@@ -17,8 +17,8 @@ import com.jjundev.oneclickeng.learning.dialoguelearning.model.ParaphrasingLevel
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.SentenceFeedback;
 import com.jjundev.oneclickeng.learning.dialoguelearning.state.ExtraQuestionUiState;
 import com.jjundev.oneclickeng.learning.dialoguelearning.state.FeedbackUiState;
-import com.jjundev.oneclickeng.others.SentenceFeedbackBinder;
 import com.jjundev.oneclickeng.learning.dialoguelearning.summary.BookmarkedParaphrase;
+import com.jjundev.oneclickeng.others.SentenceFeedbackBinder;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
