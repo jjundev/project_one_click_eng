@@ -97,6 +97,18 @@ public class EnglishShortsPagerAdapter
       playerView = itemView.findViewById(R.id.player_view);
       ivThumbnail = itemView.findViewById(R.id.iv_thumbnail);
       tvTag = itemView.findViewById(R.id.tv_short_tag);
+
+      playerView.setOnClickListener(v -> togglePlayback());
+    }
+
+    private void togglePlayback() {
+      if (player != null) {
+        if (player.isPlaying()) {
+          player.pause();
+        } else {
+          player.play();
+        }
+      }
     }
 
     void bind(@NonNull EnglishShortsItem item) {
