@@ -77,27 +77,27 @@ public final class AppSettings {
 
   @NonNull
   public String getLlmModelSentence() {
-    return llmModelSentence;
+    return DEFAULT_MODEL_SENTENCE;
   }
 
   @NonNull
   public String getLlmModelSpeaking() {
-    return llmModelSpeaking;
+    return DEFAULT_MODEL_SPEAKING;
   }
 
   @NonNull
   public String getLlmModelScript() {
-    return llmModelScript;
+    return DEFAULT_MODEL_SCRIPT;
   }
 
   @NonNull
   public String getLlmModelSummary() {
-    return llmModelSummary;
+    return DEFAULT_MODEL_SUMMARY;
   }
 
   @NonNull
   public String getLlmModelExtra() {
-    return llmModelExtra;
+    return DEFAULT_MODEL_EXTRA;
   }
 
   @NonNull
@@ -116,9 +116,6 @@ public final class AppSettings {
 
   @NonNull
   public String resolveEffectiveApiKey(@Nullable String defaultApiKey) {
-    if (!llmApiKeyOverride.isEmpty()) {
-      return llmApiKeyOverride;
-    }
     return normalizeOrEmpty(defaultApiKey);
   }
 

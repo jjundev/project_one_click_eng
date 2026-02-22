@@ -51,52 +51,27 @@ public final class AppSettingsStore {
   }
 
   public void setLlmApiKeyOverride(@Nullable String apiKeyOverride) {
-    preferences
-        .edit()
-        .putString(KEY_LLM_API_KEY_OVERRIDE, normalizeOrEmpty(apiKeyOverride))
-        .apply();
+    // API 키 수동 설정을 지원하지 않음
   }
 
   public void setLlmModelSentence(@Nullable String modelName) {
-    preferences
-        .edit()
-        .putString(
-            KEY_LLM_MODEL_SENTENCE,
-            normalizeOrDefault(modelName, AppSettings.DEFAULT_MODEL_SENTENCE))
-        .apply();
+    // 모델 수동 설정을 지원하지 않음
   }
 
   public void setLlmModelSpeaking(@Nullable String modelName) {
-    preferences
-        .edit()
-        .putString(
-            KEY_LLM_MODEL_SPEAKING,
-            normalizeOrDefault(modelName, AppSettings.DEFAULT_MODEL_SPEAKING))
-        .apply();
+    // 모델 수동 설정을 지원하지 않음
   }
 
   public void setLlmModelScript(@Nullable String modelName) {
-    preferences
-        .edit()
-        .putString(
-            KEY_LLM_MODEL_SCRIPT, normalizeOrDefault(modelName, AppSettings.DEFAULT_MODEL_SCRIPT))
-        .apply();
+    // 모델 수동 설정을 지원하지 않음
   }
 
   public void setLlmModelSummary(@Nullable String modelName) {
-    preferences
-        .edit()
-        .putString(
-            KEY_LLM_MODEL_SUMMARY, normalizeOrDefault(modelName, AppSettings.DEFAULT_MODEL_SUMMARY))
-        .apply();
+    // 모델 수동 설정을 지원하지 않음
   }
 
   public void setLlmModelExtra(@Nullable String modelName) {
-    preferences
-        .edit()
-        .putString(
-            KEY_LLM_MODEL_EXTRA, normalizeOrDefault(modelName, AppSettings.DEFAULT_MODEL_EXTRA))
-        .apply();
+    // 모델 수동 설정을 지원하지 않음
   }
 
   public void setTtsProvider(@Nullable String ttsProvider) {
