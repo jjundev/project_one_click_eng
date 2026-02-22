@@ -1,129 +1,131 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/black"
+    android:background="@color/background_main"
     tools:context=".activity.LoginActivity">
 
     <!-- Background VideoView (Placeholder for now) -->
     <VideoView
         android:id="@+id/videoViewBackground"
+        android:paddingBottom="20dp"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_gravity="center" />
+        android:background="@android:color/transparent">
 
-    <!-- We can add a semi-transparent overlay just in case the video is too bright -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#33000000" />
-
-    <!-- Bottom Sheet Container -->
-    <LinearLayout
-        android:id="@+id/bottomSheetLogin"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@drawable/bg_bottom_sheet_login"
-        android:orientation="vertical"
-        android:paddingTop="20dp"
-        android:paddingBottom="42dp"
-        android:paddingHorizontal="24dp"
-        app:behavior_hideable="false"
-        app:behavior_peekHeight="0dp"
-        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
-
-        <!-- Handle icon at the top of the bottom sheet -->
-        <View
-            android:layout_width="40dp"
-            android:layout_height="4dp"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="32dp"
-            android:background="@drawable/bg_bottom_sheet_handle" />
-
-        <FrameLayout
+        <!-- Bottom Sheet Container -->
+        <LinearLayout
+            android:id="@+id/bottomSheetLogin"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="230dp">
+            android:background="@drawable/bg_bottom_sheet_login"
+            android:elevation="16dp"
+            android:orientation="vertical"
+            android:paddingTop="20dp"
+            android:paddingBottom="42dp"
+            android:paddingHorizontal="24dp"
+            app:behavior_hideable="false"
+            app:behavior_peekHeight="0dp"
+            app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
-            <LinearLayout
-                android:id="@+id/layoutLoginContent"
+            <!-- Handle icon at the top of the bottom sheet -->
+            <View
+                android:layout_width="40dp"
+                android:layout_height="4dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="32dp"
+                android:background="@drawable/bg_bottom_sheet_handle" />
+
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:minHeight="230dp">
 
-                <TextView
-                    android:id="@+id/tvLoginTitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="1초 만에 빠른 시작"
-                    android:textColor="#191919"
-                    android:textSize="24sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp" />
-
-                <TextView
-                    android:id="@+id/tvLoginDescription"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="복잡한 가입 절차 없이 바로 학습을 시작하세요."
-                    android:textColor="#616161"
-                    android:textSize="15sp"
-                    android:layout_marginBottom="32dp" />
-
-                <!-- Google Login Button -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnGoogleLogin"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                <LinearLayout
+                    android:id="@+id/layoutLoginContent"
                     android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:layout_marginBottom="6dp"
-                    android:text="구글 계정으로 계속하기"
-                    android:textColor="#3C4043"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    app:backgroundTint="#FFFFFF"
-                    app:cornerRadius="16dp"
-                    app:icon="@drawable/ic_google_logo"
-                    app:iconGravity="textStart"
-                    app:iconPadding="10dp"
-                    app:iconSize="24dp"
-                    app:iconTint="@null"
-                    app:rippleColor="#22000000"
-                    app:strokeColor="#E0E0E0"
-                    app:strokeWidth="1dp" />
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
-                <!-- Email Login Button -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnEmailLogin"
+                    <TextView
+                        android:id="@+id/tvLoginTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="1초 만에 빠른 시작"
+                        android:textColor="#191919"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:id="@+id/tvLoginDescription"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="복잡한 가입 절차 없이 바로 학습을 시작하세요."
+                        android:textColor="#616161"
+                        android:textSize="15sp"
+                        android:layout_marginBottom="32dp" />
+
+                    <!-- Google Login Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnGoogleLogin"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="60dp"
+                        android:layout_marginBottom="6dp"
+                        android:text="구글 계정으로 계속하기"
+                        android:textColor="#3C4043"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:backgroundTint="#FFFFFF"
+                        app:cornerRadius="16dp"
+                        app:icon="@drawable/ic_google_logo"
+                        app:iconGravity="textStart"
+                        app:iconPadding="10dp"
+                        app:iconSize="24dp"
+                        app:iconTint="@null"
+                        app:rippleColor="#22000000"
+                        app:strokeColor="#E0E0E0"
+                        app:strokeWidth="1dp" />
+
+                    <!-- Email Login Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnEmailLogin"
+                        android:layout_width="match_parent"
+                        android:layout_height="60dp"
+                        android:text="이메일로 계속하기"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:backgroundTint="#242424"
+                        app:cornerRadius="16dp"
+                        app:elevation="0dp"
+                        app:icon="@drawable/ic_email_logo"
+                        app:iconGravity="textStart"
+                        app:iconPadding="10dp"
+                        app:iconSize="24dp"
+                        app:iconTint="#FFFFFF"
+                        app:rippleColor="#33FFFFFF" />
+
+                </LinearLayout>
+
+                <include
+                    android:id="@+id/layoutLoginLoading"
+                    layout="@layout/layout_login_loading"
                     android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:text="이메일로 계속하기"
-                    android:textColor="#FFFFFF"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    app:backgroundTint="#242424"
-                    app:cornerRadius="16dp"
-                    app:elevation="0dp"
-                    app:icon="@drawable/ic_email_logo"
-                    app:iconGravity="textStart"
-                    app:iconPadding="10dp"
-                    app:iconSize="24dp"
-                    app:iconTint="#FFFFFF"
-                    app:rippleColor="#33FFFFFF" />
+                    android:layout_height="match_parent"
+                    android:visibility="gone" />
 
-            </LinearLayout>
+            </FrameLayout>
 
-            <include
-                android:id="@+id/layoutLoginLoading"
-                layout="@layout/layout_login_loading"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:visibility="gone" />
+        </LinearLayout>
 
-        </FrameLayout>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
-    </LinearLayout>
-
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+</FrameLayout>

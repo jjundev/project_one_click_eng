@@ -46,10 +46,12 @@ public class LoginActivity extends AppCompatActivity {
     setContentView(R.layout.activity_login);
 
     videoViewBackground = findViewById(R.id.videoViewBackground);
+    videoViewBackground.setZOrderOnTop(false);
     setupBackgroundVideo();
 
     // Setup bottom sheet
     LinearLayout bottomSheet = findViewById(R.id.bottomSheetLogin);
+    bottomSheet.bringToFront();
     bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
 
     // Prevent hiding bottom sheet completely by user drag
