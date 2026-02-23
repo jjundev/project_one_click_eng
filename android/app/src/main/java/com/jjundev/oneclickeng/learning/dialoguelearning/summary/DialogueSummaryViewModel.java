@@ -276,6 +276,14 @@ public class DialogueSummaryViewModel extends ViewModel {
       wordLoadState.setValue(WordLoadState.error(errorMessage));
       return;
     }
+    if (status == WordLoadStatus.HIDDEN) {
+      wordLoadState.setValue(WordLoadState.hidden());
+      return;
+    }
+    if (status == WordLoadStatus.EMPTY) {
+      wordLoadState.setValue(WordLoadState.empty());
+      return;
+    }
     wordLoadState.setValue(WordLoadState.loading());
   }
 
@@ -326,7 +334,7 @@ public class DialogueSummaryViewModel extends ViewModel {
 
   private void startWordExtractionIfPossible() {
     if (featureBundle == null) {
-      setWordError(null);
+      setWordHidden();
       return;
     }
 
@@ -335,7 +343,7 @@ public class DialogueSummaryViewModel extends ViewModel {
     List<String> userOriginals =
         collectSentenceCandidates(featureBundle.getUserOriginalSentences());
     if (words.isEmpty() || sentences.isEmpty()) {
-      setWordError(null);
+      setWordHidden();
       return;
     }
 
@@ -355,7 +363,7 @@ public class DialogueSummaryViewModel extends ViewModel {
             List<SummaryData.WordItem> apiWords = toApiWordItems(words);
             applyWordsToSummary(apiWords);
             if (apiWords.isEmpty()) {
-              setWordError(null);
+              setWordEmpty();
               return;
             }
             wordLoadState.setValue(WordLoadState.ready());
@@ -489,6 +497,14 @@ public class DialogueSummaryViewModel extends ViewModel {
     wordLoadState.setValue(WordLoadState.error(message));
   }
 
+  private void setWordHidden() {
+    wordLoadState.setValue(WordLoadState.hidden());
+  }
+
+  private void setWordEmpty() {
+    wordLoadState.setValue(WordLoadState.empty());
+  }
+
   public static final class ExpressionLoadState {
     private final ExpressionLoadStatus status;
     @Nullable private final String errorMessage;
@@ -545,6 +561,14 @@ public class DialogueSummaryViewModel extends ViewModel {
       return new WordLoadState(WordLoadStatus.READY, null);
     }
 
+    public static WordLoadState hidden() {
+      return new WordLoadState(WordLoadStatus.HIDDEN, null);
+    }
+
+    public static WordLoadState empty() {
+      return new WordLoadState(WordLoadStatus.EMPTY, null);
+    }
+
     public static WordLoadState error(@Nullable String errorMessage) {
       return new WordLoadState(WordLoadStatus.ERROR, errorMessage);
     }
@@ -563,6 +587,8 @@ public class DialogueSummaryViewModel extends ViewModel {
   public enum WordLoadStatus {
     LOADING,
     READY,
+    HIDDEN,
+    EMPTY,
     ERROR
   }
 }

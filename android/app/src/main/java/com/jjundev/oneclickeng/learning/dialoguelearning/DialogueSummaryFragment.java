@@ -252,6 +252,12 @@ public class DialogueSummaryFragment extends Fragment {
         SummaryData data = viewModel == null ? null : viewModel.getSummaryData().getValue();
         SessionSummaryBinder.bindWordsContent(rootView, data == null ? null : data.getWords());
         break;
+      case HIDDEN:
+        SessionSummaryBinder.hideWordsSection(rootView);
+        break;
+      case EMPTY:
+        SessionSummaryBinder.showWordsEmpty(rootView);
+        break;
       case ERROR:
         SessionSummaryBinder.showWordsError(
             rootView, state.getErrorMessage() == null ? errorMessage : state.getErrorMessage());

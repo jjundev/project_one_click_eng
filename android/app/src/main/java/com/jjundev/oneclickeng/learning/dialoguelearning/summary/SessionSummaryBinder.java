@@ -459,7 +459,37 @@ public class SessionSummaryBinder {
     return trimmed.isEmpty() ? null : trimmed;
   }
 
+  public static void showWordsSection(View rootView) {
+    View section = rootView.findViewById(R.id.layout_words_section);
+    if (section != null) {
+      section.setVisibility(View.VISIBLE);
+    }
+  }
+
+  public static void hideWordsSection(View rootView) {
+    View section = rootView.findViewById(R.id.layout_words_section);
+    if (section != null) {
+      section.setVisibility(View.GONE);
+    }
+
+    LinearLayout container = rootView.findViewById(R.id.layout_word_container);
+    ShimmerFrameLayout skeleton = rootView.findViewById(R.id.skeleton_summary_words);
+    TextView errorText = rootView.findViewById(R.id.tv_summary_words_error);
+    if (container != null) {
+      container.removeAllViews();
+      container.setVisibility(View.GONE);
+    }
+    if (skeleton != null) {
+      skeleton.stopShimmer();
+      skeleton.setVisibility(View.GONE);
+    }
+    if (errorText != null) {
+      errorText.setVisibility(View.GONE);
+    }
+  }
+
   public static void bindWordsContent(View rootView, List<SummaryData.WordItem> items) {
+    showWordsSection(rootView);
     LinearLayout container = rootView.findViewById(R.id.layout_word_container);
     ShimmerFrameLayout skeleton = rootView.findViewById(R.id.skeleton_summary_words);
     TextView errorText = rootView.findViewById(R.id.tv_summary_words_error);
@@ -497,6 +527,7 @@ public class SessionSummaryBinder {
   }
 
   public static void showWordsLoading(View rootView) {
+    showWordsSection(rootView);
     LinearLayout container = rootView.findViewById(R.id.layout_word_container);
     ShimmerFrameLayout skeleton = rootView.findViewById(R.id.skeleton_summary_words);
     TextView errorText = rootView.findViewById(R.id.tv_summary_words_error);
@@ -515,6 +546,7 @@ public class SessionSummaryBinder {
   }
 
   public static void showWordsError(View rootView, String message) {
+    showWordsSection(rootView);
     LinearLayout container = rootView.findViewById(R.id.layout_word_container);
     ShimmerFrameLayout skeleton = rootView.findViewById(R.id.skeleton_summary_words);
     TextView errorText = rootView.findViewById(R.id.tv_summary_words_error);
@@ -533,6 +565,26 @@ public class SessionSummaryBinder {
               ? rootView.getContext().getString(R.string.summary_words_load_error)
               : message;
       errorText.setText(finalMessage);
+      errorText.setVisibility(View.VISIBLE);
+    }
+  }
+
+  public static void showWordsEmpty(View rootView) {
+    showWordsSection(rootView);
+    LinearLayout container = rootView.findViewById(R.id.layout_word_container);
+    ShimmerFrameLayout skeleton = rootView.findViewById(R.id.skeleton_summary_words);
+    TextView errorText = rootView.findViewById(R.id.tv_summary_words_error);
+
+    if (container != null) {
+      container.removeAllViews();
+      container.setVisibility(View.GONE);
+    }
+    if (skeleton != null) {
+      skeleton.stopShimmer();
+      skeleton.setVisibility(View.GONE);
+    }
+    if (errorText != null) {
+      errorText.setText(rootView.getContext().getString(R.string.summary_words_no_new));
       errorText.setVisibility(View.VISIBLE);
     }
   }

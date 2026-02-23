@@ -3,12 +3,14 @@ package com.jjundev.oneclickeng;
 import android.app.Application;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.media3.common.util.UnstableApi;
 import androidx.media3.database.DatabaseProvider;
 import androidx.media3.database.StandaloneDatabaseProvider;
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor;
 import androidx.media3.datasource.cache.SimpleCache;
 import java.io.File;
 
+@UnstableApi
 public class OneClickEngApplication extends Application {
 
   @Nullable private static SimpleCache simpleCache;
