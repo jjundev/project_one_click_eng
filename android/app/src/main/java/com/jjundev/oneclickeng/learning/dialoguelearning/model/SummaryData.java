@@ -9,7 +9,6 @@ public class SummaryData {
   private List<ExpressionItem> expressions;
   private List<WordItem> words;
   private List<SentenceItem> likedSentences;
-  private FutureSelfFeedback futureSelfFeedback;
 
   public int getTotalScore() {
     return totalScore;
@@ -49,14 +48,6 @@ public class SummaryData {
 
   public void setLikedSentences(List<SentenceItem> likedSentences) {
     this.likedSentences = likedSentences;
-  }
-
-  public FutureSelfFeedback getFutureSelfFeedback() {
-    return futureSelfFeedback;
-  }
-
-  public void setFutureSelfFeedback(FutureSelfFeedback futureSelfFeedback) {
-    this.futureSelfFeedback = futureSelfFeedback;
   }
 
   public static class HighlightItem {
@@ -185,24 +176,6 @@ public class SummaryData {
 
     public String getKorean() {
       return korean;
-    }
-  }
-
-  public static class FutureSelfFeedback {
-    private String positive;
-    private String toImprove;
-
-    public FutureSelfFeedback(String positive, String toImprove) {
-      this.positive = positive;
-      this.toImprove = toImprove;
-    }
-
-    public String getPositive() {
-      return positive;
-    }
-
-    public String getToImprove() {
-      return toImprove;
     }
   }
 }

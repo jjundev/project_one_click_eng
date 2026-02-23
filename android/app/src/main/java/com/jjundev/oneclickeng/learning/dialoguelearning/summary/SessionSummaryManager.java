@@ -8,7 +8,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISessionSummaryLlmManager;
-import com.jjundev.oneclickeng.learning.dialoguelearning.model.FutureFeedbackResult;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -25,108 +24,36 @@ import okio.BufferedSource;
 public class SessionSummaryManager implements ISessionSummaryLlmManager {
   private static final String BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
   private static final String DEFAULT_MODEL_NAME = "gemini-3-flash-preview";
-  private static final int MAX_HIGHLIGHTS = 5;
-  private static final int MAX_EXPRESSIONS = 8;
   private static final int MAX_WORDS = 12;
 
   private final OkHttpClient client;
+  private final OkHttpClient streamingClient;
   private final Gson gson;
   private final Handler mainHandler;
   private final String apiKey;
   private final String modelName;
-  private static final OkHttpClient streamingClient =
-      new OkHttpClient.Builder()
-          .connectTimeout(30, TimeUnit.SECONDS)
-          .readTimeout(0, TimeUnit.SECONDS)
-          .writeTimeout(30, TimeUnit.SECONDS)
-          .build();
-
-  public interface Callback {
-    void onSuccess(LlmSections sections);
-
-    void onFailure(String error);
-  }
 
   public SessionSummaryManager(String apiKey, String modelName) {
     this.apiKey = normalizeOrDefault(apiKey, "");
     this.modelName = normalizeOrDefault(modelName, DEFAULT_MODEL_NAME);
-    this.client =
-        new OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
-            .build();
+    this.client = new OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build();
+    this.streamingClient = new OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(0, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build();
     this.gson = new Gson();
     this.mainHandler = new Handler(Looper.getMainLooper());
   }
 
-  public void generateSectionsAsync(SummaryFeatureBundle bundle, Callback callback) {
-    if (callback == null) {
-      return;
-    }
-    if (bundle == null) {
-      mainHandler.post(() -> callback.onFailure("Feature bundle is null"));
-      return;
-    }
-    if (apiKey == null || apiKey.trim().isEmpty()) {
-      mainHandler.post(() -> callback.onFailure("API key is missing"));
-      return;
-    }
-
-    new Thread(
-            () -> {
-              try {
-                JsonObject requestBody = new JsonObject();
-                addSystemInstruction(requestBody);
-
-                JsonArray contents = new JsonArray();
-                JsonObject userContent = new JsonObject();
-                userContent.addProperty("role", "user");
-                JsonArray parts = new JsonArray();
-                JsonObject part = new JsonObject();
-                part.addProperty("text", buildUserPrompt(bundle));
-                parts.add(part);
-                userContent.add("parts", parts);
-                contents.add(userContent);
-                requestBody.add("contents", contents);
-
-                JsonObject generationConfig = new JsonObject();
-                generationConfig.addProperty("responseMimeType", "application/json");
-                requestBody.add("generationConfig", generationConfig);
-
-                String url = BASE_URL + "/models/" + modelName + ":generateContent?key=" + apiKey;
-                Request request =
-                    new Request.Builder()
-                        .url(url)
-                        .post(
-                            RequestBody.create(
-                                gson.toJson(requestBody), MediaType.parse("application/json")))
-                        .build();
-
-                try (Response response = client.newCall(request).execute()) {
-                  String body = response.body() != null ? response.body().string() : "";
-                  if (!response.isSuccessful()) {
-                    postFailure(callback, "Summary LLM request failed: " + response.code());
-                    return;
-                  }
-
-                  LlmSections sections = parseResponse(body);
-                  mainHandler.post(() -> callback.onSuccess(sections));
-                }
-              } catch (Exception e) {
-                postFailure(callback, "Summary LLM error: " + e.getMessage());
-              }
-            })
-        .start();
-  }
-
   @Override
-  public void generateFutureFeedbackStreamingAsync(
-      SummaryFeatureBundle bundle,
-      @NonNull ISessionSummaryLlmManager.FutureFeedbackCallback callback) {
-    if (callback == null) {
-      return;
-    }
+  public void filterExpressionsAsync(
+      @NonNull SummaryFeatureBundle bundle,
+      @NonNull ISessionSummaryLlmManager.ExpressionFilterCallback callback) {
     if (bundle == null) {
       mainHandler.post(() -> callback.onFailure("Feature bundle is null"));
       return;
@@ -137,116 +64,86 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
     }
 
     new Thread(
-            () -> {
-              try {
-                JsonObject requestBody = new JsonObject();
-                JsonObject systemInstruction = new JsonObject();
-                JsonArray systemParts = new JsonArray();
-                JsonObject systemPart = new JsonObject();
-                systemPart.addProperty("text", buildFutureFeedbackSystemPrompt());
-                systemParts.add(systemPart);
-                systemInstruction.add("parts", systemParts);
-                requestBody.add("systemInstruction", systemInstruction);
+        () -> {
+          try {
+            JsonObject requestBody = new JsonObject();
+            addExpressionFilterSystemInstruction(requestBody);
 
-                JsonArray contents = new JsonArray();
-                JsonObject userContent = new JsonObject();
-                userContent.addProperty("role", "user");
-                JsonArray parts = new JsonArray();
-                JsonObject part = new JsonObject();
-                part.addProperty("text", buildFutureFeedbackUserPrompt(bundle));
-                parts.add(part);
-                userContent.add("parts", parts);
-                contents.add(userContent);
-                requestBody.add("contents", contents);
+            JsonArray contents = new JsonArray();
+            JsonObject userContent = new JsonObject();
+            userContent.addProperty("role", "user");
+            JsonArray parts = new JsonArray();
+            JsonObject part = new JsonObject();
+            part.addProperty("text", buildExpressionFilterUserPrompt(bundle));
+            parts.add(part);
+            userContent.add("parts", parts);
+            contents.add(userContent);
+            requestBody.add("contents", contents);
 
-                JsonObject generationConfig = new JsonObject();
-                generationConfig.addProperty("responseMimeType", "application/json");
-                requestBody.add("generationConfig", generationConfig);
+            JsonObject generationConfig = new JsonObject();
+            generationConfig.addProperty("responseMimeType", "application/json");
+            requestBody.add("generationConfig", generationConfig);
 
-                String url =
-                    BASE_URL
-                        + "/models/"
-                        + modelName
-                        + ":streamGenerateContent?alt=sse&key="
-                        + apiKey;
-                Request request =
-                    new Request.Builder()
-                        .url(url)
-                        .post(
-                            RequestBody.create(
-                                gson.toJson(requestBody), MediaType.parse("application/json")))
-                        .build();
+            String url = BASE_URL + "/models/" + modelName + ":streamGenerateContent?alt=sse&key=" + apiKey;
+            Request request = new Request.Builder()
+                .url(url)
+                .post(
+                    RequestBody.create(
+                        gson.toJson(requestBody), MediaType.parse("application/json")))
+                .build();
 
-                try (Response response = streamingClient.newCall(request).execute()) {
-                  if (!response.isSuccessful()) {
-                    mainHandler.post(
-                        () -> callback.onFailure("Summary LLM request failed: " + response.code()));
-                    return;
-                  }
-
-                  if (response.body() == null) {
-                    mainHandler.post(() -> callback.onFailure("Summary LLM empty response body"));
-                    return;
-                  }
-
-                  BufferedSource source = response.body().source();
-                  StringBuilder streamedText = new StringBuilder();
-                  while (!source.exhausted()) {
-                    String line = source.readUtf8Line();
-                    if (line == null || !line.startsWith("data: ")) {
-                      continue;
-                    }
-
-                    String data = line.substring(6).trim();
-                    if (data.isEmpty() || "[DONE]".equals(data)) {
-                      continue;
-                    }
-
-                    try {
-                      JsonObject root = JsonParser.parseString(data).getAsJsonObject();
-                      JsonArray candidates = root.getAsJsonArray("candidates");
-                      if (candidates == null || candidates.size() == 0) {
-                        continue;
-                      }
-
-                      JsonObject content =
-                          candidates.get(0).getAsJsonObject().getAsJsonObject("content");
-                      if (content == null) {
-                        continue;
-                      }
-                      JsonArray responseParts = content.getAsJsonArray("parts");
-                      if (responseParts == null || responseParts.size() == 0) {
-                        continue;
-                      }
-
-                      JsonObject firstPart = responseParts.get(0).getAsJsonObject();
-                      if (!firstPart.has("text")) {
-                        continue;
-                      }
-                      streamedText.append(firstPart.get("text").getAsString());
-                    } catch (Exception ignored) {
-                      // Ignore malformed chunks and keep reading.
-                    }
-                  }
-
-                  FutureSelfFeedbackSection feedback =
-                      parseFutureFeedbackFromText(streamedText.toString());
-                  if (feedback == null) {
-                    mainHandler.post(
-                        () -> callback.onFailure("Failed to parse future feedback response"));
-                    return;
-                  }
-                  final String positive =
-                      feedback.getPositive() == null ? "" : feedback.getPositive();
-                  final String toImprove =
-                      feedback.getToImprove() == null ? "" : feedback.getToImprove();
-                  mainHandler.post(
-                      () -> callback.onSuccess(new FutureFeedbackResult(positive, toImprove)));
-                }
-              } catch (Exception e) {
-                mainHandler.post(() -> callback.onFailure("Summary LLM error: " + e.getMessage()));
+            try (Response response = streamingClient.newCall(request).execute()) {
+              if (!response.isSuccessful()) {
+                mainHandler.post(
+                    () -> callback.onFailure(
+                        "Expression filter request failed: " + response.code()));
+                return;
               }
-            })
+
+              StringBuilder accumulated = new StringBuilder();
+              int emittedCount = 0;
+
+              BufferedSource source = response.body().source();
+              while (!source.exhausted()) {
+                String line = source.readUtf8Line();
+                if (line == null || !line.startsWith("data: ")) {
+                  continue;
+                }
+                String json = line.substring(6).trim();
+                if (json.equals("[DONE]")) {
+                  break;
+                }
+
+                String chunkText = extractTextFromSseChunk(json);
+                if (chunkText.isEmpty()) {
+                  continue;
+                }
+                accumulated.append(chunkText);
+
+                // Try to parse newly completed expression objects
+                List<ISessionSummaryLlmManager.FilteredExpression> parsed = tryParseExpressions(accumulated.toString());
+                for (int i = emittedCount; i < parsed.size(); i++) {
+                  ISessionSummaryLlmManager.FilteredExpression expr = parsed.get(i);
+                  mainHandler.post(() -> callback.onExpressionReceived(expr));
+                }
+                emittedCount = parsed.size();
+              }
+
+              // Final parse of the complete accumulated text
+              List<ISessionSummaryLlmManager.FilteredExpression> finalParsed = tryParseExpressions(
+                  accumulated.toString());
+              for (int i = emittedCount; i < finalParsed.size(); i++) {
+                ISessionSummaryLlmManager.FilteredExpression expr = finalParsed.get(i);
+                mainHandler.post(() -> callback.onExpressionReceived(expr));
+              }
+
+              mainHandler.post(callback::onComplete);
+            }
+          } catch (Exception e) {
+            mainHandler.post(
+                () -> callback.onFailure("Expression filter error: " + e.getMessage()));
+          }
+        })
         .start();
   }
 
@@ -254,6 +151,7 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
   public void extractWordsFromSentencesAsync(
       @NonNull List<String> words,
       @NonNull List<String> sentences,
+      @NonNull List<String> userOriginalSentences,
       @NonNull ISessionSummaryLlmManager.WordExtractionCallback callback) {
     if (callback == null) {
       return;
@@ -268,146 +166,108 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
     }
 
     new Thread(
-            () -> {
-              try {
-                JsonObject requestBody = new JsonObject();
-                JsonObject systemInstruction = new JsonObject();
-                JsonArray systemParts = new JsonArray();
-                JsonObject systemPart = new JsonObject();
-                systemPart.addProperty("text", buildWordExtractionSystemPrompt());
-                systemParts.add(systemPart);
-                systemInstruction.add("parts", systemParts);
-                requestBody.add("systemInstruction", systemInstruction);
+        () -> {
+          try {
+            JsonObject requestBody = new JsonObject();
+            JsonObject systemInstruction = new JsonObject();
+            JsonArray systemParts = new JsonArray();
+            JsonObject systemPart = new JsonObject();
+            systemPart.addProperty("text", buildWordExtractionSystemPrompt());
+            systemParts.add(systemPart);
+            systemInstruction.add("parts", systemParts);
+            requestBody.add("systemInstruction", systemInstruction);
 
-                JsonArray contents = new JsonArray();
-                JsonObject userContent = new JsonObject();
-                userContent.addProperty("role", "user");
-                JsonArray parts = new JsonArray();
-                JsonObject part = new JsonObject();
-                part.addProperty("text", buildWordExtractionUserPrompt(words, sentences));
-                parts.add(part);
-                userContent.add("parts", parts);
-                contents.add(userContent);
-                requestBody.add("contents", contents);
+            JsonArray contents = new JsonArray();
+            JsonObject userContent = new JsonObject();
+            userContent.addProperty("role", "user");
+            JsonArray parts = new JsonArray();
+            JsonObject part = new JsonObject();
+            part.addProperty("text", buildWordExtractionUserPrompt(words, sentences, userOriginalSentences));
+            parts.add(part);
+            userContent.add("parts", parts);
+            contents.add(userContent);
+            requestBody.add("contents", contents);
 
-                JsonObject generationConfig = new JsonObject();
-                generationConfig.addProperty("responseMimeType", "application/json");
-                requestBody.add("generationConfig", generationConfig);
+            JsonObject generationConfig = new JsonObject();
+            generationConfig.addProperty("responseMimeType", "application/json");
+            requestBody.add("generationConfig", generationConfig);
 
-                String url = BASE_URL + "/models/" + modelName + ":generateContent?key=" + apiKey;
-                Request request =
-                    new Request.Builder()
-                        .url(url)
-                        .post(
-                            RequestBody.create(
-                                gson.toJson(requestBody), MediaType.parse("application/json")))
-                        .build();
+            String url = BASE_URL + "/models/" + modelName + ":generateContent?key=" + apiKey;
+            Request request = new Request.Builder()
+                .url(url)
+                .post(
+                    RequestBody.create(
+                        gson.toJson(requestBody), MediaType.parse("application/json")))
+                .build();
 
-                try (Response response = client.newCall(request).execute()) {
-                  String body = response.body() != null ? response.body().string() : "";
-                  if (!response.isSuccessful()) {
-                    mainHandler.post(
-                        () -> callback.onFailure("Summary LLM request failed: " + response.code()));
-                    return;
-                  }
-
-                  String responseText = extractFirstTextPart(body);
-                  List<ISessionSummaryLlmManager.ExtractedWord> extractedWords =
-                      parseExtractedWordsPayload(responseText);
-                  mainHandler.post(() -> callback.onSuccess(extractedWords));
-                }
-              } catch (Exception e) {
-                mainHandler.post(() -> callback.onFailure("Summary LLM error: " + e.getMessage()));
+            try (Response response = client.newCall(request).execute()) {
+              String body = response.body() != null ? response.body().string() : "";
+              if (!response.isSuccessful()) {
+                mainHandler.post(
+                    () -> callback.onFailure("Summary LLM request failed: " + response.code()));
+                return;
               }
-            })
+
+              String responseText = extractFirstTextPart(body);
+              List<ISessionSummaryLlmManager.ExtractedWord> extractedWords = parseExtractedWordsPayload(responseText);
+              mainHandler.post(() -> callback.onSuccess(extractedWords));
+            }
+          } catch (Exception e) {
+            mainHandler.post(() -> callback.onFailure("Summary LLM error: " + e.getMessage()));
+          }
+        })
         .start();
   }
 
-  private void postFailure(Callback callback, String message) {
-    mainHandler.post(() -> callback.onFailure(message));
-  }
-
-  private void addSystemInstruction(JsonObject root) {
+  private void addExpressionFilterSystemInstruction(JsonObject requestBody) {
+    String systemPrompt = buildExpressionFilterSystemPrompt();
     JsonObject systemInstruction = new JsonObject();
     JsonArray systemParts = new JsonArray();
     JsonObject systemPart = new JsonObject();
-    systemPart.addProperty("text", buildSystemPrompt());
+    systemPart.addProperty("text", systemPrompt);
     systemParts.add(systemPart);
     systemInstruction.add("parts", systemParts);
-    root.add("systemInstruction", systemInstruction);
+    requestBody.add("systemInstruction", systemInstruction);
   }
 
-  private String buildSystemPrompt() {
-    return "You are an English learning summary formatter.\n"
+  private String buildExpressionFilterSystemPrompt() {
+    return "You are an English learning expression filter for Korean learners.\n"
         + "Return JSON only with this exact top-level shape:\n"
         + "{\n"
-        + "  \"highlights\": [{\"english\":\"...\",\"korean\":\"...\",\"reason\":\"...\"}],\n"
-        + "  \"expressions\": [{\"type\":\"...\",\"koreanPrompt\":\"...\",\"before\":\"...\",\"after\":\"...\",\"explanation\":\"...\"}],\n"
-        + "  \"words\": [{\"english\":\"...\",\"korean\":\"...\",\"exampleEnglish\":\"...\",\"exampleKorean\":\"...\"}],\n"
-        + "  \"futureSelfFeedback\": {\"positive\":\"...\",\"toImprove\":\"...\"}\n"
+        + "  \"expressions\": [{\"type\":\"...\",\"koreanPrompt\":\"...\",\"before\":\"...\",\"after\":\"...\",\"explanation\":\"...\"}]\n"
         + "}\n"
         + "Rules:\n"
-        + "1) highlights <= "
-        + MAX_HIGHLIGHTS
-        + "\n"
-        + "2) expressions <= "
-        + MAX_EXPRESSIONS
-        + "\n"
-        + "3) words <= "
-        + MAX_WORDS
-        + "\n"
-        + "4) Keep Korean fields natural and concise.\n"
-        + "5) Do not include markdown code fences.\n"
-        + "6) highlights.english must reuse a user's original English sentence from highlightCandidates.\n"
-        + "7) expressions.before must exactly reuse the user's original English sentence from expressionCandidates.\n"
-        + "8) In expressions.after, wrap the key improved phrase with [[...]] (one or more allowed).\n"
-        + "9) Preserve meaning from candidates, do not invent facts.";
+        + "1) Select ONLY expressions that are genuinely useful for the learner.\n"
+        + "2) Remove trivial or redundant corrections (e.g. minor capitalisation, article-only fixes).\n"
+        + "3) Prioritise expressions that teach new grammar patterns, natural phrasing, or idiomatic usage.\n"
+        + "4) Re-order selected expressions from most educational to least.\n"
+        + "5) expressions.before must exactly reuse the user's original English sentence.\n"
+        + "6) In expressions.after, wrap the key improved phrase with [[...]] (one or more allowed).\n"
+        + "7) Keep Korean fields natural and concise.\n"
+        + "8) Do not include markdown code fences.\n"
+        + "9) Do not invent facts outside input.";
   }
 
-  private String buildUserPrompt(SummaryFeatureBundle bundle) {
+  private String buildExpressionFilterUserPrompt(SummaryFeatureBundle bundle) {
     JsonObject payload = new JsonObject();
     payload.addProperty("totalScore", bundle.getTotalScore());
-    payload.add("highlightCandidates", gson.toJsonTree(bundle.getHighlightCandidates()));
     payload.add("expressionCandidates", gson.toJsonTree(bundle.getExpressionCandidates()));
-    payload.add("wordCandidates", gson.toJsonTree(bundle.getWordCandidates()));
-    payload.add("positiveSignals", gson.toJsonTree(bundle.getPositiveSignals()));
-    payload.add("improveSignals", gson.toJsonTree(bundle.getImproveSignals()));
 
-    return "Refine and select the best learning summary entries from these candidates.\n"
-        + "Input data:\n"
-        + gson.toJson(payload);
-  }
-
-  private String buildFutureFeedbackSystemPrompt() {
-    return "You are an English learning coach.\n"
-        + "Return JSON only with this exact top-level shape:\n"
-        + "{\n"
-        + "  \"futureSelfFeedback\": {\"positive\":\"...\",\"toImprove\":\"...\"}\n"
-        + "}\n"
-        + "Rules:\n"
-        + "1) Return only futureSelfFeedback.\n"
-        + "2) Both fields must be concise Korean coaching sentences.\n"
-        + "3) Do not include markdown code fences.\n"
-        + "4) Preserve meaning from provided signals and candidates.\n"
-        + "5) Do not invent facts outside input.";
-  }
-
-  private String buildFutureFeedbackUserPrompt(SummaryFeatureBundle bundle) {
-    JsonObject payload = new JsonObject();
-    payload.addProperty("totalScore", bundle.getTotalScore());
-    payload.add("positiveSignals", gson.toJsonTree(bundle.getPositiveSignals()));
-    payload.add("improveSignals", gson.toJsonTree(bundle.getImproveSignals()));
-    payload.add("highlightCandidates", gson.toJsonTree(bundle.getHighlightCandidates()));
-    payload.add("expressionCandidates", gson.toJsonTree(bundle.getExpressionCandidates()));
-    payload.add("wordCandidates", gson.toJsonTree(bundle.getWordCandidates()));
-
-    return "Generate only futureSelfFeedback from this learner signal bundle.\n"
+    return "Filter and reorder the expression candidates. Keep only those genuinely useful for learning.\n"
         + "Input data:\n"
         + gson.toJson(payload);
   }
 
   private String buildWordExtractionSystemPrompt() {
     return "You are an English vocabulary extractor for Korean learners.\n"
+        + "Your goal: identify words the learner likely encountered for the FIRST TIME.\n"
+        + "Focus on:\n"
+        + "- Words in corrected/natural sentences that do NOT appear in the user's original writing\n"
+        + "- Words with nuanced meanings a Korean speaker might confuse\n"
+        + "- Semi-formal or academic vocabulary that expands the learner's range\n"
+        + "Exclude:\n"
+        + "- Basic/common words (go, make, think, want, get, etc.)\n"
+        + "- Words the user already used correctly in their original sentences\n"
         + "Return JSON only with this exact top-level shape:\n"
         + "{\n"
         + "  \"items\": [\n"
@@ -422,11 +282,14 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
         + "5) Do not include markdown code fences.";
   }
 
-  private String buildWordExtractionUserPrompt(List<String> words, List<String> sentences) {
+  private String buildWordExtractionUserPrompt(
+      List<String> words, List<String> sentences, List<String> userOriginalSentences) {
     JsonObject payload = new JsonObject();
     payload.add("words", gson.toJsonTree(words));
     payload.add("sentences", gson.toJsonTree(sentences));
-    return "Extract difficult but useful words for this learner.\n"
+    payload.add("userOriginalSentences", gson.toJsonTree(userOriginalSentences));
+    return "Extract words the learner likely learned NEW from corrected/natural versions.\n"
+        + "Compare userOriginalSentences with sentences to find words the user didn't know.\n"
         + "Input data:\n"
         + gson.toJson(payload);
   }
@@ -457,66 +320,83 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
     }
   }
 
-  private LlmSections parseResponse(String body) {
-    String text = extractFirstTextPart(body);
-    if (text.isEmpty()) {
-      return new LlmSections();
+  private String extractTextFromSseChunk(String json) {
+    try {
+      JsonObject root = JsonParser.parseString(json).getAsJsonObject();
+      JsonArray candidates = root.getAsJsonArray("candidates");
+      if (candidates == null || candidates.size() == 0) {
+        return "";
+      }
+      JsonObject content = candidates.get(0).getAsJsonObject().getAsJsonObject("content");
+      JsonArray partsArr = content.getAsJsonArray("parts");
+      if (partsArr == null || partsArr.size() == 0) {
+        return "";
+      }
+      return partsArr.get(0).getAsJsonObject().get("text").getAsString();
+    } catch (Exception e) {
+      return "";
     }
-
-    String cleanJson = text.replace("```json", "").replace("```", "").trim();
-    LlmSections sections = gson.fromJson(cleanJson, LlmSections.class);
-    return sanitize(sections);
   }
 
-  private FutureSelfFeedbackSection parseFutureFeedbackFromText(String streamedText) {
-    String cleanJson =
-        streamedText == null ? "" : streamedText.replace("```json", "").replace("```", "").trim();
-    if (cleanJson.isEmpty()) {
-      return null;
+  /**
+   * Best-effort incremental parser: attempts to parse completed expression
+   * objects from
+   * accumulated JSON text. Returns all fully-parsed expressions found so far.
+   */
+  private List<ISessionSummaryLlmManager.FilteredExpression> tryParseExpressions(
+      String accumulatedText) {
+    List<ISessionSummaryLlmManager.FilteredExpression> result = new ArrayList<>();
+    String cleanJson = accumulatedText.replace("```json", "").replace("```", "").trim();
+
+    // Find the start of the expressions array
+    int arrStart = cleanJson.indexOf('[');
+    if (arrStart < 0) {
+      return result;
     }
+    String fromArray = cleanJson.substring(arrStart);
 
-    try {
-      JsonObject root = JsonParser.parseString(cleanJson).getAsJsonObject();
-      JsonObject futureObject;
-      if (root.has("futureSelfFeedback") && root.get("futureSelfFeedback").isJsonObject()) {
-        futureObject = root.getAsJsonObject("futureSelfFeedback");
-      } else {
-        futureObject = root;
+    // Walk through the string and try to extract complete JSON objects
+    int depth = 0;
+    int objStart = -1;
+    for (int i = 0; i < fromArray.length(); i++) {
+      char c = fromArray.charAt(i);
+      if (c == '{') {
+        if (depth == 0) {
+          objStart = i;
+        }
+        depth++;
+      } else if (c == '}') {
+        depth--;
+        if (depth == 0 && objStart >= 0) {
+          String objStr = fromArray.substring(objStart, i + 1);
+          ISessionSummaryLlmManager.FilteredExpression expr = tryParseSingleExpression(objStr);
+          if (expr != null) {
+            result.add(expr);
+          }
+          objStart = -1;
+        }
       }
+    }
+    return result;
+  }
 
-      FutureSelfFeedbackSection section =
-          gson.fromJson(futureObject, FutureSelfFeedbackSection.class);
-      if (section == null) {
+  private ISessionSummaryLlmManager.FilteredExpression tryParseSingleExpression(String jsonStr) {
+    try {
+      JsonObject item = JsonParser.parseString(jsonStr).getAsJsonObject();
+      String type = trimToNull(readAsString(item, "type"));
+      String prompt = trimToNull(readAsString(item, "koreanPrompt"));
+      String before = trimToNull(readAsString(item, "before"));
+      String after = trimToNull(readAsString(item, "after"));
+      String explanation = trimToNull(readAsString(item, "explanation"));
+      if (type == null || prompt == null || before == null || after == null
+          || explanation == null) {
         return null;
       }
-      FutureSelfFeedbackSection sanitized = new FutureSelfFeedbackSection();
-      sanitized.setPositive(trimToNull(section.getPositive()));
-      sanitized.setToImprove(trimToNull(section.getToImprove()));
-      return sanitized;
+      return new ISessionSummaryLlmManager.FilteredExpression(
+          type, prompt, before, after, explanation);
     } catch (Exception e) {
       return null;
     }
-  }
-
-  private LlmSections sanitize(LlmSections sections) {
-    if (sections == null) {
-      return new LlmSections();
-    }
-
-    LlmSections sanitized = new LlmSections();
-    sanitized.setHighlights(limitAndSanitizeHighlights(sections.getHighlights(), MAX_HIGHLIGHTS));
-    sanitized.setExpressions(
-        limitAndSanitizeExpressions(sections.getExpressions(), MAX_EXPRESSIONS));
-    sanitized.setWords(limitAndSanitizeWords(sections.getWords(), MAX_WORDS));
-
-    FutureSelfFeedbackSection feedback = sections.getFutureSelfFeedback();
-    if (feedback != null) {
-      FutureSelfFeedbackSection normalized = new FutureSelfFeedbackSection();
-      normalized.setPositive(trimToNull(feedback.getPositive()));
-      normalized.setToImprove(trimToNull(feedback.getToImprove()));
-      sanitized.setFutureSelfFeedback(normalized);
-    }
-    return sanitized;
   }
 
   private List<HighlightSection> limitAndSanitizeHighlights(
@@ -725,7 +605,6 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
     private List<HighlightSection> highlights;
     private List<ExpressionSection> expressions;
     private List<WordSection> words;
-    private FutureSelfFeedbackSection futureSelfFeedback;
 
     public List<HighlightSection> getHighlights() {
       return highlights;
@@ -750,14 +629,6 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
     public void setWords(List<WordSection> words) {
       this.words = words;
     }
-
-    public FutureSelfFeedbackSection getFutureSelfFeedback() {
-      return futureSelfFeedback;
-    }
-
-    public void setFutureSelfFeedback(FutureSelfFeedbackSection futureSelfFeedback) {
-      this.futureSelfFeedback = futureSelfFeedback;
-    }
   }
 
   public static class HighlightSection {
@@ -765,7 +636,8 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
     private String korean;
     private String reason;
 
-    public HighlightSection() {}
+    public HighlightSection() {
+    }
 
     public HighlightSection(String english, String korean, String reason) {
       this.english = english;
@@ -793,7 +665,8 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
     private String after;
     private String explanation;
 
-    public ExpressionSection() {}
+    public ExpressionSection() {
+    }
 
     public ExpressionSection(
         String type, String koreanPrompt, String before, String after, String explanation) {
@@ -831,7 +704,8 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
     private String exampleEnglish;
     private String exampleKorean;
 
-    public WordSection() {}
+    public WordSection() {
+    }
 
     public WordSection(String english, String korean, String exampleEnglish, String exampleKorean) {
       this.english = english;
@@ -854,27 +728,6 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
 
     public String getExampleKorean() {
       return exampleKorean;
-    }
-  }
-
-  public static class FutureSelfFeedbackSection {
-    private String positive;
-    private String toImprove;
-
-    public String getPositive() {
-      return positive;
-    }
-
-    public void setPositive(String positive) {
-      this.positive = positive;
-    }
-
-    public String getToImprove() {
-      return toImprove;
-    }
-
-    public void setToImprove(String toImprove) {
-      this.toImprove = toImprove;
     }
   }
 }

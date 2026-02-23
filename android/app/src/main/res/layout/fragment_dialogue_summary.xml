@@ -107,11 +107,93 @@
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
-            <LinearLayout
-                android:id="@+id/layout_expression_container"
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical" />
+                android:layout_marginBottom="4dp">
+
+                <LinearLayout
+                    android:id="@+id/layout_expression_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone" />
+
+                <com.facebook.shimmer.ShimmerFrameLayout
+                    android:id="@+id/skeleton_expressions"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:visibility="gone"
+                    app:shimmer_auto_start="true"
+                    app:shimmer_duration="1200">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="match_parent"
+                            android:layout_height="100dp"
+                            android:layout_marginBottom="8dp"
+                            app:cardBackgroundColor="@color/white"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="0dp"
+                            app:strokeColor="@color/grey_200"
+                            app:strokeWidth="1dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="vertical"
+                                android:padding="16dp">
+
+                                <View
+                                    android:layout_width="80dp"
+                                    android:layout_height="14dp"
+                                    android:layout_marginBottom="8dp"
+                                    android:background="@drawable/skeleton_placeholder" />
+
+                                <View
+                                    android:layout_width="match_parent"
+                                    android:layout_height="14dp"
+                                    android:layout_marginBottom="8dp"
+                                    android:background="@drawable/skeleton_placeholder" />
+
+                                <View
+                                    android:layout_width="match_parent"
+                                    android:layout_height="14dp"
+                                    android:background="@drawable/skeleton_placeholder" />
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+                    </LinearLayout>
+                </com.facebook.shimmer.ShimmerFrameLayout>
+
+                <TextView
+                    android:id="@+id/tv_summary_expressions_error"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@color/grey_50"
+                    android:gravity="center"
+                    android:lineSpacingMultiplier="1.4"
+                    android:padding="16dp"
+                    android:text="@string/summary_expressions_load_error"
+                    android:textColor="@color/grey_600"
+                    android:textSize="14sp"
+                    android:visibility="gone" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/btn_expression_toggle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center"
+                android:paddingVertical="12dp"
+                android:text="더 보기"
+                android:textColor="@color/grey_600"
+                android:textSize="14sp"
+                android:visibility="gone" />
 
             <!-- 4. 새로 발견한 단어 섹션 -->
             <TextView
@@ -274,203 +356,7 @@
                 android:textSize="14sp"
                 android:visibility="gone" />
 
-            <!-- 6. 내일의 나에게 섹션 -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="16dp"
-                android:text="내일의 나에게 한 마디"
-                android:textColor="#333333"
-                android:textSize="16sp"
-                android:textStyle="bold" />
 
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="40dp">
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_future_feedback_content"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    app:cardBackgroundColor="@color/white"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="@color/grey_200"
-                    app:strokeWidth="1dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="20dp">
-
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="8dp"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <ImageView
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:contentDescription="@null"
-                                android:src="@drawable/ic_feedback_positive" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
-                                android:text="잘하고 있어요"
-                                android:textColor="@color/text_primary"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/layout_feedback_positive_block"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            app:cardBackgroundColor="@color/grey_50"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="0dp"
-                            app:strokeColor="@color/grey_200"
-                            app:strokeWidth="1dp">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:padding="14dp">
-
-                                <TextView
-                                    android:id="@+id/tv_feedback_positive_value"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:lineSpacingMultiplier="1.4"
-                                    android:text="오늘의 표현 선택 감각이 좋고, 문장 흐름도 안정적으로 만들고 있어요."
-                                    android:textColor="@color/grey_700"
-                                    android:textSize="15sp" />
-                            </LinearLayout>
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="16dp"
-                            android:layout_marginBottom="8dp"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <ImageView
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:contentDescription="@null"
-                                android:src="@drawable/ic_feedback_improve" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
-                                android:text="조금만 신경써봐요!"
-                                android:textColor="@color/text_primary"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/layout_feedback_improve_block"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            app:cardBackgroundColor="@color/grey_50"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="0dp"
-                            app:strokeColor="@color/grey_200"
-                            app:strokeWidth="1dp">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:padding="14dp">
-
-                                <TextView
-                                    android:id="@+id/tv_feedback_improve_value"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:lineSpacingMultiplier="1.4"
-                                    android:text="복합 문장에서 동사 위치와 연결 표현만 조금 더 신경 쓰면 완성도가 크게 올라가요."
-                                    android:textColor="@color/grey_700"
-                                    android:textSize="15sp" />
-                            </LinearLayout>
-                        </com.google.android.material.card.MaterialCardView>
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.facebook.shimmer.ShimmerFrameLayout
-                    android:id="@+id/skeleton_future_feedback"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:visibility="gone"
-                    app:shimmer_auto_start="true"
-                    app:shimmer_duration="1200">
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        app:cardBackgroundColor="@color/white"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="0dp"
-                        app:strokeColor="@color/grey_200"
-                        app:strokeWidth="1dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="20dp">
-
-                            <View
-                                android:layout_width="120dp"
-                                android:layout_height="16dp"
-                                android:layout_marginBottom="12dp"
-                                android:background="@drawable/skeleton_placeholder" />
-
-                            <View
-                                android:layout_width="match_parent"
-                                android:layout_height="56dp"
-                                android:layout_marginBottom="18dp"
-                                android:background="@drawable/skeleton_placeholder" />
-
-                            <View
-                                android:layout_width="120dp"
-                                android:layout_height="16dp"
-                                android:layout_marginBottom="12dp"
-                                android:background="@drawable/skeleton_placeholder" />
-
-                            <View
-                                android:layout_width="match_parent"
-                                android:layout_height="56dp"
-                                android:background="@drawable/skeleton_placeholder" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-                </com.facebook.shimmer.ShimmerFrameLayout>
-
-                <TextView
-                    android:id="@+id/tv_future_feedback_error"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@color/grey_50"
-                    android:gravity="center"
-                    android:lineSpacingMultiplier="1.4"
-                    android:padding="16dp"
-                    android:text="@string/summary_future_feedback_load_error"
-                    android:textColor="@color/grey_600"
-                    android:textSize="14sp"
-                    android:visibility="gone" />
-            </FrameLayout>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

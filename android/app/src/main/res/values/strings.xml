@@ -41,7 +41,7 @@
     <string name="desc_save_paraphrasing">Save paraphrasing sentence</string>
     <string name="summary_empty_liked_sentences">No bookmarked paraphrasing sentences yet.</string>
     <string name="summary_generating">Generating summary...</string>
-    <string name="summary_future_feedback_load_error">Future feedback is unavailable right now. Please try again later.</string>
+    <string name="summary_expressions_load_error">표현 카드를 불러올 수 없어요. 잠시 후 다시 시도해 주세요.</string>
     <string name="summary_words_load_error">Summary words are unavailable right now. Please try again later.</string>
     <string name="quiz_overline">Review Quiz</string>
     <string name="quiz_loading">복습 퀴즈를 준비하고 있어요...</string>

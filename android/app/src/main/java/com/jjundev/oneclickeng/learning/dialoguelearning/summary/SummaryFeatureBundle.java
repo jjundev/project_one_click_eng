@@ -10,8 +10,7 @@ public class SummaryFeatureBundle {
   private List<ExpressionCandidate> expressionCandidates = new ArrayList<>();
   private List<WordCandidate> wordCandidates = new ArrayList<>();
   private List<String> sentenceCandidates = new ArrayList<>();
-  private List<String> positiveSignals = new ArrayList<>();
-  private List<String> improveSignals = new ArrayList<>();
+  private List<String> userOriginalSentences = new ArrayList<>();
 
   public int getTotalScore() {
     return totalScore;
@@ -53,20 +52,12 @@ public class SummaryFeatureBundle {
     this.sentenceCandidates = sentenceCandidates;
   }
 
-  public List<String> getPositiveSignals() {
-    return positiveSignals;
+  public List<String> getUserOriginalSentences() {
+    return userOriginalSentences;
   }
 
-  public void setPositiveSignals(List<String> positiveSignals) {
-    this.positiveSignals = positiveSignals;
-  }
-
-  public List<String> getImproveSignals() {
-    return improveSignals;
-  }
-
-  public void setImproveSignals(List<String> improveSignals) {
-    this.improveSignals = improveSignals;
+  public void setUserOriginalSentences(List<String> userOriginalSentences) {
+    this.userOriginalSentences = userOriginalSentences;
   }
 
   public static class HighlightCandidate {
@@ -74,7 +65,8 @@ public class SummaryFeatureBundle {
     private String korean;
     private String reason;
 
-    public HighlightCandidate() {}
+    public HighlightCandidate() {
+    }
 
     public HighlightCandidate(String english, String korean, String reason) {
       this.english = english;
@@ -114,7 +106,8 @@ public class SummaryFeatureBundle {
     private String after;
     private String explanation;
 
-    public ExpressionCandidate() {}
+    public ExpressionCandidate() {
+    }
 
     public ExpressionCandidate(
         String type, String koreanPrompt, String before, String after, String explanation) {
@@ -172,7 +165,8 @@ public class SummaryFeatureBundle {
     private String exampleEnglish;
     private String exampleKorean;
 
-    public WordCandidate() {}
+    public WordCandidate() {
+    }
 
     public WordCandidate(
         String english, String korean, String exampleEnglish, String exampleKorean) {

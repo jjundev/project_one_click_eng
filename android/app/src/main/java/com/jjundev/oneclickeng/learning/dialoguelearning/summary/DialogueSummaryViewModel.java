@@ -8,7 +8,6 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 import com.google.gson.Gson;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISessionSummaryLlmManager;
-import com.jjundev.oneclickeng.learning.dialoguelearning.model.FutureFeedbackResult;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.SummaryData;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -17,27 +16,27 @@ import java.util.Set;
 
 public class DialogueSummaryViewModel extends ViewModel {
 
-  private static final String STATE_FUTURE_FEEDBACK_STATUS = "state_future_feedback_status";
-  private static final String STATE_FUTURE_FEEDBACK_JSON = "state_future_feedback_json";
-  private static final String STATE_FUTURE_FEEDBACK_ERROR = "state_future_feedback_error";
   private static final String STATE_SUMMARY_DATA_JSON = "state_summary_data_json";
   private static final String STATE_WORD_LOAD_STATUS = "state_word_load_status";
   private static final String STATE_WORD_LOAD_ERROR = "state_word_load_error";
+  private static final String STATE_EXPRESSION_LOAD_STATUS = "state_expression_load_status";
+  private static final String STATE_EXPRESSION_LOAD_ERROR = "state_expression_load_error";
   private static final int MAX_WORDS = 12;
   private static final Gson GSON = new Gson();
 
   private final ISessionSummaryLlmManager sessionSummaryLlmManager;
-  private final MutableLiveData<SummaryData> summaryData =
-      new MutableLiveData<>(new SessionSummaryGenerator().createEmptySummary());
-  private final MutableLiveData<FutureFeedbackState> futureFeedbackState =
-      new MutableLiveData<>(FutureFeedbackState.loading());
-  private final MutableLiveData<WordLoadState> wordLoadState =
-      new MutableLiveData<>(WordLoadState.loading());
+  private final MutableLiveData<SummaryData> summaryData = new MutableLiveData<>(
+      new SessionSummaryGenerator().createEmptySummary());
+  private final MutableLiveData<ExpressionLoadState> expressionLoadState = new MutableLiveData<>(
+      ExpressionLoadState.loading());
+  private final MutableLiveData<WordLoadState> wordLoadState = new MutableLiveData<>(WordLoadState.loading());
 
-  @Nullable private SummaryFeatureBundle featureBundle;
+  @Nullable
+  private SummaryFeatureBundle featureBundle;
   private int requestToken = 0;
   private boolean hasInitialized = false;
   private boolean hasWordExtractionStarted = false;
+  private boolean hasExpressionFilterStarted = false;
 
   public DialogueSummaryViewModel(@NonNull ISessionSummaryLlmManager sessionSummaryLlmManager) {
     this.sessionSummaryLlmManager = sessionSummaryLlmManager;
@@ -47,8 +46,8 @@ public class DialogueSummaryViewModel extends ViewModel {
     return summaryData;
   }
 
-  public LiveData<FutureFeedbackState> getFutureFeedbackState() {
-    return futureFeedbackState;
+  public LiveData<ExpressionLoadState> getExpressionLoadState() {
+    return expressionLoadState;
   }
 
   public LiveData<WordLoadState> getWordLoadState() {
@@ -60,8 +59,7 @@ public class DialogueSummaryViewModel extends ViewModel {
       @Nullable String featureBundleJson,
       @Nullable Bundle savedInstanceState) {
     SummaryData restoredSummary = resolveSavedSummaryData(savedInstanceState);
-    SummaryData initialSummary =
-        restoredSummary == null ? resolveSummaryData(summaryJson) : restoredSummary;
+    SummaryData initialSummary = restoredSummary == null ? resolveSummaryData(summaryJson) : restoredSummary;
     if (initialSummary.getWords() == null) {
       initialSummary.setWords(new ArrayList<>());
     }
@@ -74,13 +72,16 @@ public class DialogueSummaryViewModel extends ViewModel {
     if (!hasInitialized) {
       hasInitialized = true;
       featureBundle = resolveFeatureBundle(featureBundleJson);
-      restoreFutureFeedbackState(savedInstanceState);
       restoreWordLoadState(savedInstanceState);
+      restoreExpressionLoadState(savedInstanceState);
     }
 
-    FutureFeedbackState currentState = futureFeedbackState.getValue();
-    if (currentState != null && currentState.status == FutureFeedbackStatus.LOADING) {
-      startFutureFeedbackStreaming();
+    if (!hasExpressionFilterStarted) {
+      ExpressionLoadState currentExprState = expressionLoadState.getValue();
+      if (currentExprState != null && currentExprState.status == ExpressionLoadStatus.LOADING) {
+        hasExpressionFilterStarted = true;
+        startExpressionFiltering();
+      }
     }
 
     if (!hasWordExtractionStarted) {
@@ -97,17 +98,15 @@ public class DialogueSummaryViewModel extends ViewModel {
   }
 
   public void saveState(@NonNull Bundle outState) {
-    FutureFeedbackState state = futureFeedbackState.getValue();
-    if (state != null) {
-      outState.putString(STATE_FUTURE_FEEDBACK_STATUS, state.status.name());
-      outState.putString(STATE_FUTURE_FEEDBACK_ERROR, state.errorMessage);
-      if (state.feedback != null) {
-        outState.putString(STATE_FUTURE_FEEDBACK_JSON, GSON.toJson(state.feedback));
-      }
-    }
     SummaryData currentSummary = summaryData.getValue();
     if (currentSummary != null) {
       outState.putString(STATE_SUMMARY_DATA_JSON, GSON.toJson(currentSummary));
+    }
+
+    ExpressionLoadState exprState = expressionLoadState.getValue();
+    if (exprState != null) {
+      outState.putString(STATE_EXPRESSION_LOAD_STATUS, exprState.status.name());
+      outState.putString(STATE_EXPRESSION_LOAD_ERROR, exprState.errorMessage);
     }
 
     WordLoadState wordState = wordLoadState.getValue();
@@ -117,30 +116,45 @@ public class DialogueSummaryViewModel extends ViewModel {
     }
   }
 
-  private void startFutureFeedbackStreaming() {
+  private void startExpressionFiltering() {
     if (featureBundle == null) {
-      setFutureFeedbackError(null);
+      expressionLoadState.setValue(ExpressionLoadState.ready());
       return;
     }
 
     final int currentToken = ++requestToken;
-    futureFeedbackState.setValue(FutureFeedbackState.loading());
-    sessionSummaryLlmManager.generateFutureFeedbackStreamingAsync(
+    expressionLoadState.setValue(ExpressionLoadState.loading());
+    final boolean[] clearedFallback = { false };
+
+    sessionSummaryLlmManager.filterExpressionsAsync(
         featureBundle,
-        new ISessionSummaryLlmManager.FutureFeedbackCallback() {
+        new ISessionSummaryLlmManager.ExpressionFilterCallback() {
           @Override
-          public void onSuccess(FutureFeedbackResult feedback) {
+          public void onExpressionReceived(
+              @NonNull ISessionSummaryLlmManager.FilteredExpression expression) {
             if (!isRequestActive(currentToken)) {
               return;
             }
 
-            String positive = feedback == null ? "" : feedback.getPositive();
-            String toImprove = feedback == null ? "" : feedback.getToImprove();
-            futureFeedbackState.setValue(
-                FutureFeedbackState.ready(
-                    new SummaryData.FutureSelfFeedback(
-                        positive == null ? "" : positive, toImprove == null ? "" : toImprove),
-                    null));
+            SummaryData.ExpressionItem item = toExpressionItem(expression);
+            if (item == null) {
+              return;
+            }
+
+            // On first streamed expression, clear fallback expressions
+            if (!clearedFallback[0]) {
+              clearExpressionsInSummary();
+              clearedFallback[0] = true;
+            }
+            appendExpressionToSummary(item);
+          }
+
+          @Override
+          public void onComplete() {
+            if (!isRequestActive(currentToken)) {
+              return;
+            }
+            expressionLoadState.setValue(ExpressionLoadState.ready());
           }
 
           @Override
@@ -148,55 +162,93 @@ public class DialogueSummaryViewModel extends ViewModel {
             if (!isRequestActive(currentToken)) {
               return;
             }
-            setFutureFeedbackError(error);
+            // Keep fallback expressions already in summaryData.
+            expressionLoadState.setValue(ExpressionLoadState.ready());
           }
         });
   }
 
-  private void setFutureFeedbackError(@Nullable String message) {
-    futureFeedbackState.setValue(FutureFeedbackState.error(message));
+  @Nullable
+  private SummaryData.ExpressionItem toExpressionItem(
+      @Nullable ISessionSummaryLlmManager.FilteredExpression f) {
+    if (f == null) {
+      return null;
+    }
+    String type = trimToNull(f.getType());
+    String prompt = trimToNull(f.getKoreanPrompt());
+    String before = trimToNull(f.getBefore());
+    String after = trimToNull(f.getAfter());
+    String explanation = trimToNull(f.getExplanation());
+    if (type == null || prompt == null || before == null || after == null
+        || explanation == null) {
+      return null;
+    }
+    return new SummaryData.ExpressionItem(type, prompt, before, after, explanation);
+  }
+
+  private void clearExpressionsInSummary() {
+    SummaryData current = summaryData.getValue();
+    if (current == null) {
+      current = new SessionSummaryGenerator().createEmptySummary();
+    }
+    SummaryData updated = new SummaryData();
+    updated.setTotalScore(current.getTotalScore());
+    updated.setHighlights(current.getHighlights());
+    updated.setExpressions(new ArrayList<>());
+    updated.setWords(current.getWords());
+    updated.setLikedSentences(current.getLikedSentences());
+    summaryData.setValue(updated);
+  }
+
+  private void appendExpressionToSummary(@NonNull SummaryData.ExpressionItem item) {
+    SummaryData current = summaryData.getValue();
+    if (current == null) {
+      current = new SessionSummaryGenerator().createEmptySummary();
+    }
+    List<SummaryData.ExpressionItem> existingExpressions = current.getExpressions();
+    List<SummaryData.ExpressionItem> newList = existingExpressions != null ? new ArrayList<>(existingExpressions)
+        : new ArrayList<>();
+    newList.add(item);
+
+    SummaryData updated = new SummaryData();
+    updated.setTotalScore(current.getTotalScore());
+    updated.setHighlights(current.getHighlights());
+    updated.setExpressions(newList);
+    updated.setWords(current.getWords());
+    updated.setLikedSentences(current.getLikedSentences());
+    summaryData.setValue(updated);
   }
 
   private boolean isRequestActive(int token) {
     return token == requestToken;
   }
 
-  private void restoreFutureFeedbackState(@Nullable Bundle savedInstanceState) {
+  private void restoreExpressionLoadState(@Nullable Bundle savedInstanceState) {
     if (savedInstanceState == null) {
-      futureFeedbackState.setValue(FutureFeedbackState.loading());
+      expressionLoadState.setValue(ExpressionLoadState.loading());
       return;
     }
 
-    FutureFeedbackStatus status = FutureFeedbackStatus.LOADING;
+    ExpressionLoadStatus status = ExpressionLoadStatus.LOADING;
     try {
-      String rawStatus = savedInstanceState.getString(STATE_FUTURE_FEEDBACK_STATUS);
+      String rawStatus = savedInstanceState.getString(STATE_EXPRESSION_LOAD_STATUS);
       if (rawStatus != null) {
-        status = FutureFeedbackStatus.valueOf(rawStatus);
+        status = ExpressionLoadStatus.valueOf(rawStatus);
       }
     } catch (Exception ignored) {
-      status = FutureFeedbackStatus.LOADING;
+      status = ExpressionLoadStatus.LOADING;
     }
 
-    String errorMessage = savedInstanceState.getString(STATE_FUTURE_FEEDBACK_ERROR);
-    SummaryData.FutureSelfFeedback restoredFeedback =
-        parseFutureFeedback(savedInstanceState.getString(STATE_FUTURE_FEEDBACK_JSON));
-
-    if (status == FutureFeedbackStatus.READY && restoredFeedback == null) {
-      futureFeedbackState.setValue(FutureFeedbackState.error(null));
+    String errorMessage = savedInstanceState.getString(STATE_EXPRESSION_LOAD_ERROR);
+    if (status == ExpressionLoadStatus.READY) {
+      expressionLoadState.setValue(ExpressionLoadState.ready());
       return;
     }
-
-    if (status == FutureFeedbackStatus.READY) {
-      futureFeedbackState.setValue(FutureFeedbackState.ready(restoredFeedback, errorMessage));
+    if (status == ExpressionLoadStatus.ERROR) {
+      expressionLoadState.setValue(ExpressionLoadState.error(errorMessage));
       return;
     }
-
-    if (status == FutureFeedbackStatus.ERROR) {
-      futureFeedbackState.setValue(FutureFeedbackState.error(errorMessage));
-      return;
-    }
-
-    futureFeedbackState.setValue(FutureFeedbackState.loading());
+    expressionLoadState.setValue(ExpressionLoadState.loading());
   }
 
   private void restoreWordLoadState(@Nullable Bundle savedInstanceState) {
@@ -280,6 +332,7 @@ public class DialogueSummaryViewModel extends ViewModel {
 
     List<String> words = collectWordSeeds(featureBundle.getWordCandidates());
     List<String> sentences = collectSentenceCandidates(featureBundle.getSentenceCandidates());
+    List<String> userOriginals = collectSentenceCandidates(featureBundle.getUserOriginalSentences());
     if (words.isEmpty() || sentences.isEmpty()) {
       setWordError(null);
       return;
@@ -290,6 +343,7 @@ public class DialogueSummaryViewModel extends ViewModel {
     sessionSummaryLlmManager.extractWordsFromSentencesAsync(
         words,
         sentences,
+        userOriginals,
         new ISessionSummaryLlmManager.WordExtractionCallback() {
           @Override
           public void onSuccess(@NonNull List<ISessionSummaryLlmManager.ExtractedWord> words) {
@@ -407,19 +461,7 @@ public class DialogueSummaryViewModel extends ViewModel {
     updated.setExpressions(current.getExpressions());
     updated.setWords(new ArrayList<>(words));
     updated.setLikedSentences(current.getLikedSentences());
-    updated.setFutureSelfFeedback(current.getFutureSelfFeedback());
     summaryData.setValue(updated);
-  }
-
-  private SummaryData.FutureSelfFeedback parseFutureFeedback(@Nullable String json) {
-    if (json == null || json.trim().isEmpty()) {
-      return null;
-    }
-    try {
-      return GSON.fromJson(json, SummaryData.FutureSelfFeedback.class);
-    } catch (Exception ignored) {
-      return null;
-    }
   }
 
   @Nullable
@@ -446,41 +488,32 @@ public class DialogueSummaryViewModel extends ViewModel {
     wordLoadState.setValue(WordLoadState.error(message));
   }
 
-  public static final class FutureFeedbackState {
-    private final FutureFeedbackStatus status;
-    @Nullable private final SummaryData.FutureSelfFeedback feedback;
-    @Nullable private final String errorMessage;
+  public static final class ExpressionLoadState {
+    private final ExpressionLoadStatus status;
+    @Nullable
+    private final String errorMessage;
 
-    private FutureFeedbackState(
-        @NonNull FutureFeedbackStatus status,
-        @Nullable SummaryData.FutureSelfFeedback feedback,
-        @Nullable String errorMessage) {
+    private ExpressionLoadState(
+        @NonNull ExpressionLoadStatus status, @Nullable String errorMessage) {
       this.status = status;
-      this.feedback = feedback;
       this.errorMessage = errorMessage;
     }
 
-    public static FutureFeedbackState loading() {
-      return new FutureFeedbackState(FutureFeedbackStatus.LOADING, null, null);
+    public static ExpressionLoadState loading() {
+      return new ExpressionLoadState(ExpressionLoadStatus.LOADING, null);
     }
 
-    public static FutureFeedbackState ready(
-        @Nullable SummaryData.FutureSelfFeedback feedback, @Nullable String errorMessage) {
-      return new FutureFeedbackState(FutureFeedbackStatus.READY, feedback, errorMessage);
+    public static ExpressionLoadState ready() {
+      return new ExpressionLoadState(ExpressionLoadStatus.READY, null);
     }
 
-    public static FutureFeedbackState error(@Nullable String errorMessage) {
-      return new FutureFeedbackState(FutureFeedbackStatus.ERROR, null, errorMessage);
+    public static ExpressionLoadState error(@Nullable String errorMessage) {
+      return new ExpressionLoadState(ExpressionLoadStatus.ERROR, errorMessage);
     }
 
     @NonNull
-    public FutureFeedbackStatus getStatus() {
+    public ExpressionLoadStatus getStatus() {
       return status;
-    }
-
-    @Nullable
-    public SummaryData.FutureSelfFeedback getFeedback() {
-      return feedback;
     }
 
     @Nullable
@@ -489,7 +522,7 @@ public class DialogueSummaryViewModel extends ViewModel {
     }
   }
 
-  public enum FutureFeedbackStatus {
+  public enum ExpressionLoadStatus {
     LOADING,
     READY,
     ERROR
@@ -497,7 +530,8 @@ public class DialogueSummaryViewModel extends ViewModel {
 
   public static final class WordLoadState {
     private final WordLoadStatus status;
-    @Nullable private final String errorMessage;
+    @Nullable
+    private final String errorMessage;
 
     private WordLoadState(@NonNull WordLoadStatus status, @Nullable String errorMessage) {
       this.status = status;
