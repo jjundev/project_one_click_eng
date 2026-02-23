@@ -22,6 +22,7 @@ import com.jjundev.oneclickeng.learning.dialoguelearning.di.LearningDependencyPr
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IQuizGenerationManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.QuizData;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.SummaryData;
+import com.jjundev.oneclickeng.learning.quiz.session.QuizStreamingSessionStore;
 import com.jjundev.oneclickeng.settings.AppSettings;
 import com.jjundev.oneclickeng.settings.AppSettingsStore;
 import java.util.ArrayList;
@@ -40,6 +41,8 @@ public class LearningHistoryFragment extends Fragment {
   private RecyclerView recyclerView;
   private View emptyStateLayout;
   @Nullable private HistoryQuizConfigDialog pendingConfigDialog;
+  @Nullable private String pendingQuizSessionId;
+  @Nullable private QuizStreamingSessionStore.Listener pendingQuizSessionListener;
   private long quizPreparationRequestId = 0L;
 
   @Nullable
@@ -58,6 +61,14 @@ public class LearningHistoryFragment extends Fragment {
     initViewModel();
     initViews(view);
     observeViewModel();
+  }
+
+  @Override
+  public void onDestroyView() {
+    clearPendingQuizSession(true);
+    pendingConfigDialog = null;
+    quizPreparationRequestId = 0L;
+    super.onDestroyView();
   }
 
   private void initViews(View view) {
@@ -118,8 +129,9 @@ public class LearningHistoryFragment extends Fragment {
     getChildFragmentManager()
         .setFragmentResultListener(
             HistoryQuizConfigDialog.REQUEST_KEY,
-        getViewLifecycleOwner(),
+            getViewLifecycleOwner(),
             (requestKey, result) -> {
+              clearPendingQuizSession(true);
               long requestId = ++quizPreparationRequestId;
               int periodBucket = result.getInt(HistoryQuizConfigDialog.BUNDLE_KEY_PERIOD_BUCKET);
               int questionCount = result.getInt(HistoryQuizConfigDialog.BUNDLE_KEY_QUESTION_COUNT);
@@ -138,13 +150,7 @@ public class LearningHistoryFragment extends Fragment {
 
               SummaryData seed = viewModel.generateQuizSeed(periodBucket, currentTab);
               if (seed == null) {
-                dialog.setLoadingState(false);
-                if (requestId == quizPreparationRequestId) {
-                  quizPreparationRequestId = 0L;
-                }
-                if (dialog == pendingConfigDialog) {
-                  pendingConfigDialog = null;
-                }
+                finishQuizPreparation(dialog, requestId);
                 showToast(R.string.history_quiz_err_no_items);
                 return;
               }
@@ -155,13 +161,15 @@ public class LearningHistoryFragment extends Fragment {
                       requireContext(),
                       settings.resolveEffectiveApiKey(BuildConfig.GEMINI_API_KEY),
                       settings.getLlmModelSummary());
+              QuizStreamingSessionStore sessionStore =
+                  LearningDependencyProvider.provideQuizStreamingSessionStore();
 
               final boolean[] completed = {false};
               final SummaryData finalSeed = seed;
-              quizManager.generateQuizFromSummaryStreamingAsync(
-                  finalSeed,
-                  questionCount,
-                  new IQuizGenerationManager.QuizStreamingCallback() {
+              String sessionId = sessionStore.startSession(quizManager, finalSeed, questionCount);
+
+              QuizStreamingSessionStore.Listener listener =
+                  new QuizStreamingSessionStore.Listener() {
                     @Override
                     public void onQuestion(@NonNull QuizData.QuizQuestion question) {
                       if (requestId != quizPreparationRequestId || completed[0]) {
@@ -171,13 +179,7 @@ public class LearningHistoryFragment extends Fragment {
                         return;
                       }
                       completed[0] = true;
-                      dialog.setLoadingState(false);
-                      quizPreparationRequestId = 0L;
-                      if (dialog == pendingConfigDialog) {
-                        pendingConfigDialog = null;
-                      }
-                      dialog.dismiss();
-                      startDialogueQuiz(finalSeed, questionCount);
+                      startPreparedQuiz(dialog, requestId, finalSeed, questionCount, sessionId);
                     }
 
                     @Override
@@ -186,26 +188,7 @@ public class LearningHistoryFragment extends Fragment {
                         return;
                       }
                       completed[0] = true;
-                      quizPreparationRequestId = 0L;
-                      dialog.setLoadingState(false);
-                      if (dialog == pendingConfigDialog) {
-                        pendingConfigDialog = null;
-                      }
-                      if (isAdded()) {
-                        if (warningMessage == null || warningMessage.trim().isEmpty()) {
-                          showToast(R.string.quiz_error_default);
-                        } else {
-                          Toast.makeText(
-                                  requireContext(),
-                                  getString(
-                                      R.string.quiz_error_default)
-                                      + " ("
-                                      + warningMessage
-                                      + ")",
-                                  Toast.LENGTH_SHORT)
-                              .show();
-                        }
-                      }
+                      showPreparationError(dialog, requestId, warningMessage);
                     }
 
                     @Override
@@ -214,21 +197,35 @@ public class LearningHistoryFragment extends Fragment {
                         return;
                       }
                       completed[0] = true;
-                      quizPreparationRequestId = 0L;
-                      dialog.setLoadingState(false);
-                      if (dialog == pendingConfigDialog) {
-                        pendingConfigDialog = null;
-                      }
-                      if (isAdded()) {
-                        String safeMessage = trimToNull(error);
-                        if (safeMessage == null) {
-                          showToast(R.string.quiz_error_default);
-                        } else {
-                          showToast(safeMessage);
-                        }
-                      }
+                      showPreparationError(dialog, requestId, error);
                     }
-                  });
+                  };
+              pendingQuizSessionId = sessionId;
+              pendingQuizSessionListener = listener;
+
+              QuizStreamingSessionStore.Snapshot snapshot =
+                  sessionStore.attach(sessionId, listener);
+              if (snapshot == null) {
+                completed[0] = true;
+                showPreparationError(dialog, requestId, null);
+                return;
+              }
+              if (hasStartableQuestion(snapshot.getBufferedQuestions())) {
+                completed[0] = true;
+                startPreparedQuiz(dialog, requestId, finalSeed, questionCount, sessionId);
+                return;
+              }
+
+              String snapshotFailure = trimToNull(snapshot.getFailureMessage());
+              if (snapshotFailure != null) {
+                completed[0] = true;
+                showPreparationError(dialog, requestId, snapshotFailure);
+                return;
+              }
+              if (snapshot.isCompleted()) {
+                completed[0] = true;
+                showPreparationError(dialog, requestId, snapshot.getWarningMessage());
+              }
             });
   }
 
@@ -294,19 +291,97 @@ public class LearningHistoryFragment extends Fragment {
     }
   }
 
-  private void startDialogueQuiz(@NonNull SummaryData seed, int questionCount) {
+  private void startPreparedQuiz(
+      @NonNull HistoryQuizConfigDialog dialog,
+      long requestId,
+      @NonNull SummaryData seed,
+      int questionCount,
+      @NonNull String sessionId) {
+    clearPendingQuizSession(false);
+    finishQuizPreparation(dialog, requestId);
+    if (dialog.isAdded()) {
+      dialog.dismiss();
+    }
+    startDialogueQuiz(seed, questionCount, sessionId);
+  }
+
+  private void showPreparationError(
+      @NonNull HistoryQuizConfigDialog dialog, long requestId, @Nullable String detailMessage) {
+    clearPendingQuizSession(true);
+    finishQuizPreparation(dialog, requestId);
     if (!isAdded()) {
+      return;
+    }
+    String safeMessage = trimToNull(detailMessage);
+    if (safeMessage == null) {
+      showToast(R.string.quiz_error_default);
+      return;
+    }
+    Toast.makeText(
+            requireContext(),
+            getString(R.string.quiz_error_default) + " (" + safeMessage + ")",
+            Toast.LENGTH_SHORT)
+        .show();
+  }
+
+  private void finishQuizPreparation(@NonNull HistoryQuizConfigDialog dialog, long requestId) {
+    dialog.setLoadingState(false);
+    if (requestId == quizPreparationRequestId) {
+      quizPreparationRequestId = 0L;
+    }
+    if (dialog == pendingConfigDialog) {
+      pendingConfigDialog = null;
+    }
+  }
+
+  private void clearPendingQuizSession(boolean releaseSession) {
+    String sessionId = pendingQuizSessionId;
+    QuizStreamingSessionStore.Listener listener = pendingQuizSessionListener;
+    pendingQuizSessionId = null;
+    pendingQuizSessionListener = null;
+
+    if (sessionId == null) {
+      return;
+    }
+    QuizStreamingSessionStore sessionStore =
+        LearningDependencyProvider.provideQuizStreamingSessionStore();
+    if (listener != null) {
+      sessionStore.detach(sessionId, listener);
+    }
+    if (releaseSession) {
+      sessionStore.release(sessionId);
+    }
+  }
+
+  private boolean hasStartableQuestion(@Nullable List<QuizData.QuizQuestion> questions) {
+    if (questions == null || questions.isEmpty()) {
+      return false;
+    }
+    for (QuizData.QuizQuestion question : questions) {
+      if (isValidQuestionReadyForStart(question)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private void startDialogueQuiz(
+      @NonNull SummaryData seed, int questionCount, @NonNull String sessionId) {
+    if (!isAdded()) {
+      LearningDependencyProvider.provideQuizStreamingSessionStore().release(sessionId);
       return;
     }
     Intent intent = new Intent(requireContext(), DialogueQuizActivity.class);
     intent.putExtra(DialogueQuizActivity.EXTRA_SUMMARY_JSON, new Gson().toJson(seed));
     intent.putExtra(DialogueQuizActivity.EXTRA_REQUESTED_QUESTION_COUNT, questionCount);
+    intent.putExtra(DialogueQuizActivity.EXTRA_STREAM_SESSION_ID, sessionId);
     try {
       startActivity(intent);
       if (getActivity() != null) {
         getActivity().overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
       }
     } catch (Exception e) {
+      LearningDependencyProvider.provideQuizStreamingSessionStore().release(sessionId);
       logDebug("Activity start failed: " + e.getMessage());
       showToast("퀴즈 이동 중 오류가 발생했어요.");
     }
@@ -332,7 +407,8 @@ public class LearningHistoryFragment extends Fragment {
   }
 
   @Nullable
-  private List<String> sanitizeChoices(@Nullable List<String> sourceChoices, @NonNull String answer) {
+  private List<String> sanitizeChoices(
+      @Nullable List<String> sourceChoices, @NonNull String answer) {
     if (sourceChoices == null || sourceChoices.isEmpty()) {
       return null;
     }

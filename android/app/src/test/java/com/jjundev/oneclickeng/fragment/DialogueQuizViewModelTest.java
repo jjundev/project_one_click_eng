@@ -11,9 +11,12 @@ import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IQuiz
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.QuizData;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.SummaryData;
 import com.jjundev.oneclickeng.learning.quiz.DialogueQuizViewModel;
+import com.jjundev.oneclickeng.learning.quiz.session.QuizStreamingSessionStore;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -142,6 +145,99 @@ public class DialogueQuizViewModelTest {
     assertEquals("NEW_Q1", readyState.getQuestionState().getQuestion());
   }
 
+  @Test
+  public void initialize_withBufferedSessionQuestion_transitionsReadyWithoutFreshRequest() {
+    FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
+    FakeQuizStreamingSessionStore sessionStore = new FakeQuizStreamingSessionStore();
+    String sessionId =
+        sessionStore.createSession(
+            Arrays.asList(buildChoiceQuestion("S_Q1", "S_A1")), false, null, null);
+    DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager, sessionStore);
+
+    viewModel.initialize("{}", 5, sessionId);
+
+    DialogueQuizViewModel.QuizUiState state = viewModel.getUiState().getValue();
+    assertNotNull(state);
+    assertEquals(DialogueQuizViewModel.QuizUiState.Status.READY, state.getStatus());
+    assertEquals("S_Q1", state.getQuestionState().getQuestion());
+    assertEquals(0, manager.requestCount);
+    assertEquals(0, manager.initCacheCount);
+  }
+
+  @Test
+  public void onPrimaryAction_waitingState_movesWhenSessionNextQuestionArrives() {
+    FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
+    FakeQuizStreamingSessionStore sessionStore = new FakeQuizStreamingSessionStore();
+    String sessionId =
+        sessionStore.createSession(
+            Arrays.asList(buildChoiceQuestion("S_Q1", "S_A1")), false, null, null);
+    DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager, sessionStore);
+
+    viewModel.initialize("{}", 5, sessionId);
+
+    viewModel.onChoiceSelected("S_A1");
+    assertEquals(DialogueQuizViewModel.PrimaryActionResult.CHECKED, viewModel.onPrimaryAction());
+    assertEquals(
+        DialogueQuizViewModel.PrimaryActionResult.WAITING_NEXT_QUESTION,
+        viewModel.onPrimaryAction());
+
+    sessionStore.emitQuestion(sessionId, buildChoiceQuestion("S_Q2", "S_A2"));
+
+    assertEquals(
+        DialogueQuizViewModel.PrimaryActionResult.MOVED_TO_NEXT, viewModel.onPrimaryAction());
+    DialogueQuizViewModel.QuizUiState movedState = viewModel.getUiState().getValue();
+    assertNotNull(movedState);
+    assertEquals("S_Q2", movedState.getQuestionState().getQuestion());
+  }
+
+  @Test
+  public void initialize_missingSession_fallsBackToFreshStreamingLoad() {
+    FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
+    FakeQuizStreamingSessionStore sessionStore = new FakeQuizStreamingSessionStore();
+    DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager, sessionStore);
+
+    viewModel.initialize("{}", 5, "missing_session");
+
+    assertEquals(1, manager.initCacheCount);
+    assertEquals(1, manager.requestCount);
+    DialogueQuizViewModel.QuizUiState loadingState = viewModel.getUiState().getValue();
+    assertNotNull(loadingState);
+    assertEquals(DialogueQuizViewModel.QuizUiState.Status.LOADING, loadingState.getStatus());
+
+    manager.emitQuestion(0, buildChoiceQuestion("F_Q1", "F_A1"));
+
+    DialogueQuizViewModel.QuizUiState readyState = viewModel.getUiState().getValue();
+    assertNotNull(readyState);
+    assertEquals(DialogueQuizViewModel.QuizUiState.Status.READY, readyState.getStatus());
+    assertEquals("F_Q1", readyState.getQuestionState().getQuestion());
+  }
+
+  @Test
+  public void sessionFailureBeforeFirstQuestion_showsError_andRetryStartsFreshLoad() {
+    FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
+    FakeQuizStreamingSessionStore sessionStore = new FakeQuizStreamingSessionStore();
+    String sessionId = sessionStore.createSession(new ArrayList<>(), false, null, null);
+    DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager, sessionStore);
+
+    viewModel.initialize("{}", 5, sessionId);
+    sessionStore.failSession(sessionId, "session_failed");
+
+    DialogueQuizViewModel.QuizUiState errorState = viewModel.getUiState().getValue();
+    assertNotNull(errorState);
+    assertEquals(DialogueQuizViewModel.QuizUiState.Status.ERROR, errorState.getStatus());
+    assertEquals("session_failed", errorState.getErrorMessage());
+
+    viewModel.retryLoad();
+    assertTrue(sessionStore.wasReleased(sessionId));
+    assertEquals(1, manager.requestCount);
+
+    manager.emitQuestion(0, buildChoiceQuestion("R_Q1", "R_A1"));
+    DialogueQuizViewModel.QuizUiState readyState = viewModel.getUiState().getValue();
+    assertNotNull(readyState);
+    assertEquals(DialogueQuizViewModel.QuizUiState.Status.READY, readyState.getStatus());
+    assertEquals("R_Q1", readyState.getQuestionState().getQuestion());
+  }
+
   @NonNull
   private static QuizData.QuizQuestion buildChoiceQuestion(
       @NonNull String question, @NonNull String answer) {
@@ -155,10 +251,12 @@ public class DialogueQuizViewModelTest {
         new ArrayList<>();
 
     @Nullable SummaryData lastSummaryData;
+    int initCacheCount = 0;
     int requestCount = 0;
 
     @Override
     public void initializeCache(@NonNull InitCallback callback) {
+      initCacheCount++;
       callback.onReady();
     }
 
@@ -190,6 +288,148 @@ public class DialogueQuizViewModelTest {
 
     void failRequest(int requestIndex, @NonNull String error) {
       streamingCallbacks.get(requestIndex).onFailure(error);
+    }
+  }
+
+  private static class FakeQuizStreamingSessionStore implements QuizStreamingSessionStore {
+    private static class SessionState {
+      @NonNull final List<QuizData.QuizQuestion> bufferedQuestions = new ArrayList<>();
+      @NonNull final List<Listener> listeners = new ArrayList<>();
+      boolean completed = false;
+      @Nullable String warningMessage;
+      @Nullable String failureMessage;
+      boolean released = false;
+    }
+
+    @NonNull private final Map<String, SessionState> sessions = new HashMap<>();
+    @NonNull private final List<String> releasedSessionIds = new ArrayList<>();
+    private int nextId = 0;
+
+    @Override
+    @NonNull
+    public String startSession(
+        @NonNull IQuizGenerationManager manager,
+        @NonNull SummaryData seed,
+        int requestedQuestionCount) {
+      String sessionId = "started_" + (++nextId);
+      sessions.put(sessionId, new SessionState());
+      manager.generateQuizFromSummaryStreamingAsync(
+          seed,
+          requestedQuestionCount,
+          new IQuizGenerationManager.QuizStreamingCallback() {
+            @Override
+            public void onQuestion(@NonNull QuizData.QuizQuestion question) {
+              emitQuestion(sessionId, question);
+            }
+
+            @Override
+            public void onComplete(@Nullable String warningMessage) {
+              completeSession(sessionId, warningMessage);
+            }
+
+            @Override
+            public void onFailure(@NonNull String error) {
+              failSession(sessionId, error);
+            }
+          });
+      return sessionId;
+    }
+
+    @Override
+    @Nullable
+    public Snapshot attach(@Nullable String sessionId, @NonNull Listener listener) {
+      if (sessionId == null) {
+        return null;
+      }
+      SessionState state = sessions.get(sessionId);
+      if (state == null || state.released) {
+        return null;
+      }
+      state.listeners.add(listener);
+      return new Snapshot(
+          state.bufferedQuestions, state.completed, state.warningMessage, state.failureMessage);
+    }
+
+    @Override
+    public void detach(@Nullable String sessionId, @NonNull Listener listener) {
+      if (sessionId == null) {
+        return;
+      }
+      SessionState state = sessions.get(sessionId);
+      if (state == null) {
+        return;
+      }
+      state.listeners.remove(listener);
+    }
+
+    @Override
+    public void release(@Nullable String sessionId) {
+      if (sessionId == null) {
+        return;
+      }
+      SessionState state = sessions.remove(sessionId);
+      if (state == null) {
+        return;
+      }
+      state.released = true;
+      releasedSessionIds.add(sessionId);
+    }
+
+    @NonNull
+    String createSession(
+        @NonNull List<QuizData.QuizQuestion> bufferedQuestions,
+        boolean completed,
+        @Nullable String warningMessage,
+        @Nullable String failureMessage) {
+      String sessionId = "session_" + (++nextId);
+      SessionState state = new SessionState();
+      state.bufferedQuestions.addAll(bufferedQuestions);
+      state.completed = completed;
+      state.warningMessage = warningMessage;
+      state.failureMessage = failureMessage;
+      sessions.put(sessionId, state);
+      return sessionId;
+    }
+
+    void emitQuestion(@NonNull String sessionId, @NonNull QuizData.QuizQuestion question) {
+      SessionState state = sessions.get(sessionId);
+      if (state == null || state.released || state.completed || state.failureMessage != null) {
+        return;
+      }
+      state.bufferedQuestions.add(question);
+      List<Listener> listeners = new ArrayList<>(state.listeners);
+      for (Listener listener : listeners) {
+        listener.onQuestion(question);
+      }
+    }
+
+    void completeSession(@NonNull String sessionId, @Nullable String warningMessage) {
+      SessionState state = sessions.get(sessionId);
+      if (state == null || state.released || state.failureMessage != null) {
+        return;
+      }
+      state.completed = true;
+      state.warningMessage = warningMessage;
+      List<Listener> listeners = new ArrayList<>(state.listeners);
+      for (Listener listener : listeners) {
+        listener.onComplete(warningMessage);
+      }
+    }
+
+    void failSession(@NonNull String sessionId, @NonNull String errorMessage) {
+      SessionState state = sessions.get(sessionId);
+      if (state == null || state.released || state.completed) {
+        return;
+      }
+      state.failureMessage = errorMessage;
+      List<Listener> listeners = new ArrayList<>(state.listeners);
+      for (Listener listener : listeners) {
+        listener.onFailure(errorMessage);
+      }
+    }
+
+    boolean wasReleased(@NonNull String sessionId) {
+      return releasedSessionIds.contains(sessionId);
     }
   }
 }

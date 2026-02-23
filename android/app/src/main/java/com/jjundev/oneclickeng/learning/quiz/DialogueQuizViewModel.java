@@ -11,6 +11,7 @@ import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IQuizGenerationManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.QuizData;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.SummaryData;
+import com.jjundev.oneclickeng.learning.quiz.session.QuizStreamingSessionStore;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -30,6 +31,7 @@ public class DialogueQuizViewModel extends ViewModel {
   }
 
   private final IQuizGenerationManager quizGenerationManager;
+  @Nullable private final QuizStreamingSessionStore quizStreamingSessionStore;
   private final Gson gson = new Gson();
   private final MutableLiveData<QuizUiState> uiState = new MutableLiveData<>(QuizUiState.loading());
 
@@ -43,9 +45,18 @@ public class DialogueQuizViewModel extends ViewModel {
   private int requestedQuestionCount = 5;
   private boolean streamCompleted = false;
   private long activeLoadRequestId = 0L;
+  @Nullable private String attachedSessionId;
+  @Nullable private QuizStreamingSessionStore.Listener sessionListener;
 
   public DialogueQuizViewModel(@NonNull IQuizGenerationManager quizGenerationManager) {
+    this(quizGenerationManager, null);
+  }
+
+  public DialogueQuizViewModel(
+      @NonNull IQuizGenerationManager quizGenerationManager,
+      @Nullable QuizStreamingSessionStore quizStreamingSessionStore) {
     this.quizGenerationManager = quizGenerationManager;
+    this.quizStreamingSessionStore = quizStreamingSessionStore;
   }
 
   public LiveData<QuizUiState> getUiState() {
@@ -57,6 +68,11 @@ public class DialogueQuizViewModel extends ViewModel {
   }
 
   public void initialize(@Nullable String summaryJson, int requestedQuestionCount) {
+    initialize(summaryJson, requestedQuestionCount, null);
+  }
+
+  public void initialize(
+      @Nullable String summaryJson, int requestedQuestionCount, @Nullable String streamSessionId) {
     if (hasInitialized) {
       return;
     }
@@ -64,23 +80,18 @@ public class DialogueQuizViewModel extends ViewModel {
     this.requestedQuestionCount = Math.max(1, Math.min(10, requestedQuestionCount));
     summaryData = resolveSummaryData(summaryJson);
 
+    resetRuntimeState();
     uiState.setValue(QuizUiState.loading());
-    quizGenerationManager.initializeCache(
-        new IQuizGenerationManager.InitCallback() {
-          @Override
-          public void onReady() {
-            loadQuizQuestions();
-          }
+    String safeSessionId = trimToNull(streamSessionId);
+    if (safeSessionId != null && attachSession(safeSessionId)) {
+      return;
+    }
 
-          @Override
-          public void onError(@NonNull String error) {
-            logDebug("Quiz cache init error: " + error);
-            loadQuizQuestions();
-          }
-        });
+    initializeCacheAndLoad();
   }
 
   public void retryLoad() {
+    detachSession(true);
     loadQuizQuestions();
   }
 
@@ -113,6 +124,74 @@ public class DialogueQuizViewModel extends ViewModel {
     return moveToNextQuestionOrComplete();
   }
 
+  private void initializeCacheAndLoad() {
+    quizGenerationManager.initializeCache(
+        new IQuizGenerationManager.InitCallback() {
+          @Override
+          public void onReady() {
+            loadQuizQuestions();
+          }
+
+          @Override
+          public void onError(@NonNull String error) {
+            logDebug("Quiz cache init error: " + error);
+            loadQuizQuestions();
+          }
+        });
+  }
+
+  private boolean attachSession(@NonNull String sessionId) {
+    if (quizStreamingSessionStore == null) {
+      return false;
+    }
+
+    QuizStreamingSessionStore.Listener listener =
+        new QuizStreamingSessionStore.Listener() {
+          @Override
+          public void onQuestion(@NonNull QuizData.QuizQuestion question) {
+            onIncomingQuestion(question);
+          }
+
+          @Override
+          public void onComplete(@Nullable String warningMessage) {
+            onStreamComplete(warningMessage, true);
+          }
+
+          @Override
+          public void onFailure(@NonNull String error) {
+            onStreamFailure(error, true);
+          }
+        };
+
+    QuizStreamingSessionStore.Snapshot snapshot =
+        quizStreamingSessionStore.attach(sessionId, listener);
+    if (snapshot == null) {
+      return false;
+    }
+    attachedSessionId = sessionId;
+    sessionListener = listener;
+    logDebug("quiz attached streaming session");
+    applySessionSnapshot(snapshot);
+    return true;
+  }
+
+  private void applySessionSnapshot(@NonNull QuizStreamingSessionStore.Snapshot snapshot) {
+    List<QuizData.QuizQuestion> bufferedQuestions = snapshot.getBufferedQuestions();
+    for (QuizData.QuizQuestion bufferedQuestion : bufferedQuestions) {
+      onIncomingQuestion(bufferedQuestion);
+    }
+
+    String failureMessage = trimToNull(snapshot.getFailureMessage());
+    if (failureMessage != null) {
+      onStreamFailure(failureMessage, true);
+      return;
+    }
+
+    if (snapshot.isCompleted()) {
+      onStreamComplete(snapshot.getWarningMessage(), true);
+    }
+  }
+
   private void loadQuizQuestions() {
     SummaryData seed = summaryData;
     if (seed == null) {
@@ -120,13 +199,9 @@ public class DialogueQuizViewModel extends ViewModel {
       return;
     }
 
+    detachSession(true);
     long requestId = ++activeLoadRequestId;
-    streamCompleted = false;
-    currentQuestionIndex = 0;
-    correctAnswerCount = 0;
-    currentQuestionState = null;
-    questions = new ArrayList<>();
-    seenQuestionKeys.clear();
+    resetRuntimeState();
     uiState.postValue(QuizUiState.loading());
     logDebug("quiz load start");
     quizGenerationManager.generateQuizFromSummaryStreamingAsync(
@@ -138,18 +213,7 @@ public class DialogueQuizViewModel extends ViewModel {
             if (requestId != activeLoadRequestId) {
               return;
             }
-            QuizData.QuizQuestion question = sanitizeQuestion(rawQuestion);
-            if (question == null) {
-              return;
-            }
-            questions.add(question);
-
-            if (questions.size() == 1) {
-              currentQuestionIndex = 0;
-              currentQuestionState = QuizQuestionState.from(question);
-              publishCurrentQuestionState();
-              logDebug("quiz first question ready");
-            }
+            onIncomingQuestion(rawQuestion);
           }
 
           @Override
@@ -157,18 +221,7 @@ public class DialogueQuizViewModel extends ViewModel {
             if (requestId != activeLoadRequestId) {
               return;
             }
-            streamCompleted = true;
-            if (questions.isEmpty()) {
-              uiState.setValue(QuizUiState.error(DEFAULT_QUIZ_ERROR));
-              logDebug("quiz load failed: empty_questions");
-              return;
-            }
-            publishCurrentQuestionState();
-            if (!isBlank(warningMessage)) {
-              logDebug("quiz stream completed with warning: " + warningMessage);
-            } else {
-              logDebug("quiz stream completed: count=" + questions.size());
-            }
+            onStreamComplete(warningMessage, false);
           }
 
           @Override
@@ -176,11 +229,91 @@ public class DialogueQuizViewModel extends ViewModel {
             if (requestId != activeLoadRequestId) {
               return;
             }
-            String safeError = trimToNull(error);
-            uiState.setValue(QuizUiState.error(firstNonBlank(safeError, DEFAULT_QUIZ_ERROR)));
-            logDebug("quiz load failed: " + firstNonBlank(safeError, "unknown"));
+            onStreamFailure(error, false);
           }
         });
+  }
+
+  private void onIncomingQuestion(@NonNull QuizData.QuizQuestion rawQuestion) {
+    QuizData.QuizQuestion question = sanitizeQuestion(rawQuestion);
+    if (question == null) {
+      return;
+    }
+    questions.add(question);
+
+    if (questions.size() == 1) {
+      currentQuestionIndex = 0;
+      currentQuestionState = QuizQuestionState.from(question);
+      publishCurrentQuestionState();
+      logDebug("quiz first question ready");
+    }
+  }
+
+  private void onStreamComplete(@Nullable String warningMessage, boolean fromSession) {
+    streamCompleted = true;
+    if (questions.isEmpty()) {
+      uiState.setValue(QuizUiState.error(DEFAULT_QUIZ_ERROR));
+      logDebug("quiz load failed: empty_questions");
+      if (fromSession) {
+        detachSession(true);
+      }
+      return;
+    }
+    publishCurrentQuestionState();
+    if (!isBlank(warningMessage)) {
+      logDebug("quiz stream completed with warning: " + warningMessage);
+    } else {
+      logDebug("quiz stream completed: count=" + questions.size());
+    }
+    if (fromSession) {
+      detachSession(true);
+    }
+  }
+
+  private void onStreamFailure(@NonNull String error, boolean fromSession) {
+    String safeError = trimToNull(error);
+    if (questions.isEmpty()) {
+      uiState.setValue(QuizUiState.error(firstNonBlank(safeError, DEFAULT_QUIZ_ERROR)));
+      logDebug("quiz load failed: " + firstNonBlank(safeError, "unknown"));
+    } else {
+      streamCompleted = true;
+      publishCurrentQuestionState();
+      logDebug(
+          "quiz stream interrupted: "
+              + firstNonBlank(safeError, "unknown")
+              + ", bufferedCount="
+              + questions.size());
+    }
+    if (fromSession) {
+      detachSession(true);
+    }
+  }
+
+  private void resetRuntimeState() {
+    streamCompleted = false;
+    currentQuestionIndex = 0;
+    correctAnswerCount = 0;
+    currentQuestionState = null;
+    questions = new ArrayList<>();
+    seenQuestionKeys.clear();
+  }
+
+  private void detachSession(boolean release) {
+    QuizStreamingSessionStore store = quizStreamingSessionStore;
+    String sessionId = attachedSessionId;
+    QuizStreamingSessionStore.Listener listener = sessionListener;
+    if (store == null || sessionId == null || listener == null) {
+      attachedSessionId = null;
+      sessionListener = null;
+      return;
+    }
+
+    store.detach(sessionId, listener);
+    if (release) {
+      store.release(sessionId);
+    }
+    attachedSessionId = null;
+    sessionListener = null;
   }
 
   private boolean checkCurrentAnswer() {
@@ -229,6 +362,7 @@ public class DialogueQuizViewModel extends ViewModel {
     if (streamCompleted) {
       uiState.setValue(QuizUiState.completed(questions.size(), correctAnswerCount));
       logDebug("quiz completed: correct=" + correctAnswerCount + "/" + questions.size());
+      detachSession(true);
       return PrimaryActionResult.COMPLETED;
     }
 
@@ -236,6 +370,12 @@ public class DialogueQuizViewModel extends ViewModel {
     publishCurrentQuestionState();
     logDebug("quiz waiting for next streamed question");
     return PrimaryActionResult.WAITING_NEXT_QUESTION;
+  }
+
+  @Override
+  protected void onCleared() {
+    detachSession(true);
+    super.onCleared();
   }
 
   private void publishCurrentQuestionState() {

@@ -40,6 +40,7 @@ public class DialogueQuizActivity extends AppCompatActivity {
   public static final String EXTRA_SUMMARY_JSON = "extra_summary_json";
   public static final String EXTRA_FEATURE_BUNDLE_JSON = "extra_feature_bundle_json";
   public static final String EXTRA_REQUESTED_QUESTION_COUNT = "extra_requested_question_count";
+  public static final String EXTRA_STREAM_SESSION_ID = "extra_stream_session_id";
 
   private static final String TAG = "JOB_J-20260217-002";
   private static final long SHOW_CHOICES_DELAY_MS = 500L;
@@ -123,12 +124,13 @@ public class DialogueQuizActivity extends AppCompatActivity {
 
     Intent intent = getIntent();
     String summaryJson = intent.getStringExtra(EXTRA_SUMMARY_JSON);
+    String streamSessionId = intent.getStringExtra(EXTRA_STREAM_SESSION_ID);
     requestedQuestionCount = Math.max(1, intent.getIntExtra(EXTRA_REQUESTED_QUESTION_COUNT, 5));
     configureToolbar();
 
     initViewModel();
     if (viewModel != null) {
-      viewModel.initialize(summaryJson, requestedQuestionCount);
+      viewModel.initialize(summaryJson, requestedQuestionCount, streamSessionId);
     }
     logDebug("quiz activity entered");
   }
@@ -179,7 +181,8 @@ public class DialogueQuizActivity extends AppCompatActivity {
             LearningDependencyProvider.provideQuizGenerationManager(
                 getApplicationContext(),
                 settings.resolveEffectiveApiKey(BuildConfig.GEMINI_API_KEY),
-                settings.getLlmModelSummary()));
+                settings.getLlmModelSummary()),
+            LearningDependencyProvider.provideQuizStreamingSessionStore());
     viewModel = new ViewModelProvider(this, factory).get(DialogueQuizViewModel.class);
     viewModel.getUiState().observe(this, this::renderUiState);
   }

@@ -2,6 +2,7 @@ package com.jjundev.oneclickeng.learning.dialoguelearning.di;
 
 import android.content.Context;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IDialogueGenerateManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IExtraQuestionManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IQuizGenerationManager;
@@ -9,6 +10,8 @@ import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISent
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISessionSummaryLlmManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISpeakingFeedbackManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.summary.SessionSummaryManager;
+import com.jjundev.oneclickeng.learning.quiz.session.InMemoryQuizStreamingSessionStore;
+import com.jjundev.oneclickeng.learning.quiz.session.QuizStreamingSessionStore;
 import com.jjundev.oneclickeng.manager_gemini.DialogueGenerateManager;
 import com.jjundev.oneclickeng.manager_gemini.ExtraQuestionManager;
 import com.jjundev.oneclickeng.manager_gemini.QuizGenerateManager;
@@ -17,6 +20,8 @@ import com.jjundev.oneclickeng.manager_gemini.SpeakingFeedbackManager;
 import com.jjundev.oneclickeng.tool.AudioRecorder;
 
 public final class LearningDependencyProvider {
+
+  @Nullable private static volatile QuizStreamingSessionStore quizStreamingSessionStore;
 
   private LearningDependencyProvider() {}
 
@@ -61,6 +66,20 @@ public final class LearningDependencyProvider {
   public static IQuizGenerationManager provideQuizGenerationManager(
       @NonNull Context appContext, @NonNull String apiKey, @NonNull String modelName) {
     return new QuizGenerateManager(appContext, apiKey, modelName);
+  }
+
+  @NonNull
+  public static QuizStreamingSessionStore provideQuizStreamingSessionStore() {
+    QuizStreamingSessionStore existing = quizStreamingSessionStore;
+    if (existing != null) {
+      return existing;
+    }
+    synchronized (LearningDependencyProvider.class) {
+      if (quizStreamingSessionStore == null) {
+        quizStreamingSessionStore = new InMemoryQuizStreamingSessionStore();
+      }
+      return quizStreamingSessionStore;
+    }
   }
 
   @NonNull
