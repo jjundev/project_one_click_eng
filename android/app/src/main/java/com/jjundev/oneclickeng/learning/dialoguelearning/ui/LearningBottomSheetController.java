@@ -22,8 +22,11 @@ public class LearningBottomSheetController {
   @Nullable private Runnable onRequestChatScroll;
   @Nullable private Runnable onSlideCollapsedAction;
   @Nullable private View bottomSheet;
+  @Nullable private View pendingFooterSyncSheet;
+  @Nullable private View.OnLayoutChangeListener pendingFooterLayoutListener;
 
   private boolean isAutoScrollingToBottom;
+  private int footerSyncGeneration;
 
   private final BottomSheetBehavior.BottomSheetCallback sheetCallback =
       new BottomSheetBehavior.BottomSheetCallback() {
@@ -83,7 +86,6 @@ public class LearningBottomSheetController {
                 bottomSheetBehavior.setPeekHeight(minHeight);
                 bottomSheetBehavior.setMaxHeight(maxHeight);
                 chatRenderer.setFooterHeight(minHeight);
-                chatRenderer.syncFooterWithBottomSheet(bottomSheet);
                 bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
                 setVisible(false);
@@ -95,7 +97,14 @@ public class LearningBottomSheetController {
 
   public void setVisible(boolean visible) {
     bottomSheetRenderer.showSheet(visible);
-    syncChatFooterForCurrentSheetState();
+    if (visible) {
+      scheduleFooterSync(true, "setVisible");
+      return;
+    }
+    footerSyncGeneration++;
+    clearPendingFooterLayoutListener();
+    isAutoScrollingToBottom = false;
+    chatRenderer.setFooterHeight(0);
   }
 
   public View replaceOrReuseContent(
@@ -123,13 +132,9 @@ public class LearningBottomSheetController {
       return null;
     }
 
-    if (bottomSheet != null) {
-      chatRenderer.syncFooterWithBottomSheet(bottomSheet);
-    }
     if (controlsRenderer != null) {
       controlsRenderer.syncBottomSheetContent(content, isAutoScrollingToBottom);
     }
-    isAutoScrollingToBottom = false;
 
     renderBinder.run();
     return content;
@@ -141,7 +146,15 @@ public class LearningBottomSheetController {
 
   public void clearContent() {
     bottomSheetRenderer.clearContent();
-    syncChatFooterForCurrentSheetState();
+    View sheet = bottomSheet;
+    if (sheet == null || sheet.getVisibility() != View.VISIBLE) {
+      footerSyncGeneration++;
+      clearPendingFooterLayoutListener();
+      isAutoScrollingToBottom = false;
+      chatRenderer.setFooterHeight(0);
+      return;
+    }
+    scheduleFooterSync(false, "clearContent");
   }
 
   public void changeContent(@NonNull Runnable action) {
@@ -151,11 +164,13 @@ public class LearningBottomSheetController {
   public void changeContent(@NonNull Runnable action, boolean skipStateAnimation) {
     if (bottomSheetBehavior == null) {
       action.run();
+      scheduleFooterSync(true, "changeContent_no_behavior");
       return;
     }
 
     if (skipStateAnimation) {
       action.run();
+      scheduleFooterSync(true, "changeContent_no_anim");
       return;
     }
 
@@ -169,10 +184,13 @@ public class LearningBottomSheetController {
   }
 
   public void onDestroy() {
+    footerSyncGeneration++;
+    clearPendingFooterLayoutListener();
     if (bottomSheetBehavior != null) {
       bottomSheetBehavior.removeBottomSheetCallback(sheetCallback);
       bottomSheetBehavior = null;
     }
+    pendingFooterSyncSheet = null;
     onRequestChatScroll = null;
     onSlideCollapsedAction = null;
   }
@@ -197,7 +215,7 @@ public class LearningBottomSheetController {
       if (isAutoScrollingToBottom && onRequestChatScroll != null) {
         onRequestChatScroll.run();
       }
-      isAutoScrollingToBottom = false;
+      scheduleFooterSync(true, "state_expanded");
     }
   }
 
@@ -221,6 +239,9 @@ public class LearningBottomSheetController {
 
   public void bindFromSnapshot(@Nullable BottomSheetMode mode) {
     bottomSheetRenderer.bindFromSnapshot(mode);
+    if (mode != null) {
+      scheduleFooterSync(true, "bind_snapshot");
+    }
   }
 
   private int calculateVisibleHeight(@NonNull View bottomSheet) {
@@ -237,16 +258,91 @@ public class LearningBottomSheetController {
     return visibleHeight;
   }
 
-  private void syncChatFooterForCurrentSheetState() {
+  private void scheduleFooterSync(boolean allowConditionalScroll, @NonNull String reason) {
     View sheet = bottomSheet;
-    if (sheet == null) {
+    footerSyncGeneration++;
+    int generationToken = footerSyncGeneration;
+    clearPendingFooterLayoutListener();
+
+    if (sheet == null || sheet.getVisibility() != View.VISIBLE) {
       chatRenderer.setFooterHeight(0);
+      isAutoScrollingToBottom = false;
       return;
     }
-    if (sheet.getVisibility() == View.VISIBLE) {
-      sheet.post(() -> chatRenderer.syncFooterWithBottomSheet(sheet));
-      return;
+
+    sheet.post(
+        () -> {
+          if (generationToken != footerSyncGeneration) {
+            return;
+          }
+
+          if (sheet.getVisibility() != View.VISIBLE) {
+            chatRenderer.setFooterHeight(0);
+            isAutoScrollingToBottom = false;
+            return;
+          }
+
+          int visibleHeight = calculateVisibleHeight(sheet);
+          if (visibleHeight <= 0) {
+            attachOneShotFooterLayoutListener(
+                sheet, allowConditionalScroll, reason, generationToken);
+            return;
+          }
+
+          applyFooterSyncResult(visibleHeight, allowConditionalScroll);
+        });
+  }
+
+  private void applyFooterSyncResult(int visibleHeight, boolean allowConditionalScroll) {
+    chatRenderer.setFooterHeight(visibleHeight);
+
+    boolean shouldScroll =
+        allowConditionalScroll && (isAutoScrollingToBottom || chatRenderer.isAtBottom());
+    if (shouldScroll) {
+      chatRenderer.scrollToBottom();
     }
-    chatRenderer.setFooterHeight(0);
+    if (allowConditionalScroll) {
+      isAutoScrollingToBottom = false;
+    }
+  }
+
+  private void attachOneShotFooterLayoutListener(
+      @NonNull View sheet,
+      boolean allowConditionalScroll,
+      @NonNull String reason,
+      int generationToken) {
+    clearPendingFooterLayoutListener();
+    pendingFooterSyncSheet = sheet;
+    pendingFooterLayoutListener =
+        new View.OnLayoutChangeListener() {
+          @Override
+          public void onLayoutChange(
+              View v,
+              int left,
+              int top,
+              int right,
+              int bottom,
+              int oldLeft,
+              int oldTop,
+              int oldRight,
+              int oldBottom) {
+            v.removeOnLayoutChangeListener(this);
+            pendingFooterLayoutListener = null;
+            pendingFooterSyncSheet = null;
+            if (generationToken != footerSyncGeneration) {
+              return;
+            }
+            scheduleFooterSync(allowConditionalScroll, reason + "_layout");
+          }
+        };
+    sheet.addOnLayoutChangeListener(pendingFooterLayoutListener);
+  }
+
+  private void clearPendingFooterLayoutListener() {
+    if (pendingFooterSyncSheet != null && pendingFooterLayoutListener != null) {
+      pendingFooterSyncSheet.removeOnLayoutChangeListener(pendingFooterLayoutListener);
+    }
+    pendingFooterSyncSheet = null;
+    pendingFooterLayoutListener = null;
   }
 }

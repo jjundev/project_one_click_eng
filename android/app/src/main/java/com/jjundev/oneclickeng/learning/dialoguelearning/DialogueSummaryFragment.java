@@ -75,24 +75,25 @@ public class DialogueSummaryFragment extends Fragment {
     btnFinishSummary = view.findViewById(R.id.btn_finish_summary);
 
     scrollView.setOnScrollChangeListener(
-        (NestedScrollView.OnScrollChangeListener) (v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
-          View child = v.getChildAt(0);
-          if (child == null) {
-            return;
-          }
-          int scrollRange = child.getMeasuredHeight() - v.getMeasuredHeight();
-          boolean reachedBottom = scrollY >= (scrollRange - 20);
+        (NestedScrollView.OnScrollChangeListener)
+            (v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
+              View child = v.getChildAt(0);
+              if (child == null) {
+                return;
+              }
+              int scrollRange = child.getMeasuredHeight() - v.getMeasuredHeight();
+              boolean reachedBottom = scrollY >= (scrollRange - 20);
 
-          if (reachedBottom) {
-            if (bottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
-              bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
-            }
-          } else if (scrollY < scrollRange - 100) {
-            if (bottomSheetBehavior.getState() != BottomSheetBehavior.STATE_HIDDEN) {
-              bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
-            }
-          }
-        });
+              if (reachedBottom && scrollY > oldScrollY) {
+                if (bottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
+                  bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                }
+              } else if (scrollY < scrollRange - 100) {
+                if (bottomSheetBehavior.getState() != BottomSheetBehavior.STATE_HIDDEN) {
+                  bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+                }
+              }
+            });
 
     initViewModel(view, savedInstanceState);
     logDebug("summary fragment entered");
@@ -124,11 +125,13 @@ public class DialogueSummaryFragment extends Fragment {
   }
 
   private void initViewModel(@NonNull View rootView, @Nullable Bundle savedInstanceState) {
-    AppSettings settings = new AppSettingsStore(requireContext().getApplicationContext()).getSettings();
-    DialogueSummaryViewModelFactory factory = new DialogueSummaryViewModelFactory(
-        LearningDependencyProvider.provideSessionSummaryLlmManager(
-            settings.resolveEffectiveApiKey(BuildConfig.GEMINI_API_KEY),
-            settings.getLlmModelSummary()));
+    AppSettings settings =
+        new AppSettingsStore(requireContext().getApplicationContext()).getSettings();
+    DialogueSummaryViewModelFactory factory =
+        new DialogueSummaryViewModelFactory(
+            LearningDependencyProvider.provideSessionSummaryLlmManager(
+                settings.resolveEffectiveApiKey(BuildConfig.GEMINI_API_KEY),
+                settings.getLlmModelSummary()));
     viewModel = new ViewModelProvider(this, factory).get(DialogueSummaryViewModel.class);
 
     viewModel
@@ -138,7 +141,8 @@ public class DialogueSummaryFragment extends Fragment {
             data -> {
               if (data != null) {
                 SessionSummaryBinder.bind(rootView, data);
-                DialogueSummaryViewModel.WordLoadState wordState = viewModel.getWordLoadState().getValue();
+                DialogueSummaryViewModel.WordLoadState wordState =
+                    viewModel.getWordLoadState().getValue();
                 if (wordState != null
                     && wordState.getStatus() == DialogueSummaryViewModel.WordLoadStatus.READY) {
                   SessionSummaryBinder.bindWordsContent(rootView, data.getWords());
@@ -214,9 +218,9 @@ public class DialogueSummaryFragment extends Fragment {
   }
 
   private void checkIfFullyLoaded() {
-    if (viewModel == null)
-      return;
-    DialogueSummaryViewModel.ExpressionLoadState exprState = viewModel.getExpressionLoadState().getValue();
+    if (viewModel == null) return;
+    DialogueSummaryViewModel.ExpressionLoadState exprState =
+        viewModel.getExpressionLoadState().getValue();
     DialogueSummaryViewModel.WordLoadState wordState = viewModel.getWordLoadState().getValue();
 
     boolean isNowLoaded = true;
@@ -241,14 +245,10 @@ public class DialogueSummaryFragment extends Fragment {
       if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
 
-        if (tvBottomSheetTitle != null)
-          tvBottomSheetTitle.setText("학습을 마칠까요?");
-        if (tvBottomSheetSubtitle != null)
-          tvBottomSheetSubtitle.setText("오늘의 성과가 저장되었습니다.");
-        if (btnStartQuiz != null)
-          btnStartQuiz.setVisibility(View.VISIBLE);
-        if (btnFinishSummary != null)
-          btnFinishSummary.setVisibility(View.VISIBLE);
+        if (tvBottomSheetTitle != null) tvBottomSheetTitle.setText("학습을 마칠까요?");
+        if (tvBottomSheetSubtitle != null) tvBottomSheetSubtitle.setText("오늘의 성과가 저장되었습니다.");
+        if (btnStartQuiz != null) btnStartQuiz.setVisibility(View.VISIBLE);
+        if (btnFinishSummary != null) btnFinishSummary.setVisibility(View.VISIBLE);
 
         if (getView() != null) {
           getView()
@@ -259,24 +259,16 @@ public class DialogueSummaryFragment extends Fragment {
                   200);
         }
       } else {
-        if (tvBottomSheetTitle != null)
-          tvBottomSheetTitle.setText("학습을 마칠까요?");
-        if (tvBottomSheetSubtitle != null)
-          tvBottomSheetSubtitle.setText("오늘의 성과가 저장되었습니다.");
-        if (btnStartQuiz != null)
-          btnStartQuiz.setVisibility(View.VISIBLE);
-        if (btnFinishSummary != null)
-          btnFinishSummary.setVisibility(View.VISIBLE);
+        if (tvBottomSheetTitle != null) tvBottomSheetTitle.setText("학습을 마칠까요?");
+        if (tvBottomSheetSubtitle != null) tvBottomSheetSubtitle.setText("오늘의 성과가 저장되었습니다.");
+        if (btnStartQuiz != null) btnStartQuiz.setVisibility(View.VISIBLE);
+        if (btnFinishSummary != null) btnFinishSummary.setVisibility(View.VISIBLE);
       }
     } else {
-      if (tvBottomSheetTitle != null)
-        tvBottomSheetTitle.setText("잠시만 기다려주세요");
-      if (tvBottomSheetSubtitle != null)
-        tvBottomSheetSubtitle.setText("요약 데이터가 완전히 로딩되지 않았어요");
-      if (btnStartQuiz != null)
-        btnStartQuiz.setVisibility(View.GONE);
-      if (btnFinishSummary != null)
-        btnFinishSummary.setVisibility(View.GONE);
+      if (tvBottomSheetTitle != null) tvBottomSheetTitle.setText("잠시만 기다려주세요");
+      if (tvBottomSheetSubtitle != null) tvBottomSheetSubtitle.setText("요약 데이터가 완전히 로딩되지 않았어요");
+      if (btnStartQuiz != null) btnStartQuiz.setVisibility(View.GONE);
+      if (btnFinishSummary != null) btnFinishSummary.setVisibility(View.GONE);
     }
   }
 
@@ -288,8 +280,9 @@ public class DialogueSummaryFragment extends Fragment {
     String summaryJson = args == null ? null : args.getString(ARG_SUMMARY_JSON);
     String featureBundleJson = args == null ? null : args.getString(ARG_FEATURE_BUNDLE_JSON);
     logDebug("summary quiz selected");
-    android.content.Intent intent = new android.content.Intent(
-        requireContext(), com.jjundev.oneclickeng.activity.DialogueQuizActivity.class);
+    android.content.Intent intent =
+        new android.content.Intent(
+            requireContext(), com.jjundev.oneclickeng.activity.DialogueQuizActivity.class);
     intent.putExtra(
         com.jjundev.oneclickeng.activity.DialogueQuizActivity.EXTRA_SUMMARY_JSON, summaryJson);
     intent.putExtra(

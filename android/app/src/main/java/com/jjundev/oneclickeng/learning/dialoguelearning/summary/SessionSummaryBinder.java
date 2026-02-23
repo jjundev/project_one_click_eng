@@ -21,6 +21,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.core.content.ContextCompat;
 import androidx.core.widget.ImageViewCompat;
+import androidx.core.widget.NestedScrollView;
 import com.facebook.shimmer.ShimmerFrameLayout;
 import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.auth.FirebaseAuth;
@@ -188,17 +189,28 @@ public class SessionSummaryBinder {
         toggleBtn.setVisibility(View.VISIBLE);
         toggleBtn.setText("더 보기 (" + (items.size() - COLLAPSED_COUNT) + ")");
         toggleBtn.setTag(Boolean.FALSE); // collapsed state
-        toggleBtn.setOnClickListener(v -> {
-          boolean isExpanded = Boolean.TRUE.equals(toggleBtn.getTag());
-          for (int i = COLLAPSED_COUNT; i < container.getChildCount(); i++) {
-            container.getChildAt(i).setVisibility(isExpanded ? View.GONE : View.VISIBLE);
-          }
-          toggleBtn.setTag(!isExpanded);
-          toggleBtn.setText(
-              isExpanded
-                  ? "더 보기 (" + (items.size() - COLLAPSED_COUNT) + ")"
-                  : "접기");
-        });
+        toggleBtn.setOnClickListener(
+            v -> {
+              boolean isExpanded = Boolean.TRUE.equals(toggleBtn.getTag());
+              for (int i = COLLAPSED_COUNT; i < container.getChildCount(); i++) {
+                container.getChildAt(i).setVisibility(isExpanded ? View.GONE : View.VISIBLE);
+              }
+              toggleBtn.setTag(!isExpanded);
+              toggleBtn.setText(
+                  isExpanded ? "더 보기 (" + (items.size() - COLLAPSED_COUNT) + ")" : "접기");
+
+              if (isExpanded) {
+                // Smooth scroll to the toggle button after collapsing
+                NestedScrollView scrollView = rootView.findViewById(R.id.scroll_view_summary);
+                if (scrollView != null) {
+                  scrollView.post(
+                      () -> {
+                        int targetY = toggleBtn.getTop();
+                        scrollView.smoothScrollTo(0, targetY);
+                      });
+                }
+              }
+            });
       }
     }
   }

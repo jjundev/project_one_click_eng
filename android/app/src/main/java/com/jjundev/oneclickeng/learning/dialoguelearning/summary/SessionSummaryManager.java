@@ -36,16 +36,18 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
   public SessionSummaryManager(String apiKey, String modelName) {
     this.apiKey = normalizeOrDefault(apiKey, "");
     this.modelName = normalizeOrDefault(modelName, DEFAULT_MODEL_NAME);
-    this.client = new OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
-        .build();
-    this.streamingClient = new OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(0, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
-        .build();
+    this.client =
+        new OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build();
+    this.streamingClient =
+        new OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(0, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build();
     this.gson = new Gson();
     this.mainHandler = new Handler(Looper.getMainLooper());
   }
@@ -64,86 +66,94 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
     }
 
     new Thread(
-        () -> {
-          try {
-            JsonObject requestBody = new JsonObject();
-            addExpressionFilterSystemInstruction(requestBody);
+            () -> {
+              try {
+                JsonObject requestBody = new JsonObject();
+                addExpressionFilterSystemInstruction(requestBody);
 
-            JsonArray contents = new JsonArray();
-            JsonObject userContent = new JsonObject();
-            userContent.addProperty("role", "user");
-            JsonArray parts = new JsonArray();
-            JsonObject part = new JsonObject();
-            part.addProperty("text", buildExpressionFilterUserPrompt(bundle));
-            parts.add(part);
-            userContent.add("parts", parts);
-            contents.add(userContent);
-            requestBody.add("contents", contents);
+                JsonArray contents = new JsonArray();
+                JsonObject userContent = new JsonObject();
+                userContent.addProperty("role", "user");
+                JsonArray parts = new JsonArray();
+                JsonObject part = new JsonObject();
+                part.addProperty("text", buildExpressionFilterUserPrompt(bundle));
+                parts.add(part);
+                userContent.add("parts", parts);
+                contents.add(userContent);
+                requestBody.add("contents", contents);
 
-            JsonObject generationConfig = new JsonObject();
-            generationConfig.addProperty("responseMimeType", "application/json");
-            requestBody.add("generationConfig", generationConfig);
+                JsonObject generationConfig = new JsonObject();
+                generationConfig.addProperty("responseMimeType", "application/json");
+                requestBody.add("generationConfig", generationConfig);
 
-            String url = BASE_URL + "/models/" + modelName + ":streamGenerateContent?alt=sse&key=" + apiKey;
-            Request request = new Request.Builder()
-                .url(url)
-                .post(
-                    RequestBody.create(
-                        gson.toJson(requestBody), MediaType.parse("application/json")))
-                .build();
+                String url =
+                    BASE_URL
+                        + "/models/"
+                        + modelName
+                        + ":streamGenerateContent?alt=sse&key="
+                        + apiKey;
+                Request request =
+                    new Request.Builder()
+                        .url(url)
+                        .post(
+                            RequestBody.create(
+                                gson.toJson(requestBody), MediaType.parse("application/json")))
+                        .build();
 
-            try (Response response = streamingClient.newCall(request).execute()) {
-              if (!response.isSuccessful()) {
+                try (Response response = streamingClient.newCall(request).execute()) {
+                  if (!response.isSuccessful()) {
+                    mainHandler.post(
+                        () ->
+                            callback.onFailure(
+                                "Expression filter request failed: " + response.code()));
+                    return;
+                  }
+
+                  StringBuilder accumulated = new StringBuilder();
+                  int emittedCount = 0;
+
+                  BufferedSource source = response.body().source();
+                  while (!source.exhausted()) {
+                    String line = source.readUtf8Line();
+                    if (line == null || !line.startsWith("data: ")) {
+                      continue;
+                    }
+                    String json = line.substring(6).trim();
+                    if (json.equals("[DONE]")) {
+                      break;
+                    }
+
+                    String chunkText = extractTextFromSseChunk(json);
+                    if (chunkText.isEmpty()) {
+                      continue;
+                    }
+                    accumulated.append(chunkText);
+
+                    // Try to parse newly completed expression objects
+                    List<ISessionSummaryLlmManager.FilteredExpression> parsed =
+                        tryParseExpressions(accumulated.toString());
+                    for (int i = emittedCount; i < parsed.size(); i++) {
+                      ISessionSummaryLlmManager.FilteredExpression expr = parsed.get(i);
+                      mainHandler.post(() -> callback.onExpressionReceived(expr));
+                    }
+                    emittedCount = parsed.size();
+                  }
+
+                  // Final parse of the complete accumulated text
+                  List<ISessionSummaryLlmManager.FilteredExpression> finalParsed =
+                      tryParseExpressions(accumulated.toString());
+                  for (int i = emittedCount; i < finalParsed.size(); i++) {
+                    ISessionSummaryLlmManager.FilteredExpression expr = finalParsed.get(i);
+                    mainHandler.post(() -> callback.onExpressionReceived(expr));
+                  }
+
+                  mainHandler.post(callback::onComplete);
+                }
+              } catch (Exception e) {
                 mainHandler.post(
-                    () -> callback.onFailure(
-                        "Expression filter request failed: " + response.code()));
-                return;
+                    () -> callback.onFailure("Expression filter error: " + e.getMessage()));
               }
-
-              StringBuilder accumulated = new StringBuilder();
-              int emittedCount = 0;
-
-              BufferedSource source = response.body().source();
-              while (!source.exhausted()) {
-                String line = source.readUtf8Line();
-                if (line == null || !line.startsWith("data: ")) {
-                  continue;
-                }
-                String json = line.substring(6).trim();
-                if (json.equals("[DONE]")) {
-                  break;
-                }
-
-                String chunkText = extractTextFromSseChunk(json);
-                if (chunkText.isEmpty()) {
-                  continue;
-                }
-                accumulated.append(chunkText);
-
-                // Try to parse newly completed expression objects
-                List<ISessionSummaryLlmManager.FilteredExpression> parsed = tryParseExpressions(accumulated.toString());
-                for (int i = emittedCount; i < parsed.size(); i++) {
-                  ISessionSummaryLlmManager.FilteredExpression expr = parsed.get(i);
-                  mainHandler.post(() -> callback.onExpressionReceived(expr));
-                }
-                emittedCount = parsed.size();
-              }
-
-              // Final parse of the complete accumulated text
-              List<ISessionSummaryLlmManager.FilteredExpression> finalParsed = tryParseExpressions(
-                  accumulated.toString());
-              for (int i = emittedCount; i < finalParsed.size(); i++) {
-                ISessionSummaryLlmManager.FilteredExpression expr = finalParsed.get(i);
-                mainHandler.post(() -> callback.onExpressionReceived(expr));
-              }
-
-              mainHandler.post(callback::onComplete);
-            }
-          } catch (Exception e) {
-            mainHandler.post(
-                () -> callback.onFailure("Expression filter error: " + e.getMessage()));
-          }
-        })
+            })
         .start();
   }
 
@@ -166,56 +176,59 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
     }
 
     new Thread(
-        () -> {
-          try {
-            JsonObject requestBody = new JsonObject();
-            JsonObject systemInstruction = new JsonObject();
-            JsonArray systemParts = new JsonArray();
-            JsonObject systemPart = new JsonObject();
-            systemPart.addProperty("text", buildWordExtractionSystemPrompt());
-            systemParts.add(systemPart);
-            systemInstruction.add("parts", systemParts);
-            requestBody.add("systemInstruction", systemInstruction);
+            () -> {
+              try {
+                JsonObject requestBody = new JsonObject();
+                JsonObject systemInstruction = new JsonObject();
+                JsonArray systemParts = new JsonArray();
+                JsonObject systemPart = new JsonObject();
+                systemPart.addProperty("text", buildWordExtractionSystemPrompt());
+                systemParts.add(systemPart);
+                systemInstruction.add("parts", systemParts);
+                requestBody.add("systemInstruction", systemInstruction);
 
-            JsonArray contents = new JsonArray();
-            JsonObject userContent = new JsonObject();
-            userContent.addProperty("role", "user");
-            JsonArray parts = new JsonArray();
-            JsonObject part = new JsonObject();
-            part.addProperty("text", buildWordExtractionUserPrompt(words, sentences, userOriginalSentences));
-            parts.add(part);
-            userContent.add("parts", parts);
-            contents.add(userContent);
-            requestBody.add("contents", contents);
+                JsonArray contents = new JsonArray();
+                JsonObject userContent = new JsonObject();
+                userContent.addProperty("role", "user");
+                JsonArray parts = new JsonArray();
+                JsonObject part = new JsonObject();
+                part.addProperty(
+                    "text", buildWordExtractionUserPrompt(words, sentences, userOriginalSentences));
+                parts.add(part);
+                userContent.add("parts", parts);
+                contents.add(userContent);
+                requestBody.add("contents", contents);
 
-            JsonObject generationConfig = new JsonObject();
-            generationConfig.addProperty("responseMimeType", "application/json");
-            requestBody.add("generationConfig", generationConfig);
+                JsonObject generationConfig = new JsonObject();
+                generationConfig.addProperty("responseMimeType", "application/json");
+                requestBody.add("generationConfig", generationConfig);
 
-            String url = BASE_URL + "/models/" + modelName + ":generateContent?key=" + apiKey;
-            Request request = new Request.Builder()
-                .url(url)
-                .post(
-                    RequestBody.create(
-                        gson.toJson(requestBody), MediaType.parse("application/json")))
-                .build();
+                String url = BASE_URL + "/models/" + modelName + ":generateContent?key=" + apiKey;
+                Request request =
+                    new Request.Builder()
+                        .url(url)
+                        .post(
+                            RequestBody.create(
+                                gson.toJson(requestBody), MediaType.parse("application/json")))
+                        .build();
 
-            try (Response response = client.newCall(request).execute()) {
-              String body = response.body() != null ? response.body().string() : "";
-              if (!response.isSuccessful()) {
-                mainHandler.post(
-                    () -> callback.onFailure("Summary LLM request failed: " + response.code()));
-                return;
+                try (Response response = client.newCall(request).execute()) {
+                  String body = response.body() != null ? response.body().string() : "";
+                  if (!response.isSuccessful()) {
+                    mainHandler.post(
+                        () -> callback.onFailure("Summary LLM request failed: " + response.code()));
+                    return;
+                  }
+
+                  String responseText = extractFirstTextPart(body);
+                  List<ISessionSummaryLlmManager.ExtractedWord> extractedWords =
+                      parseExtractedWordsPayload(responseText);
+                  mainHandler.post(() -> callback.onSuccess(extractedWords));
+                }
+              } catch (Exception e) {
+                mainHandler.post(() -> callback.onFailure("Summary LLM error: " + e.getMessage()));
               }
-
-              String responseText = extractFirstTextPart(body);
-              List<ISessionSummaryLlmManager.ExtractedWord> extractedWords = parseExtractedWordsPayload(responseText);
-              mainHandler.post(() -> callback.onSuccess(extractedWords));
-            }
-          } catch (Exception e) {
-            mainHandler.post(() -> callback.onFailure("Summary LLM error: " + e.getMessage()));
-          }
-        })
+            })
         .start();
   }
 
@@ -339,9 +352,8 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
   }
 
   /**
-   * Best-effort incremental parser: attempts to parse completed expression
-   * objects from
-   * accumulated JSON text. Returns all fully-parsed expressions found so far.
+   * Best-effort incremental parser: attempts to parse completed expression objects from accumulated
+   * JSON text. Returns all fully-parsed expressions found so far.
    */
   private List<ISessionSummaryLlmManager.FilteredExpression> tryParseExpressions(
       String accumulatedText) {
@@ -388,7 +400,10 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
       String before = trimToNull(readAsString(item, "before"));
       String after = trimToNull(readAsString(item, "after"));
       String explanation = trimToNull(readAsString(item, "explanation"));
-      if (type == null || prompt == null || before == null || after == null
+      if (type == null
+          || prompt == null
+          || before == null
+          || after == null
           || explanation == null) {
         return null;
       }
@@ -636,8 +651,7 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
     private String korean;
     private String reason;
 
-    public HighlightSection() {
-    }
+    public HighlightSection() {}
 
     public HighlightSection(String english, String korean, String reason) {
       this.english = english;
@@ -665,8 +679,7 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
     private String after;
     private String explanation;
 
-    public ExpressionSection() {
-    }
+    public ExpressionSection() {}
 
     public ExpressionSection(
         String type, String koreanPrompt, String before, String after, String explanation) {
@@ -704,8 +717,7 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
     private String exampleEnglish;
     private String exampleKorean;
 
-    public WordSection() {
-    }
+    public WordSection() {}
 
     public WordSection(String english, String korean, String exampleEnglish, String exampleKorean) {
       this.english = english;

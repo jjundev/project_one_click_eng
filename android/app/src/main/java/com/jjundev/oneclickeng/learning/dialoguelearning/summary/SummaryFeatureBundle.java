@@ -65,8 +65,7 @@ public class SummaryFeatureBundle {
     private String korean;
     private String reason;
 
-    public HighlightCandidate() {
-    }
+    public HighlightCandidate() {}
 
     public HighlightCandidate(String english, String korean, String reason) {
       this.english = english;
@@ -106,8 +105,7 @@ public class SummaryFeatureBundle {
     private String after;
     private String explanation;
 
-    public ExpressionCandidate() {
-    }
+    public ExpressionCandidate() {}
 
     public ExpressionCandidate(
         String type, String koreanPrompt, String before, String after, String explanation) {
@@ -165,8 +163,7 @@ public class SummaryFeatureBundle {
     private String exampleEnglish;
     private String exampleKorean;
 
-    public WordCandidate() {
-    }
+    public WordCandidate() {}
 
     public WordCandidate(
         String english, String korean, String exampleEnglish, String exampleKorean) {

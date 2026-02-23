@@ -196,7 +196,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
                 onPlayRecordedAudioRequestListener.onPlayRecordedAudio(
                     message.getAudioData(), btnSpeaker));
       } else {
-        btnSpeaker.setVisibility(View.GONE);
+        btnSpeaker.setVisibility(View.INVISIBLE);
       }
     }
   }

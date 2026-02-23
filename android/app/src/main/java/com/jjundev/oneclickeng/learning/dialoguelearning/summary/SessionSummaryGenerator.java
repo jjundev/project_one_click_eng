@@ -4,7 +4,6 @@ import com.jjundev.oneclickeng.learning.dialoguelearning.model.ConceptualBridge;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.GrammarFeedback;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.NaturalnessFeedback;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.ParaphrasingLevel;
-import com.jjundev.oneclickeng.learning.dialoguelearning.model.ReasonItem;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.SentenceFeedback;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.StyledSentence;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.SummaryData;
@@ -17,7 +16,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,20 +32,22 @@ public class SessionSummaryGenerator {
   public GenerationSeed buildSeed(
       List<SentenceFeedback> feedbacks, List<BookmarkedParaphrase> bookmarkedParaphrases) {
     List<SentenceFeedback> safeFeedbacks = feedbacks == null ? new ArrayList<>() : feedbacks;
-    List<BookmarkedParaphrase> safeBookmarks = bookmarkedParaphrases == null ? new ArrayList<>()
-        : bookmarkedParaphrases;
+    List<BookmarkedParaphrase> safeBookmarks =
+        bookmarkedParaphrases == null ? new ArrayList<>() : bookmarkedParaphrases;
 
     int totalScore = calculateAverageScore(safeFeedbacks);
     boolean hasHighlightEligibleScore = hasAnyScoreAtLeast(safeFeedbacks, HIGHLIGHT_MIN_SCORE);
 
-    List<RankedItem<SummaryData.HighlightItem>> highlightRanked = buildHighlightCandidates(safeFeedbacks);
-    List<RankedItem<SummaryData.ExpressionItem>> expressionRanked = buildExpressionCandidates(safeFeedbacks);
+    List<RankedItem<SummaryData.HighlightItem>> highlightRanked =
+        buildHighlightCandidates(safeFeedbacks);
+    List<RankedItem<SummaryData.ExpressionItem>> expressionRanked =
+        buildExpressionCandidates(safeFeedbacks);
     List<RankedItem<SummaryData.WordItem>> wordRanked = buildWordCandidates(safeFeedbacks);
 
-    List<SummaryData.HighlightItem> fallbackHighlights = hasHighlightEligibleScore
-        ? topItems(highlightRanked, MAX_HIGHLIGHTS)
-        : new ArrayList<>();
-    List<SummaryData.ExpressionItem> fallbackExpressions = topItems(expressionRanked, MAX_FALLBACK_EXPRESSIONS);
+    List<SummaryData.HighlightItem> fallbackHighlights =
+        hasHighlightEligibleScore ? topItems(highlightRanked, MAX_HIGHLIGHTS) : new ArrayList<>();
+    List<SummaryData.ExpressionItem> fallbackExpressions =
+        topItems(expressionRanked, MAX_FALLBACK_EXPRESSIONS);
     List<SummaryData.WordItem> fallbackWords = topItems(wordRanked, MAX_WORDS);
     List<SummaryData.SentenceItem> likedSentences = buildLikedSentences(safeBookmarks);
     List<String> sentenceCandidates = buildSentenceCandidates(safeFeedbacks, likedSentences);
@@ -66,8 +66,7 @@ public class SessionSummaryGenerator {
         hasHighlightEligibleScore
             ? toHighlightCandidates(topItems(highlightRanked, MAX_LLM_CANDIDATES_HIGHLIGHTS))
             : new ArrayList<>());
-    featureBundle.setExpressionCandidates(
-        toExpressionCandidates(allItems(expressionRanked)));
+    featureBundle.setExpressionCandidates(toExpressionCandidates(allItems(expressionRanked)));
     featureBundle.setWordCandidates(
         toWordCandidates(topItems(wordRanked, MAX_LLM_CANDIDATES_WORDS)));
     featureBundle.setSentenceCandidates(sentenceCandidates);
@@ -85,15 +84,15 @@ public class SessionSummaryGenerator {
 
     boolean shouldMergeHighlights = base.getHighlights() != null && !base.getHighlights().isEmpty();
     if (shouldMergeHighlights) {
-      List<SummaryData.HighlightItem> llmHighlights = fromLlmHighlights(llmSections.getHighlights(),
-          base.getHighlights());
+      List<SummaryData.HighlightItem> llmHighlights =
+          fromLlmHighlights(llmSections.getHighlights(), base.getHighlights());
       if (!llmHighlights.isEmpty()) {
         base.setHighlights(limit(llmHighlights, MAX_HIGHLIGHTS));
       }
     }
 
-    List<SummaryData.ExpressionItem> llmExpressions = fromLlmExpressions(llmSections.getExpressions(),
-        base.getExpressions());
+    List<SummaryData.ExpressionItem> llmExpressions =
+        fromLlmExpressions(llmSections.getExpressions(), base.getExpressions());
     if (!llmExpressions.isEmpty()) {
       base.setExpressions(llmExpressions);
     }
@@ -205,12 +204,13 @@ public class SessionSummaryGenerator {
       if (feedback == null) {
         continue;
       }
-      String naturalSentence = toSentenceText(
-          feedback.getNaturalness() != null
-              ? feedback.getNaturalness().getNaturalSentence()
-              : null,
-          true,
-          true);
+      String naturalSentence =
+          toSentenceText(
+              feedback.getNaturalness() != null
+                  ? feedback.getNaturalness().getNaturalSentence()
+                  : null,
+              true,
+              true);
       addSentenceCandidate(result, seen, naturalSentence);
     }
 
@@ -251,22 +251,24 @@ public class SessionSummaryGenerator {
       int score = safeScore(feedback.getWritingScore());
       NaturalnessFeedback naturalness = feedback.getNaturalness();
       String english = resolveUserWrittenSentence(feedback);
-      String korean = firstNonBlank(
-          naturalness != null ? naturalness.getNaturalSentenceTranslation() : null,
-          feedback.getConceptualBridge() != null
-              ? feedback.getConceptualBridge().getLiteralTranslation()
-              : null);
-      String reason = firstNonBlank(
-          naturalness != null ? naturalness.getExplanation() : null,
-          feedback.getGrammar() != null ? feedback.getGrammar().getExplanation() : null);
+      String korean =
+          firstNonBlank(
+              naturalness != null ? naturalness.getNaturalSentenceTranslation() : null,
+              feedback.getConceptualBridge() != null
+                  ? feedback.getConceptualBridge().getLiteralTranslation()
+                  : null);
+      String reason =
+          firstNonBlank(
+              naturalness != null ? naturalness.getExplanation() : null,
+              feedback.getGrammar() != null ? feedback.getGrammar().getExplanation() : null);
 
       if (english == null || korean == null || reason == null) {
         continue;
       }
 
       String key = normalize(english);
-      RankedItem<SummaryData.HighlightItem> candidate = new RankedItem<>(
-          new SummaryData.HighlightItem(english, korean, reason), score, order++);
+      RankedItem<SummaryData.HighlightItem> candidate =
+          new RankedItem<>(new SummaryData.HighlightItem(english, korean, reason), score, order++);
       putBestRanked(map, key, candidate);
     }
 
@@ -289,60 +291,68 @@ public class SessionSummaryGenerator {
       ConceptualBridge conceptualBridge = feedback.getConceptualBridge();
       String userWrittenSentence = resolveUserWrittenSentence(feedback);
 
-      String prompt = firstNonBlank(
-          conceptualBridge != null ? conceptualBridge.getLiteralTranslation() : null,
-          "\uC601\uC791\uD560 \uBB38\uC7A5");
+      String prompt =
+          firstNonBlank(
+              conceptualBridge != null ? conceptualBridge.getLiteralTranslation() : null,
+              "\uC601\uC791\uD560 \uBB38\uC7A5");
 
       if (grammar != null && grammar.getCorrectedSentence() != null) {
         String before = userWrittenSentence;
         String after = toSentenceText(grammar.getCorrectedSentence(), false, true);
-        String explanation = firstNonBlank(
-            grammar.getExplanation(),
-            naturalness != null ? naturalness.getExplanation() : null,
-            "\uBB38\uC7A5 \uC758\uBBF8\uB97C \uB354 \uC815\uD655\uD558\uAC8C \uC804\uB2EC\uD560 \uC218 \uC788\uB3C4\uB85D \uB2E4\uB4EC\uC740 \uD45C\uD604\uC785\uB2C8\uB2E4.");
+        String explanation =
+            firstNonBlank(
+                grammar.getExplanation(),
+                naturalness != null ? naturalness.getExplanation() : null,
+                "\uBB38\uC7A5 \uC758\uBBF8\uB97C \uB354 \uC815\uD655\uD558\uAC8C \uC804\uB2EC\uD560 \uC218 \uC788\uB3C4\uB85D \uB2E4\uB4EC\uC740 \uD45C\uD604\uC785\uB2C8\uB2E4.");
         if (before != null && after != null && !normalize(before).equals(normalize(after))) {
-          List<String> afterHighlights = extractHighlightPhrases(
-              grammar.getCorrectedSentence(),
-              TextSegment.TYPE_CORRECTION,
-              TextSegment.TYPE_HIGHLIGHT);
+          List<String> afterHighlights =
+              extractHighlightPhrases(
+                  grammar.getCorrectedSentence(),
+                  TextSegment.TYPE_CORRECTION,
+                  TextSegment.TYPE_HIGHLIGHT);
           if (afterHighlights.isEmpty()) {
             afterHighlights = inferAfterHighlightsFromDiff(before, after);
           }
 
-          SummaryData.ExpressionItem preciseItem = new SummaryData.ExpressionItem(
-              "\uC815\uD655\uD55C \uD45C\uD604",
-              prompt,
-              before,
-              after,
-              explanation,
-              afterHighlights);
+          SummaryData.ExpressionItem preciseItem =
+              new SummaryData.ExpressionItem(
+                  "\uC815\uD655\uD55C \uD45C\uD604",
+                  prompt,
+                  before,
+                  after,
+                  explanation,
+                  afterHighlights);
           putBestRanked(
               map, "precise|" + normalize(after), new RankedItem<>(preciseItem, score, order++));
         }
       }
 
-      String natural = naturalness != null ? toSentenceText(naturalness.getNaturalSentence(), true, true) : null;
-      String naturalExplanation = firstNonBlank(
-          naturalness != null ? naturalness.getExplanation() : null,
-          grammar != null ? grammar.getExplanation() : null,
-          "\uC790\uC8FC \uC4F0\uB294 \uD45C\uD604\uC73C\uB85C \uBC14\uAFD4 \uB9D0\uD558\uBA74 \uB354 \uC790\uC5F0\uC2A4\uB7FD\uC2B5\uB2C8\uB2E4.");
+      String natural =
+          naturalness != null ? toSentenceText(naturalness.getNaturalSentence(), true, true) : null;
+      String naturalExplanation =
+          firstNonBlank(
+              naturalness != null ? naturalness.getExplanation() : null,
+              grammar != null ? grammar.getExplanation() : null,
+              "\uC790\uC8FC \uC4F0\uB294 \uD45C\uD604\uC73C\uB85C \uBC14\uAFD4 \uB9D0\uD558\uBA74 \uB354 \uC790\uC5F0\uC2A4\uB7FD\uC2B5\uB2C8\uB2E4.");
       if (userWrittenSentence != null
           && natural != null
           && !normalize(userWrittenSentence).equals(normalize(natural))) {
-        List<String> afterHighlights = extractHighlightPhrases(
-            naturalness != null ? naturalness.getNaturalSentence() : null,
-            TextSegment.TYPE_HIGHLIGHT);
+        List<String> afterHighlights =
+            extractHighlightPhrases(
+                naturalness != null ? naturalness.getNaturalSentence() : null,
+                TextSegment.TYPE_HIGHLIGHT);
         if (afterHighlights.isEmpty()) {
           afterHighlights = inferAfterHighlightsFromDiff(userWrittenSentence, natural);
         }
 
-        SummaryData.ExpressionItem naturalItem = new SummaryData.ExpressionItem(
-            "\uC790\uC5F0\uC2A4\uB7EC\uC6B4 \uD45C\uD604",
-            prompt,
-            userWrittenSentence,
-            natural,
-            naturalExplanation,
-            afterHighlights);
+        SummaryData.ExpressionItem naturalItem =
+            new SummaryData.ExpressionItem(
+                "\uC790\uC5F0\uC2A4\uB7EC\uC6B4 \uD45C\uD604",
+                prompt,
+                userWrittenSentence,
+                natural,
+                naturalExplanation,
+                afterHighlights);
         putBestRanked(
             map, "natural|" + normalize(natural), new RankedItem<>(naturalItem, score, order++));
       }
@@ -367,27 +377,31 @@ public class SessionSummaryGenerator {
         continue;
       }
 
-      String exampleEnglish = firstNonBlank(
-          getToneDefaultSentence(feedback.getToneStyle()),
-          getParaphrasingSentence(feedback.getParaphrasing(), 2),
-          toSentenceText(
+      String exampleEnglish =
+          firstNonBlank(
+              getToneDefaultSentence(feedback.getToneStyle()),
+              getParaphrasingSentence(feedback.getParaphrasing(), 2),
+              toSentenceText(
+                  feedback.getNaturalness() != null
+                      ? feedback.getNaturalness().getNaturalSentence()
+                      : null,
+                  true,
+                  true));
+      String exampleKorean =
+          firstNonBlank(
+              getToneDefaultTranslation(feedback.getToneStyle()),
+              getParaphrasingTranslation(feedback.getParaphrasing(), 2),
               feedback.getNaturalness() != null
-                  ? feedback.getNaturalness().getNaturalSentence()
-                  : null,
-              true,
-              true));
-      String exampleKorean = firstNonBlank(
-          getToneDefaultTranslation(feedback.getToneStyle()),
-          getParaphrasingTranslation(feedback.getParaphrasing(), 2),
-          feedback.getNaturalness() != null
-              ? feedback.getNaturalness().getNaturalSentenceTranslation()
-              : null);
+                  ? feedback.getNaturalness().getNaturalSentenceTranslation()
+                  : null);
 
       VennDiagram vennDiagram = conceptualBridge.getVennDiagram();
-      order = addWordCandidate(
-          map, vennDiagram.getLeftCircle(), exampleEnglish, exampleKorean, score, order);
-      order = addWordCandidate(
-          map, vennDiagram.getRightCircle(), exampleEnglish, exampleKorean, score, order);
+      order =
+          addWordCandidate(
+              map, vennDiagram.getLeftCircle(), exampleEnglish, exampleKorean, score, order);
+      order =
+          addWordCandidate(
+              map, vennDiagram.getRightCircle(), exampleEnglish, exampleKorean, score, order);
     }
 
     return sortRanked(new ArrayList<>(map.values()));
@@ -410,7 +424,8 @@ public class SessionSummaryGenerator {
     }
     String finalExampleEnglish = firstNonBlank(exampleEnglish, word);
     String finalExampleKorean = firstNonBlank(exampleKorean, korean);
-    SummaryData.WordItem item = new SummaryData.WordItem(word, korean, finalExampleEnglish, finalExampleKorean);
+    SummaryData.WordItem item =
+        new SummaryData.WordItem(word, korean, finalExampleEnglish, finalExampleKorean);
     putBestRanked(map, normalize(word), new RankedItem<>(item, score, order++));
     return order;
   }
@@ -486,7 +501,8 @@ public class SessionSummaryGenerator {
       return result;
     }
 
-    List<SummaryData.HighlightItem> fallback = fallbackHighlights == null ? new ArrayList<>() : fallbackHighlights;
+    List<SummaryData.HighlightItem> fallback =
+        fallbackHighlights == null ? new ArrayList<>() : fallbackHighlights;
 
     for (int i = 0; i < source.size(); i++) {
       SessionSummaryManager.HighlightSection item = source.get(i);
@@ -526,7 +542,8 @@ public class SessionSummaryGenerator {
       return result;
     }
 
-    List<SummaryData.ExpressionItem> fallback = fallbackExpressions == null ? new ArrayList<>() : fallbackExpressions;
+    List<SummaryData.ExpressionItem> fallback =
+        fallbackExpressions == null ? new ArrayList<>() : fallbackExpressions;
 
     for (int i = 0; i < source.size(); i++) {
       SessionSummaryManager.ExpressionSection item = source.get(i);
@@ -550,7 +567,8 @@ public class SessionSummaryGenerator {
         continue;
       }
 
-      SummaryData.ExpressionItem reference = findReferenceExpression(fallback, i, type, prompt, after);
+      SummaryData.ExpressionItem reference =
+          findReferenceExpression(fallback, i, type, prompt, after);
       if (reference != null && trimToNull(reference.getBefore()) != null) {
         before = trimToNull(reference.getBefore());
       }

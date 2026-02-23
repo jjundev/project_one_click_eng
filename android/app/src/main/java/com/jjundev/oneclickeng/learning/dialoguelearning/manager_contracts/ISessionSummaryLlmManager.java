@@ -21,14 +21,10 @@ public interface ISessionSummaryLlmManager {
   }
 
   final class ExtractedWord {
-    @NonNull
-    private final String en;
-    @NonNull
-    private final String ko;
-    @NonNull
-    private final String exampleEn;
-    @NonNull
-    private final String exampleKo;
+    @NonNull private final String en;
+    @NonNull private final String ko;
+    @NonNull private final String exampleEn;
+    @NonNull private final String exampleKo;
 
     public ExtractedWord(
         @NonNull String en,
@@ -63,16 +59,11 @@ public interface ISessionSummaryLlmManager {
   }
 
   final class FilteredExpression {
-    @NonNull
-    private final String type;
-    @NonNull
-    private final String koreanPrompt;
-    @NonNull
-    private final String before;
-    @NonNull
-    private final String after;
-    @NonNull
-    private final String explanation;
+    @NonNull private final String type;
+    @NonNull private final String koreanPrompt;
+    @NonNull private final String before;
+    @NonNull private final String after;
+    @NonNull private final String explanation;
 
     public FilteredExpression(
         @NonNull String type,

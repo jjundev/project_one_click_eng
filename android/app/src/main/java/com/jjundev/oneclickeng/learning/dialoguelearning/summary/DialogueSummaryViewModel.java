@@ -25,14 +25,14 @@ public class DialogueSummaryViewModel extends ViewModel {
   private static final Gson GSON = new Gson();
 
   private final ISessionSummaryLlmManager sessionSummaryLlmManager;
-  private final MutableLiveData<SummaryData> summaryData = new MutableLiveData<>(
-      new SessionSummaryGenerator().createEmptySummary());
-  private final MutableLiveData<ExpressionLoadState> expressionLoadState = new MutableLiveData<>(
-      ExpressionLoadState.loading());
-  private final MutableLiveData<WordLoadState> wordLoadState = new MutableLiveData<>(WordLoadState.loading());
+  private final MutableLiveData<SummaryData> summaryData =
+      new MutableLiveData<>(new SessionSummaryGenerator().createEmptySummary());
+  private final MutableLiveData<ExpressionLoadState> expressionLoadState =
+      new MutableLiveData<>(ExpressionLoadState.loading());
+  private final MutableLiveData<WordLoadState> wordLoadState =
+      new MutableLiveData<>(WordLoadState.loading());
 
-  @Nullable
-  private SummaryFeatureBundle featureBundle;
+  @Nullable private SummaryFeatureBundle featureBundle;
   private int requestToken = 0;
   private boolean hasInitialized = false;
   private boolean hasWordExtractionStarted = false;
@@ -59,7 +59,8 @@ public class DialogueSummaryViewModel extends ViewModel {
       @Nullable String featureBundleJson,
       @Nullable Bundle savedInstanceState) {
     SummaryData restoredSummary = resolveSavedSummaryData(savedInstanceState);
-    SummaryData initialSummary = restoredSummary == null ? resolveSummaryData(summaryJson) : restoredSummary;
+    SummaryData initialSummary =
+        restoredSummary == null ? resolveSummaryData(summaryJson) : restoredSummary;
     if (initialSummary.getWords() == null) {
       initialSummary.setWords(new ArrayList<>());
     }
@@ -124,7 +125,7 @@ public class DialogueSummaryViewModel extends ViewModel {
 
     final int currentToken = ++requestToken;
     expressionLoadState.setValue(ExpressionLoadState.loading());
-    final boolean[] clearedFallback = { false };
+    final boolean[] clearedFallback = {false};
 
     sessionSummaryLlmManager.filterExpressionsAsync(
         featureBundle,
@@ -179,8 +180,7 @@ public class DialogueSummaryViewModel extends ViewModel {
     String before = trimToNull(f.getBefore());
     String after = trimToNull(f.getAfter());
     String explanation = trimToNull(f.getExplanation());
-    if (type == null || prompt == null || before == null || after == null
-        || explanation == null) {
+    if (type == null || prompt == null || before == null || after == null || explanation == null) {
       return null;
     }
     return new SummaryData.ExpressionItem(type, prompt, before, after, explanation);
@@ -206,8 +206,8 @@ public class DialogueSummaryViewModel extends ViewModel {
       current = new SessionSummaryGenerator().createEmptySummary();
     }
     List<SummaryData.ExpressionItem> existingExpressions = current.getExpressions();
-    List<SummaryData.ExpressionItem> newList = existingExpressions != null ? new ArrayList<>(existingExpressions)
-        : new ArrayList<>();
+    List<SummaryData.ExpressionItem> newList =
+        existingExpressions != null ? new ArrayList<>(existingExpressions) : new ArrayList<>();
     newList.add(item);
 
     SummaryData updated = new SummaryData();
@@ -332,7 +332,8 @@ public class DialogueSummaryViewModel extends ViewModel {
 
     List<String> words = collectWordSeeds(featureBundle.getWordCandidates());
     List<String> sentences = collectSentenceCandidates(featureBundle.getSentenceCandidates());
-    List<String> userOriginals = collectSentenceCandidates(featureBundle.getUserOriginalSentences());
+    List<String> userOriginals =
+        collectSentenceCandidates(featureBundle.getUserOriginalSentences());
     if (words.isEmpty() || sentences.isEmpty()) {
       setWordError(null);
       return;
@@ -490,8 +491,7 @@ public class DialogueSummaryViewModel extends ViewModel {
 
   public static final class ExpressionLoadState {
     private final ExpressionLoadStatus status;
-    @Nullable
-    private final String errorMessage;
+    @Nullable private final String errorMessage;
 
     private ExpressionLoadState(
         @NonNull ExpressionLoadStatus status, @Nullable String errorMessage) {
@@ -530,8 +530,7 @@ public class DialogueSummaryViewModel extends ViewModel {
 
   public static final class WordLoadState {
     private final WordLoadStatus status;
-    @Nullable
-    private final String errorMessage;
+    @Nullable private final String errorMessage;
 
     private WordLoadState(@NonNull WordLoadStatus status, @Nullable String errorMessage) {
       this.status = status;

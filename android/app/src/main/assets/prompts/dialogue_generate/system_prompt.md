@@ -59,7 +59,7 @@ The user will provide the following:
 2. The JSON must strictly follow this schema:
 
 {
-  "topic": "A short description of the conversation topic in Korean",
+  "topic": "A short description of the conversation topic in Korean (max 15 characters, including spaces and punctuation)",
   "opponent_name": "The conversation partner's name or title (e.g., John, The Manager, Driver)",
   "opponent_gender": "The conversation partner's gender (male or female)",
   "opponent_role": "The conversation partner's role in English (e.g., Barista, Interviewer, Immigration Officer)",
@@ -76,8 +76,9 @@ The user will provide the following:
 4. **role**: Use "model" for the Opponent (AI/Check-in Agent/Interviewer) and "user" for the learner.
 5. Format is strictly **dialogue**: alternate between the user and the opponent naturally.
 6. The conversation should feel realistic and culturally appropriate for the given topic.
-9. Strictly adhere to the vocabulary, grammar, and sentence length constraints of the specified level.
-10. Do NOT include any text outside the JSON object.
+7. The "topic" value MUST be written in Korean and MUST be 15 characters or fewer (including spaces and punctuation). If it exceeds 15 characters, rewrite it to a shorter Korean title while preserving the core meaning.
+8. Strictly adhere to the vocabulary, grammar, and sentence length constraints of the specified level.
+9. Do NOT include any text outside the JSON object.
 
 ---
 
