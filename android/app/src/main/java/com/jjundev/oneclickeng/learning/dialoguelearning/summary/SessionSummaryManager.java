@@ -40,22 +40,22 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
 
   private static final String PREF_NAME = "gemini_session_summary_cache_prefs";
   private static final String KEY_EXPRESSION_CACHE_NAME =
-      "gemini_session_summary_expression_cache_name_v1";
+      "gemini_session_summary_expression_cache_name_v2";
   private static final String KEY_EXPRESSION_CACHE_CREATED =
       "gemini_session_summary_expression_cache_created_at";
   private static final String KEY_EXPRESSION_CACHE_TTL =
       "gemini_session_summary_expression_cache_ttl_seconds";
-  private static final String KEY_WORD_CACHE_NAME = "gemini_session_summary_word_cache_name_v1";
+  private static final String KEY_WORD_CACHE_NAME = "gemini_session_summary_word_cache_name_v2";
   private static final String KEY_WORD_CACHE_CREATED = "gemini_session_summary_word_cache_created";
   private static final String KEY_WORD_CACHE_TTL = "gemini_session_summary_word_cache_ttl_seconds";
 
   private static final String DISPLAY_NAME_EXPRESSION_FILTER =
-      "SessionSummaryExpressionFilterPrompt";
-  private static final String DISPLAY_NAME_WORD_EXTRACTION = "SessionSummaryWordExtractionPrompt";
+      "SessionSummaryExpressionFilterPrompt_v2";
+  private static final String DISPLAY_NAME_WORD_EXTRACTION = "SessionSummaryWordExtractionPrompt_v2";
   private static final String EXPRESSION_FILTER_PROMPT_ASSET_PATH =
-      "prompts/session_summary/expression_filter_system_prompt.md";
+          "prompts/session_summary/expression_filter_system_prompt.md";
   private static final String WORD_EXTRACTION_PROMPT_ASSET_PATH =
-      "prompts/session_summary/word_extraction_system_prompt.md";
+          "prompts/session_summary/word_extraction_system_prompt.md";
 
   private final OkHttpClient client;
   private final OkHttpClient streamingClient;

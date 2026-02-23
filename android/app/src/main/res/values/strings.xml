@@ -176,6 +176,7 @@
     <string name="history_quiz_period_3w">2~3주 전</string>
     <string name="history_quiz_period_older">3주 이상</string>
     <string name="history_quiz_config_count">문제 수</string>
+    <string name="history_quiz_config_loading">문제를 준비하고 있어요...</string>
     <string name="history_quiz_config_cancel">취소</string>
     <string name="history_quiz_config_confirm">시작하기</string>
     <string name="history_quiz_err_no_items">해당 기간에 학습한 항목이 없어요.</string>

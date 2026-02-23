@@ -6,6 +6,7 @@
     android:background="@drawable/bg_dialog_rounded">
 
     <ScrollView
+        android:id="@+id/layout_quiz_config_content"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:clipToPadding="false"
@@ -262,4 +263,29 @@
 
         </LinearLayout>
     </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/layout_quiz_loading"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="36dp"
+        android:visibility="gone">
+
+        <ProgressBar
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:indeterminateTint="@color/primary_blue" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="@string/history_quiz_config_loading"
+            android:textColor="@color/grey_700"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
 </FrameLayout>
