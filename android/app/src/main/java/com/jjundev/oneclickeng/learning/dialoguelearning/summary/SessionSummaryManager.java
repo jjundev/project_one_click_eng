@@ -791,7 +791,7 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
       String type = trimToNull(readAsString(item, "type"));
       String prompt = trimToNull(readAsString(item, "koreanPrompt"));
       String before = trimToNull(readAsString(item, "before"));
-      String after = trimToNull(readAsString(item, "after"));
+      String after = sanitizeExpressionAfterForDisplay(readAsString(item, "after"));
       String explanation = trimToNull(readAsString(item, "explanation"));
       if (type == null
           || prompt == null
@@ -844,7 +844,7 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
       String type = trimToNull(item.getType());
       String prompt = trimToNull(item.getKoreanPrompt());
       String before = trimToNull(item.getBefore());
-      String after = trimToNull(item.getAfter());
+      String after = sanitizeExpressionAfterForDisplay(item.getAfter());
       String explanation = trimToNull(item.getExplanation());
       if (type == null
           || prompt == null
@@ -946,6 +946,60 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
       result.add(new ISessionSummaryLlmManager.ExtractedWord(en, ko, exampleEn, exampleKo));
     }
     return result;
+  }
+
+  static String sanitizeExpressionAfterForDisplay(String rawAfter) {
+    String value = trimToNullStatic(rawAfter);
+    if (value == null) {
+      return null;
+    }
+
+    int colonIndex = value.indexOf(':');
+    if (colonIndex > 0) {
+      String label = value.substring(0, colonIndex).trim();
+      if ("after".equalsIgnoreCase(label)) {
+        value = trimToNullStatic(value.substring(colonIndex + 1));
+        if (value == null) {
+          return null;
+        }
+      }
+    }
+
+    String withoutBrackets = value.replace("[", "").replace("]", "");
+    StringBuilder filtered = new StringBuilder(withoutBrackets.length());
+    for (int i = 0; i < withoutBrackets.length(); i++) {
+      char c = withoutBrackets.charAt(i);
+      if (isAllowedAfterCharacter(c) || Character.isWhitespace(c)) {
+        filtered.append(c);
+      } else {
+        filtered.append(' ');
+      }
+    }
+
+    String normalizedWhitespace = filtered.toString().replaceAll("\\s+", " ").trim();
+    return normalizedWhitespace.isEmpty() ? null : normalizedWhitespace;
+  }
+
+  private static boolean isAllowedAfterCharacter(char c) {
+    if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
+      return true;
+    }
+    switch (c) {
+      case '.':
+      case ',':
+      case '!':
+      case '?':
+      case '\'':
+      case '"':
+      case '(':
+      case ')':
+      case ':':
+      case ';':
+      case '-':
+        return true;
+      default:
+        return false;
+    }
   }
 
   private static String stripJsonFence(String rawPayload) {

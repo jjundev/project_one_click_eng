@@ -18,12 +18,14 @@ import com.jjundev.oneclickeng.dialog.DialogueLearningSettingDialog;
 import com.jjundev.oneclickeng.dialog.ExitConfirmDialog;
 import com.jjundev.oneclickeng.learning.dialoguelearning.DialogueLearningFragment;
 import com.jjundev.oneclickeng.learning.dialoguelearning.DialogueSummaryFragment;
+import java.util.List;
 
 public class DialogueLearningActivity extends AppCompatActivity
     implements DialogueLearningFragment.OnScriptProgressListener,
         ExitConfirmDialog.OnExitConfirmListener {
   private static final String TAG = "JOB_J-20260216-004";
   private static final String DIALOG_TAG_LEARNING_SETTINGS = "DialogueLearningSettingDialog";
+  private static final String DIALOG_TAG_EXIT_CONFIRM = "ExitConfirmDialog";
 
   private ProgressBar progressBar;
   private TextView tvProgress;
@@ -60,11 +62,7 @@ public class DialogueLearningActivity extends AppCompatActivity
 
     // Toolbar의 btn_left 클릭 리스너 설정
     ImageButton btnLeft = findViewById(R.id.btn_left);
-    btnLeft.setOnClickListener(
-        v -> {
-          // backPress와 동일한 효과
-          getOnBackPressedDispatcher().onBackPressed();
-        });
+    btnLeft.setOnClickListener(v -> showExitDialog());
     ImageButton btnRight = findViewById(R.id.btn_right);
     btnRight.setOnClickListener(v -> showDialogueLearningSettingDialog());
 
@@ -75,17 +73,7 @@ public class DialogueLearningActivity extends AppCompatActivity
             new OnBackPressedCallback(true) {
               @Override
               public void handleOnBackPressed() {
-                // 현재 컨테이너에 있는 프래그먼트 확인
-                androidx.fragment.app.Fragment currentFragment =
-                    getSupportFragmentManager().findFragmentById(R.id.fragment_container);
-
-                if (currentFragment instanceof DialogueSummaryFragment) {
-                  // Summary Fragment인 경우 이전 화면(LearningFragment)으로 돌아감
-                  getSupportFragmentManager().popBackStack();
-                } else {
-                  // 그 외(LearningFragment 등)인 경우 종료 확인 다이얼로그 표시
-                  showExitDialog();
-                }
+                showExitDialog();
               }
             });
 
@@ -141,8 +129,42 @@ public class DialogueLearningActivity extends AppCompatActivity
 
   // 커스텀 다이얼로그 표시
   private void showExitDialog() {
-    ExitConfirmDialog dialog = new ExitConfirmDialog();
-    dialog.show(getSupportFragmentManager(), "ExitConfirmDialog");
+    if (isFinishing() || isDestroyed()) {
+      logDebug("exit dialog open skipped: activity finishing or destroyed");
+      return;
+    }
+    if (getSupportFragmentManager().isStateSaved()) {
+      logDebug("exit dialog open skipped: fragment manager state already saved");
+      return;
+    }
+    androidx.fragment.app.Fragment existingDialog =
+        getSupportFragmentManager().findFragmentByTag(DIALOG_TAG_EXIT_CONFIRM);
+    if (existingDialog != null && existingDialog.isAdded()) {
+      logDebug("exit dialog open skipped: dialog already visible");
+      return;
+    }
+
+    String overrideMessage =
+        isSummaryFragmentVisible() ? getString(R.string.dialog_exit_message_back_to_main) : null;
+
+    logDebug("exit dialog open");
+    ExitConfirmDialog.newInstance(overrideMessage)
+        .show(getSupportFragmentManager(), DIALOG_TAG_EXIT_CONFIRM);
+  }
+
+  private boolean isSummaryFragmentVisible() {
+    List<androidx.fragment.app.Fragment> fragments = getSupportFragmentManager().getFragments();
+    for (int i = fragments.size() - 1; i >= 0; i--) {
+      androidx.fragment.app.Fragment fragment = fragments.get(i);
+      if (fragment == null || fragment.getId() != R.id.fragment_container) {
+        continue;
+      }
+      if (!fragment.isAdded() || !fragment.isVisible() || fragment.isHidden()) {
+        continue;
+      }
+      return fragment instanceof DialogueSummaryFragment;
+    }
+    return false;
   }
 
   private void showDialogueLearningSettingDialog() {

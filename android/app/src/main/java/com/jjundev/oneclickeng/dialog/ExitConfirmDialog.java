@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatButton;
@@ -12,12 +13,24 @@ import androidx.fragment.app.DialogFragment;
 import com.jjundev.oneclickeng.R;
 
 public class ExitConfirmDialog extends DialogFragment {
+  private static final String ARG_MESSAGE = "arg_message";
 
   public interface OnExitConfirmListener {
     void onConfirmExit();
   }
 
   private OnExitConfirmListener listener;
+
+  @NonNull
+  public static ExitConfirmDialog newInstance(@Nullable String message) {
+    ExitConfirmDialog dialog = new ExitConfirmDialog();
+    if (message != null && !message.trim().isEmpty()) {
+      Bundle args = new Bundle();
+      args.putString(ARG_MESSAGE, message);
+      dialog.setArguments(args);
+    }
+    return dialog;
+  }
 
   @Override
   public void onAttach(@NonNull Context context) {
@@ -43,8 +56,16 @@ public class ExitConfirmDialog extends DialogFragment {
   public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
     super.onViewCreated(view, savedInstanceState);
 
+    TextView messageView = view.findViewById(R.id.tv_message);
     AppCompatButton btnCancel = view.findViewById(R.id.btn_cancel);
     AppCompatButton btnConfirm = view.findViewById(R.id.btn_confirm);
+    Bundle args = getArguments();
+    if (messageView != null && args != null) {
+      String overrideMessage = args.getString(ARG_MESSAGE);
+      if (overrideMessage != null && !overrideMessage.trim().isEmpty()) {
+        messageView.setText(overrideMessage);
+      }
+    }
 
     btnCancel.setOnClickListener(v -> dismiss());
 

@@ -13,6 +13,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatButton;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -20,6 +21,7 @@ import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.activity.DialogueLearningActivity;
 import com.jjundev.oneclickeng.dialog.DialogueGenerateDialog;
+import com.jjundev.oneclickeng.dialog.DialogueLearningSettingDialog;
 import com.jjundev.oneclickeng.learning.dialoguelearning.di.LearningDependencyProvider;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IDialogueGenerateManager;
 import com.jjundev.oneclickeng.others.ScriptSelectAdapter;
@@ -31,7 +33,10 @@ import java.util.List;
 
 public class DialogueSelectFragment extends Fragment
     implements DialogueGenerateDialog.OnScriptParamsSelectedListener {
+  private static final String DIALOG_TAG_LEARNING_SETTINGS = "DialogueLearningSettingDialog";
+
   private ImageButton btnBack;
+  private ImageButton btnSettings;
   private RecyclerView rvScripts;
   private View layoutEmptyState;
   private AppCompatButton btnGenerate;
@@ -68,6 +73,7 @@ public class DialogueSelectFragment extends Fragment
         });
 
     btnBack = view.findViewById(R.id.btn_back);
+    btnSettings = view.findViewById(R.id.btn_settings);
     rvScripts = view.findViewById(R.id.rv_scripts);
     layoutEmptyState = view.findViewById(R.id.layout_empty_state);
     btnGenerate = view.findViewById(R.id.btn_generate_script);
@@ -123,6 +129,8 @@ public class DialogueSelectFragment extends Fragment
           Navigation.findNavController(v).popBackStack();
         });
 
+    btnSettings.setOnClickListener(v -> showDialogueLearningSettingDialog());
+
     btnGenerate.setOnClickListener(
         v -> {
           hideKeyboard(); // Ensure keyboard is hidden
@@ -130,6 +138,26 @@ public class DialogueSelectFragment extends Fragment
           DialogueGenerateDialog dialogueGenerateDialog = new DialogueGenerateDialog();
           dialogueGenerateDialog.show(getChildFragmentManager(), "DialogueGenerateDialog");
         });
+  }
+
+  private void showDialogueLearningSettingDialog() {
+    if (!isAdded()) {
+      return;
+    }
+
+    FragmentManager fragmentManager = getChildFragmentManager();
+    if (fragmentManager.isStateSaved()) {
+      return;
+    }
+
+    Fragment existingDialog =
+        fragmentManager.findFragmentByTag(DIALOG_TAG_LEARNING_SETTINGS);
+    if (existingDialog != null && existingDialog.isAdded()) {
+      return;
+    }
+
+    new DialogueLearningSettingDialog()
+        .show(fragmentManager, DIALOG_TAG_LEARNING_SETTINGS);
   }
 
   @Override

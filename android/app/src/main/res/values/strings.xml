@@ -68,6 +68,7 @@
     <string name="learning_finished_quiz_button">학습 요약 보기</string>
     <string name="summary_finish_button">완료 후 나가기</string>
     <string name="summary_start_quiz_button">퀴즈 진행</string>
+    <string name="dialog_exit_message_back_to_main">메인 화면으로 돌아갈까요?</string>
     <string name="bottom_nav_content_desc">Bottom navigation</string>
     <string name="bottom_nav_tab_mode">학습</string>
     <string name="bottom_nav_tab_script">Scripts</string>
