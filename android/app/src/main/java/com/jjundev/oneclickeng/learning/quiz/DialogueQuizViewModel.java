@@ -405,13 +405,14 @@ public class DialogueQuizViewModel extends ViewModel {
       return null;
     }
 
-    String question = trimToNull(item.getQuestion());
+    String questionMain = trimToNull(item.getQuestionMain());
+    String questionMaterial = trimToNull(item.getQuestionMaterial());
     String answer = trimToNull(item.getAnswer());
-    if (question == null || answer == null) {
+    if (questionMain == null || answer == null) {
       return null;
     }
 
-    String dedupeKey = normalize(question);
+    String dedupeKey = normalize(questionMain) + "|" + normalize(questionMaterial);
     if (!seenQuestionKeys.add(dedupeKey)) {
       return null;
     }
@@ -421,7 +422,7 @@ public class DialogueQuizViewModel extends ViewModel {
       return null;
     }
     String explanation = trimToNull(item.getExplanation());
-    return new QuizData.QuizQuestion(question, answer, choices, explanation);
+    return new QuizData.QuizQuestion(questionMain, questionMaterial, answer, choices, explanation);
   }
 
   @Nullable
@@ -615,7 +616,8 @@ public class DialogueQuizViewModel extends ViewModel {
       FINISH
     }
 
-    @NonNull private final String question;
+    @NonNull private final String questionMain;
+    @Nullable private final String questionMaterial;
     @NonNull private final String answer;
     @Nullable private final List<String> choices;
     @Nullable private final String explanation;
@@ -625,7 +627,8 @@ public class DialogueQuizViewModel extends ViewModel {
     private final boolean correct;
 
     private QuizQuestionState(
-        @NonNull String question,
+        @NonNull String questionMain,
+        @Nullable String questionMaterial,
         @NonNull String answer,
         @Nullable List<String> choices,
         @Nullable String explanation,
@@ -633,7 +636,8 @@ public class DialogueQuizViewModel extends ViewModel {
         @Nullable String typedAnswer,
         boolean checked,
         boolean correct) {
-      this.question = question;
+      this.questionMain = questionMain;
+      this.questionMaterial = questionMaterial;
       this.answer = answer;
       this.choices = choices;
       this.explanation = explanation;
@@ -646,7 +650,8 @@ public class DialogueQuizViewModel extends ViewModel {
     @NonNull
     public static QuizQuestionState from(@NonNull QuizData.QuizQuestion source) {
       return new QuizQuestionState(
-          firstNonBlank(trimToNull(source.getQuestion()), ""),
+          firstNonBlank(trimToNull(source.getQuestionMain()), ""),
+          trimToNull(source.getQuestionMaterial()),
           firstNonBlank(trimToNull(source.getAnswer()), ""),
           source.getChoices(),
           trimToNull(source.getExplanation()),
@@ -659,24 +664,53 @@ public class DialogueQuizViewModel extends ViewModel {
     @NonNull
     public QuizQuestionState withChoice(@Nullable String choice) {
       return new QuizQuestionState(
-          question, answer, choices, explanation, trimToNull(choice), null, checked, correct);
+          questionMain,
+          questionMaterial,
+          answer,
+          choices,
+          explanation,
+          trimToNull(choice),
+          null,
+          checked,
+          correct);
     }
 
     @NonNull
     public QuizQuestionState withTypedAnswer(@Nullable String answerInput) {
       return new QuizQuestionState(
-          question, answer, choices, explanation, null, trimToNull(answerInput), checked, correct);
+          questionMain,
+          questionMaterial,
+          answer,
+          choices,
+          explanation,
+          null,
+          trimToNull(answerInput),
+          checked,
+          correct);
     }
 
     @NonNull
     public QuizQuestionState withCheckResult(boolean isCorrect) {
       return new QuizQuestionState(
-          question, answer, choices, explanation, selectedChoice, typedAnswer, true, isCorrect);
+          questionMain,
+          questionMaterial,
+          answer,
+          choices,
+          explanation,
+          selectedChoice,
+          typedAnswer,
+          true,
+          isCorrect);
     }
 
     @NonNull
-    public String getQuestion() {
-      return question;
+    public String getQuestionMain() {
+      return questionMain;
+    }
+
+    @Nullable
+    public String getQuestionMaterial() {
+      return questionMaterial;
     }
 
     @NonNull

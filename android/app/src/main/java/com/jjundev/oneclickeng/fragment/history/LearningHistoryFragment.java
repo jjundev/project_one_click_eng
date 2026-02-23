@@ -392,7 +392,7 @@ public class LearningHistoryFragment extends Fragment {
       return false;
     }
 
-    String questionText = trimToNull(question.getQuestion());
+    String questionText = trimToNull(question.getQuestionMain());
     String answer = trimToNull(question.getAnswer());
     if (questionText == null || answer == null) {
       return false;

@@ -20,12 +20,12 @@ public class QuizGenerateManagerTest {
   public void parseQuizQuestionsPayload_capsAtFive() {
     String payload =
         "{\"questions\":["
-            + "{\"question\":\"Q1\",\"answer\":\"A1\"},"
-            + "{\"question\":\"Q2\",\"answer\":\"A2\"},"
-            + "{\"question\":\"Q3\",\"answer\":\"A3\"},"
-            + "{\"question\":\"Q4\",\"answer\":\"A4\"},"
-            + "{\"question\":\"Q5\",\"answer\":\"A5\"},"
-            + "{\"question\":\"Q6\",\"answer\":\"A6\"}"
+            + "{\"question_main\":\"Q1\",\"answer\":\"A1\"},"
+            + "{\"question_main\":\"Q2\",\"answer\":\"A2\"},"
+            + "{\"question_main\":\"Q3\",\"answer\":\"A3\"},"
+            + "{\"question_main\":\"Q4\",\"answer\":\"A4\"},"
+            + "{\"question_main\":\"Q5\",\"answer\":\"A5\"},"
+            + "{\"question_main\":\"Q6\",\"answer\":\"A6\"}"
             + "]}";
 
     QuizGenerateManager.ParseResult result =
@@ -34,18 +34,18 @@ public class QuizGenerateManagerTest {
     assertEquals(5, result.getQuestions().size());
     assertTrue(result.isCapped());
     assertEquals(6, result.getValidQuestionCount());
-    assertEquals("Q1", result.getQuestions().get(0).getQuestion());
-    assertEquals("Q5", result.getQuestions().get(4).getQuestion());
+    assertEquals("Q1", result.getQuestions().get(0).getQuestionMain());
+    assertEquals("Q5", result.getQuestions().get(4).getQuestionMain());
   }
 
   @Test
   public void parseQuizQuestionsPayload_filtersInvalidAndDeduplicates() {
     String payload =
         "{\"questions\":["
-            + "{\"question\":\"\",\"answer\":\"A\"},"
-            + "{\"question\":\"Valid\",\"answer\":\"Answer\",\"choices\":[\" A \",\"A\",\"B\",\"\"],\"explanation\":\"   \"},"
-            + "{\"question\":\" valid \",\"answer\":\"Duplicate\"},"
-            + "{\"question\":\"NoAnswer\"}"
+            + "{\"question_main\":\"\",\"answer\":\"A\"},"
+            + "{\"question_main\":\"Valid\",\"question_material\":\"   \",\"answer\":\"Answer\",\"choices\":[\" A \",\"A\",\"B\",\"\"],\"explanation\":\"   \"},"
+            + "{\"question_main\":\" valid \",\"question_material\":null,\"answer\":\"Duplicate\"},"
+            + "{\"question_main\":\"NoAnswer\"}"
             + "]}";
 
     QuizGenerateManager.ParseResult result =
@@ -56,11 +56,36 @@ public class QuizGenerateManagerTest {
     assertEquals(1, result.getValidQuestionCount());
 
     QuizData.QuizQuestion question = result.getQuestions().get(0);
-    assertEquals("Valid", question.getQuestion());
+    assertEquals("Valid", question.getQuestionMain());
+    assertNull(question.getQuestionMaterial());
     assertEquals("Answer", question.getAnswer());
     assertNotNull(question.getChoices());
     assertEquals(Arrays.asList("A", "B"), question.getChoices());
     assertNull(question.getExplanation());
+  }
+
+  @Test
+  public void parseQuizQuestionsPayload_rejectsLegacyQuestionFieldStrictly() {
+    String payload = "{\"questions\":[{\"question\":\"legacy\",\"answer\":\"A1\"}]}";
+
+    QuizGenerateManager.ParseResult result =
+        QuizGenerateManager.parseQuizQuestionsPayload(payload, 5);
+
+    assertTrue(result.getQuestions().isEmpty());
+    assertFalse(result.isCapped());
+    assertEquals(0, result.getValidQuestionCount());
+  }
+
+  @Test
+  public void parseQuizQuestionsPayload_normalizesBlankQuestionMaterialToNull() {
+    String payload =
+        "{\"questions\":[{\"question_main\":\"Valid\",\"question_material\":\"   \",\"answer\":\"A1\"}]}";
+
+    QuizGenerateManager.ParseResult result =
+        QuizGenerateManager.parseQuizQuestionsPayload(payload, 5);
+
+    assertEquals(1, result.getQuestions().size());
+    assertNull(result.getQuestions().get(0).getQuestionMaterial());
   }
 
   @Test

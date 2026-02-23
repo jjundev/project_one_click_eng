@@ -15,8 +15,8 @@ public class IncrementalQuizQuestionParserTest {
     IncrementalQuizQuestionParser parser = new IncrementalQuizQuestionParser();
 
     List<String> first =
-        parser.addChunk("{\"questions\":[{\"question\":\"Q1\",\"answer\":\"A1\"},");
-    List<String> second = parser.addChunk("{\"question\":\"Q2\",\"answer\":\"A2\"");
+        parser.addChunk("{\"questions\":[{\"question_main\":\"Q1\",\"answer\":\"A1\"},");
+    List<String> second = parser.addChunk("{\"question_main\":\"Q2\",\"answer\":\"A2\"");
     List<String> third = parser.addChunk("}]}");
 
     assertEquals(1, first.size());
@@ -32,7 +32,7 @@ public class IncrementalQuizQuestionParserTest {
 
     List<String> questions =
         parser.addChunk(
-            "{\"questions\":[{\"question\":\"What does '{' mean?\",\"answer\":\"left brace\"}]}");
+            "{\"questions\":[{\"question_main\":\"What does '{' mean?\",\"answer\":\"left brace\"}]}");
 
     assertEquals(1, questions.size());
     assertEquals("What does '{' mean?", parseQuestion(questions.get(0)));
@@ -42,7 +42,8 @@ public class IncrementalQuizQuestionParserTest {
   public void addChunk_doesNotEmitIncompleteObject() {
     IncrementalQuizQuestionParser parser = new IncrementalQuizQuestionParser();
 
-    List<String> first = parser.addChunk("{\"questions\":[{\"question\":\"Q1\",\"answer\":\"A1\"");
+    List<String> first =
+        parser.addChunk("{\"questions\":[{\"question_main\":\"Q1\",\"answer\":\"A1\"");
     List<String> second = parser.addChunk("}]}");
 
     assertTrue(first.isEmpty());
@@ -52,6 +53,6 @@ public class IncrementalQuizQuestionParserTest {
 
   private static String parseQuestion(String questionObject) {
     JsonObject obj = JsonParser.parseString(questionObject).getAsJsonObject();
-    return obj.get("question").getAsString();
+    return obj.get("question_main").getAsString();
   }
 }

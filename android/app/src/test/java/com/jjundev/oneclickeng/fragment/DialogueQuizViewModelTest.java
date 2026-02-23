@@ -2,6 +2,7 @@ package com.jjundev.oneclickeng.fragment;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import androidx.annotation.NonNull;
@@ -40,7 +41,7 @@ public class DialogueQuizViewModelTest {
     DialogueQuizViewModel.QuizUiState readyState = viewModel.getUiState().getValue();
     assertNotNull(readyState);
     assertEquals(DialogueQuizViewModel.QuizUiState.Status.READY, readyState.getStatus());
-    assertEquals("Q1", readyState.getQuestionState().getQuestion());
+    assertEquals("Q1", readyState.getQuestionState().getQuestionMain());
     assertEquals(5, readyState.getTotalQuestions());
     assertEquals(1, readyState.getCurrentQuestionNumber());
   }
@@ -62,7 +63,7 @@ public class DialogueQuizViewModelTest {
     DialogueQuizViewModel.QuizUiState waitingState = viewModel.getUiState().getValue();
     assertNotNull(waitingState);
     assertEquals(DialogueQuizViewModel.QuizUiState.Status.READY, waitingState.getStatus());
-    assertEquals("Q1", waitingState.getQuestionState().getQuestion());
+    assertEquals("Q1", waitingState.getQuestionState().getQuestionMain());
     assertTrue(waitingState.getQuestionState().isChecked());
 
     manager.emitQuestion(0, buildChoiceQuestion("Q2", "A2"));
@@ -71,7 +72,7 @@ public class DialogueQuizViewModelTest {
         DialogueQuizViewModel.PrimaryActionResult.MOVED_TO_NEXT, viewModel.onPrimaryAction());
     DialogueQuizViewModel.QuizUiState secondState = viewModel.getUiState().getValue();
     assertNotNull(secondState);
-    assertEquals("Q2", secondState.getQuestionState().getQuestion());
+    assertEquals("Q2", secondState.getQuestionState().getQuestionMain());
     assertEquals(2, secondState.getCurrentQuestionNumber());
   }
 
@@ -142,7 +143,7 @@ public class DialogueQuizViewModelTest {
     DialogueQuizViewModel.QuizUiState readyState = viewModel.getUiState().getValue();
     assertNotNull(readyState);
     assertEquals(DialogueQuizViewModel.QuizUiState.Status.READY, readyState.getStatus());
-    assertEquals("NEW_Q1", readyState.getQuestionState().getQuestion());
+    assertEquals("NEW_Q1", readyState.getQuestionState().getQuestionMain());
   }
 
   @Test
@@ -159,7 +160,7 @@ public class DialogueQuizViewModelTest {
     DialogueQuizViewModel.QuizUiState state = viewModel.getUiState().getValue();
     assertNotNull(state);
     assertEquals(DialogueQuizViewModel.QuizUiState.Status.READY, state.getStatus());
-    assertEquals("S_Q1", state.getQuestionState().getQuestion());
+    assertEquals("S_Q1", state.getQuestionState().getQuestionMain());
     assertEquals(0, manager.requestCount);
     assertEquals(0, manager.initCacheCount);
   }
@@ -187,7 +188,7 @@ public class DialogueQuizViewModelTest {
         DialogueQuizViewModel.PrimaryActionResult.MOVED_TO_NEXT, viewModel.onPrimaryAction());
     DialogueQuizViewModel.QuizUiState movedState = viewModel.getUiState().getValue();
     assertNotNull(movedState);
-    assertEquals("S_Q2", movedState.getQuestionState().getQuestion());
+    assertEquals("S_Q2", movedState.getQuestionState().getQuestionMain());
   }
 
   @Test
@@ -209,7 +210,7 @@ public class DialogueQuizViewModelTest {
     DialogueQuizViewModel.QuizUiState readyState = viewModel.getUiState().getValue();
     assertNotNull(readyState);
     assertEquals(DialogueQuizViewModel.QuizUiState.Status.READY, readyState.getStatus());
-    assertEquals("F_Q1", readyState.getQuestionState().getQuestion());
+    assertEquals("F_Q1", readyState.getQuestionState().getQuestionMain());
   }
 
   @Test
@@ -235,14 +236,54 @@ public class DialogueQuizViewModelTest {
     DialogueQuizViewModel.QuizUiState readyState = viewModel.getUiState().getValue();
     assertNotNull(readyState);
     assertEquals(DialogueQuizViewModel.QuizUiState.Status.READY, readyState.getStatus());
-    assertEquals("R_Q1", readyState.getQuestionState().getQuestion());
+    assertEquals("R_Q1", readyState.getQuestionState().getQuestionMain());
+  }
+
+  @Test
+  public void questionMaterial_isPreservedWhenPresent_andNullWhenMissing() {
+    FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
+    DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager);
+
+    viewModel.initialize("{}");
+    manager.emitQuestion(0, buildChoiceQuestionWithMaterial("Q1", "Material-1", "A1"));
+
+    DialogueQuizViewModel.QuizUiState firstState = viewModel.getUiState().getValue();
+    assertNotNull(firstState);
+    assertEquals("Q1", firstState.getQuestionState().getQuestionMain());
+    assertEquals("Material-1", firstState.getQuestionState().getQuestionMaterial());
+
+    viewModel.onChoiceSelected("A1");
+    assertEquals(DialogueQuizViewModel.PrimaryActionResult.CHECKED, viewModel.onPrimaryAction());
+    assertEquals(
+        DialogueQuizViewModel.PrimaryActionResult.WAITING_NEXT_QUESTION,
+        viewModel.onPrimaryAction());
+
+    manager.emitQuestion(0, buildChoiceQuestion("Q2", "A2"));
+    assertEquals(
+        DialogueQuizViewModel.PrimaryActionResult.MOVED_TO_NEXT, viewModel.onPrimaryAction());
+
+    DialogueQuizViewModel.QuizUiState secondState = viewModel.getUiState().getValue();
+    assertNotNull(secondState);
+    assertEquals("Q2", secondState.getQuestionState().getQuestionMain());
+    assertNull(secondState.getQuestionState().getQuestionMaterial());
   }
 
   @NonNull
   private static QuizData.QuizQuestion buildChoiceQuestion(
       @NonNull String question, @NonNull String answer) {
     return new QuizData.QuizQuestion(
-        question, answer, Arrays.asList(answer, "Wrong-A", "Wrong-B"), null);
+        question, null, answer, Arrays.asList(answer, "Wrong-A", "Wrong-B"), null);
+  }
+
+  @NonNull
+  private static QuizData.QuizQuestion buildChoiceQuestionWithMaterial(
+      @NonNull String questionMain, @NonNull String questionMaterial, @NonNull String answer) {
+    return new QuizData.QuizQuestion(
+        questionMain,
+        questionMaterial,
+        answer,
+        Arrays.asList(answer, "Wrong-A", "Wrong-B"),
+        null);
   }
 
   private static class FakeQuizGenerationManager implements IQuizGenerationManager {

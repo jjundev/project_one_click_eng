@@ -67,6 +67,8 @@ public class DialogueQuizActivity extends AppCompatActivity {
   @Nullable private TextView tvProgress;
   @Nullable private ProgressBar progressBar;
   @Nullable private TextView tvQuestion;
+  @Nullable private MaterialCardView cardQuestionMaterial;
+  @Nullable private TextView tvQuestionMaterial;
   @Nullable private LinearLayout choiceContainer;
   @Nullable private TextInputLayout inputAnswerLayout;
   @Nullable private MaterialCardView resultCard;
@@ -154,6 +156,8 @@ public class DialogueQuizActivity extends AppCompatActivity {
     tvProgress = findViewById(R.id.tv_progress);
     progressBar = findViewById(R.id.progress_bar);
     tvQuestion = findViewById(R.id.tv_quiz_question);
+    cardQuestionMaterial = findViewById(R.id.card_quiz_material);
+    tvQuestionMaterial = findViewById(R.id.tv_quiz_material);
     choiceContainer = findViewById(R.id.layout_quiz_choice_container);
     inputAnswerLayout = findViewById(R.id.layout_quiz_answer_input);
     resultCard = findViewById(R.id.card_quiz_result);
@@ -303,7 +307,16 @@ public class DialogueQuizActivity extends AppCompatActivity {
 
     updateToolbarProgress(state.getCurrentQuestionNumber(), state.getTotalQuestions());
     if (tvQuestion != null) {
-      tvQuestion.setText(questionState.getQuestion());
+      tvQuestion.setText(questionState.getQuestionMain());
+    }
+
+    String questionMaterial = questionState.getQuestionMaterial();
+    boolean hasQuestionMaterial = questionMaterial != null;
+    if (cardQuestionMaterial != null) {
+      cardQuestionMaterial.setVisibility(hasQuestionMaterial ? View.VISIBLE : View.GONE);
+    }
+    if (tvQuestionMaterial != null) {
+      tvQuestionMaterial.setText(hasQuestionMaterial ? questionMaterial : "");
     }
 
     boolean questionChanged = renderedBottomSheetQuestionIndex != state.getCurrentQuestionIndex();

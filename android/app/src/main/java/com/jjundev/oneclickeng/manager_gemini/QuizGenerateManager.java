@@ -41,6 +41,8 @@ public class QuizGenerateManager implements IQuizGenerationManager {
   private static final String KEY_CACHE_NAME = "gemini_quiz_cache_name";
   private static final String KEY_CACHE_CREATED = "gemini_quiz_cache_created_at";
   private static final String KEY_CACHE_TTL = "gemini_quiz_cache_ttl_seconds";
+  private static final String KEY_PROMPT_SCHEMA_VERSION = "gemini_quiz_prompt_schema_version";
+  private static final int PROMPT_SCHEMA_VERSION = 2;
   private static final int CACHE_TTL_SECONDS = 3600; // 1 hour
   private static final int MIN_REMAINING_TTL_SECONDS = 300; // 5 minutes
 
@@ -431,20 +433,22 @@ public class QuizGenerateManager implements IQuizGenerationManager {
         continue;
       }
       JsonObject item = items.get(i).getAsJsonObject();
-      String question = trimToNull(readAsString(item, "question"));
+      String questionMain = trimToNull(readAsString(item, "question_main"));
+      String questionMaterial = trimToNull(readAsString(item, "question_material"));
       String answer = trimToNull(readAsString(item, "answer"));
-      if (question == null || answer == null) {
+      if (questionMain == null || answer == null) {
         continue;
       }
 
-      String dedupeKey = normalize(question);
+      String dedupeKey = normalize(questionMain) + "|" + normalize(questionMaterial);
       if (!seenQuestions.add(dedupeKey)) {
         continue;
       }
 
       List<String> choices = sanitizeChoices(readAsArray(item, "choices"));
       String explanation = trimToNull(readAsString(item, "explanation"));
-      validQuestions.add(new QuizData.QuizQuestion(question, answer, choices, explanation));
+      validQuestions.add(
+          new QuizData.QuizQuestion(questionMain, questionMaterial, answer, choices, explanation));
     }
 
     boolean capped = validQuestions.size() > maxQuestions;
@@ -514,15 +518,17 @@ public class QuizGenerateManager implements IQuizGenerationManager {
     }
     try {
       JsonObject item = JsonParser.parseString(rawQuestionObject).getAsJsonObject();
-      String question = trimToNull(readAsString(item, "question"));
+      String questionMain = trimToNull(readAsString(item, "question_main"));
+      String questionMaterial = trimToNull(readAsString(item, "question_material"));
       String answer = trimToNull(readAsString(item, "answer"));
-      if (question == null || answer == null) {
+      if (questionMain == null || answer == null) {
         return null;
       }
 
       List<String> choices = sanitizeChoices(readAsArray(item, "choices"));
       String explanation = trimToNull(readAsString(item, "explanation"));
-      return new QuizData.QuizQuestion(question, answer, choices, explanation);
+      return new QuizData.QuizQuestion(
+          questionMain, questionMaterial, answer, choices, explanation);
     } catch (Exception ignored) {
       return null;
     }
@@ -677,6 +683,17 @@ public class QuizGenerateManager implements IQuizGenerationManager {
 
   @Override
   public void initializeCache(@NonNull InitCallback callback) {
+    int savedPromptSchemaVersion = prefs.getInt(KEY_PROMPT_SCHEMA_VERSION, 0);
+    if (savedPromptSchemaVersion != PROMPT_SCHEMA_VERSION) {
+      logDebug(
+          "Prompt schema changed: "
+              + savedPromptSchemaVersion
+              + " -> "
+              + PROMPT_SCHEMA_VERSION
+              + ". Resetting quiz cache.");
+      clearLocalCacheData();
+    }
+
     String savedCacheName = prefs.getString(KEY_CACHE_NAME, null);
 
     if (savedCacheName != null) {
@@ -797,6 +814,7 @@ public class QuizGenerateManager implements IQuizGenerationManager {
                       .putString(KEY_CACHE_NAME, cachedContentName)
                       .putLong(KEY_CACHE_CREATED, System.currentTimeMillis())
                       .putInt(KEY_CACHE_TTL, CACHE_TTL_SECONDS)
+                      .putInt(KEY_PROMPT_SCHEMA_VERSION, PROMPT_SCHEMA_VERSION)
                       .apply();
 
                   logDebug("New cache created: " + cachedContentName);
@@ -848,7 +866,13 @@ public class QuizGenerateManager implements IQuizGenerationManager {
   }
 
   private void clearLocalCacheData() {
-    prefs.edit().remove(KEY_CACHE_NAME).remove(KEY_CACHE_CREATED).remove(KEY_CACHE_TTL).apply();
+    prefs
+        .edit()
+        .remove(KEY_CACHE_NAME)
+        .remove(KEY_CACHE_CREATED)
+        .remove(KEY_CACHE_TTL)
+        .remove(KEY_PROMPT_SCHEMA_VERSION)
+        .apply();
   }
 
   private String getSystemPrompt() {
@@ -876,159 +900,27 @@ public class QuizGenerateManager implements IQuizGenerationManager {
   }
 
   private String buildSystemPrompt_Dummy() {
-    return "You are an expert English learning quiz generator specialized in creating effective review quizzes for Korean English learners.\n"
-        + "Your sole responsibility is to generate well-structured quiz questions based strictly on the provided input data, and return them as a single valid JSON object.\n"
-        + "\n"
-        + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        + "RESPONSE FORMAT\n"
-        + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        + "\n"
-        + "You MUST respond with ONLY a raw valid JSON object.\n"
-        + "- Do NOT include any markdown code fences (e.g. ```json or ```)\n"
-        + "- Do NOT include any explanation, commentary, or extra text outside the JSON\n"
-        + "- Do NOT include a BOM or any invisible characters\n"
-        + "- The response must be directly parseable by a standard JSON parser\n"
-        + "\n"
-        + "Required top-level structure:\n"
+    return "You are an expert English learning quiz generator for Korean learners.\n"
+        + "Return ONLY one valid JSON object with this schema:\n"
         + "{\n"
-        + "\"questions\": [\n"
-        + "{\n"
-        + "\"question\": \"string (required)\",\n"
-        + "\"answer\": \"string (required)\",\n"
-        + "\"choices\": [\"string\", \"string\", \"string\", \"string\"],\n"
-        + "\"explanation\": \"string (optional)\"\n"
+        + "  \"questions\": [\n"
+        + "    {\n"
+        + "      \"question_main\": \"string (required)\",\n"
+        + "      \"question_material\": \"string (optional)\",\n"
+        + "      \"answer\": \"string (required)\",\n"
+        + "      \"choices\": [\"string\", \"string\", \"string\", \"string\"],\n"
+        + "      \"explanation\": \"string (optional)\"\n"
+        + "    }\n"
+        + "  ]\n"
         + "}\n"
-        + "]\n"
-        + "}\n"
-        + "\n"
-        + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        + "LANGUAGE RULES (CRITICAL — MUST FOLLOW WITHOUT EXCEPTION)\n"
-        + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        + "\n"
-        + "The target audience is Korean English learners. Therefore, strict language rules apply to every field in the output.\n"
-        + "\n"
-        + "Rule L-1 — Korean as the default language\n"
-        + "All text that is NOT an English sentence or English word MUST be written in Korean.\n"
-        + "This applies universally across all fields: question, answer, choices, and explanation.\n"
-        + "\n"
-        + "Rule L-2 — When English is allowed\n"
-        + "English is only permitted in the following cases:\n"
-        + "- When quoting or presenting an English word or sentence as part of the quiz content (e.g. a fill-in-the-blank sentence, a vocabulary item, or a corrected expression)\n"
-        + "- When the answer itself is an English word or sentence\n"
-        + "- When choices are English words or sentences being evaluated\n"
-        + "\n"
-        + "Rule L-3 — Field-level language guidance\n"
-        + "\n"
-        + "[question field]\n"
-        + "- All instructions, context descriptions, and question prompts MUST be written in Korean.\n"
-        + "- English sentences or words may appear inside the question only when they are the subject being tested (e.g. quoted in a fill-in-the-blank or error-correction item).\n"
-        + "- Example (correct):   \"다음 빈칸에 알맞은 단어를 고르세요. 'She was ___ by the unexpected news.'\"\n"
-        + "- Example (incorrect): \"Choose the correct word to fill in the blank.\"\n"
-        + "\n"
-        + "[answer field]\n"
-        + "- If the question asks for an English word or sentence: write the answer in English.\n"
-        + "- If the question asks for a Korean meaning or translation: write the answer in Korean.\n"
-        + "- Example (correct):   \"surprised\" — when asking for the English word\n"
-        + "- Example (correct):   \"놀란, 충격을 받은\" — when asking for the Korean meaning\n"
-        + "- Example (incorrect): \"The answer is surprised.\" — do not mix languages unnecessarily\n"
-        + "\n"
-        + "[choices field]\n"
-        + "- If the choices are English words or sentences being evaluated: write them in English.\n"
-        + "- If the choices are Korean meanings or translations: write them in Korean.\n"
-        + "- Do NOT mix Korean and English within the same set of choices.\n"
-        + "\n"
-        + "[explanation field]\n"
-        + "- MUST be written entirely in Korean.\n"
-        + "- English words or sentences may be quoted within the explanation when directly referencing the quiz content.\n"
-        + "- Example (correct):   \"'surprised'는 '놀란, 충격을 받은'이라는 뜻의 형용사로, 감정의 수동적 상태를 표현할 때 사용합니다.\"\n"
-        + "- Example (incorrect): \"This word means to feel shocked or amazed by something unexpected.\"\n"
-        + "\n"
-        + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        + "INPUT DATA STRUCTURE\n"
-        + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        + "\n"
-        + "The user prompt provides a JSON payload containing two arrays: `expressions` and `words`.\n"
-        + "You MUST generate all questions exclusively from this data. Do not invent or assume any content beyond what is provided.\n"
-        + "\n"
-        + "[ expressions array ]\n"
-        + "Each item contains:\n"
-        + "- before         : The original English sentence written by the learner (unnatural or incorrect expression)\n"
-        + "- after          : The corrected English sentence (natural and accurate expression)\n"
-        + "- koreanPrompt   : A Korean description of the situation or meaning behind the expression\n"
-        + "- explanation    : A detailed explanation of why the correction was made or how the expression is used\n"
-        + "\n"
-        + "[ words array ]\n"
-        + "Each item contains:\n"
-        + "- english        : An English word or short expression\n"
-        + "- korean         : The Korean meaning or translation of the word/expression\n"
-        + "- exampleEnglish : An English example sentence using the word\n"
-        + "- exampleKorean  : The Korean translation of the example sentence\n"
-        + "\n"
-        + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        + "QUESTION GENERATION RULES\n"
-        + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        + "\n"
-        + "Rule Q-1 — Source restriction\n"
-        + "Generate questions ONLY from the content within the provided `expressions` and `words` arrays.\n"
-        + "Do NOT introduce vocabulary, sentences, or concepts that are not present in the input data.\n"
-        + "\n"
-        + "Rule Q-2 — Exact question count\n"
-        + "Generate EXACTLY {maxQuestions} questions — no more, no fewer.\n"
-        + "If the input data is limited, vary the question type for the same content to meet the required count.\n"
-        + "\n"
-        + "Rule Q-3 — Required fields\n"
-        + "`question` and `answer` are REQUIRED for every item and MUST NOT be empty.\n"
-        + "Empty strings (\"\") and null values are not acceptable.\n"
-        + "\n"
-        + "Rule Q-4 — choices (multiple choice options)\n"
-        + "`choices` is optional. If included, the following conditions MUST all be met:\n"
-        + "- Provide exactly 4 options\n"
-        + "- The correct answer (matching the `answer` field) MUST be included among the 4 options\n"
-        + "- Shuffle the order so the correct answer is not always in the same position\n"
-        + "- Wrong answer options MUST be drawn from other items within the input data (do not fabricate distractors)\n"
-        + "\n"
-        + "Rule Q-5 — explanation (answer explanation)\n"
-        + "`explanation` is optional. If included, the following conditions MUST all be met:\n"
-        + "- Write entirely in Korean (English words or sentences may be quoted inline when referencing quiz content)\n"
-        + "- Keep it concise: 1 to 2 sentences maximum\n"
-        + "- Focus on why the answer is correct and in what context the expression or word is used\n"
-        + "\n"
-        + "Rule Q-6 — Question type variety\n"
-        + "Mix the following question types throughout the quiz. Do NOT repeat the same question type more than 2 times in a row.\n"
-        + "\n"
-        + "From `expressions`:\n"
-        + "- Error correction    : Present the `before` sentence and ask the learner to identify or select the corrected `after` sentence\n"
-        + "- Situation-to-English: Present the `koreanPrompt` context and ask the learner to produce or select the matching `after` expression\n"
-        + "- Correction rationale: Present both `before` and `after` and ask what was changed and why, based on `explanation`\n"
-        + "\n"
-        + "From `words`:\n"
-        + "- English-to-Korean   : Present the English word and ask the learner to select or write the Korean meaning\n"
-        + "- Korean-to-English   : Present the Korean meaning and ask the learner to select or write the English word\n"
-        + "- Fill in the blank   : Use `exampleEnglish` with the target word replaced by a blank (___) and ask the learner to fill it in\n"
-        + "- Sentence translation: Present `exampleEnglish` and ask for the Korean translation, or vice versa\n"
-        + "\n"
-        + "Rule Q-7 — Difficulty and clarity\n"
-        + "- Use simple and clear language appropriate for Korean English learners at CEFR A2–B1 level.\n"
-        + "- Keep question prompts concise. Avoid unnecessarily long or complex phrasing.\n"
-        + "- Each question should test only one concept at a time.\n"
-        + "\n"
-        + "Rule Q-8 — No duplicate questions\n"
-        + "Do not generate two questions that test the exact same content in the exact same format.\n"
-        + "The same source item may be reused if the question type is different.\n"
-        + "\n"
-        + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        + "OUTPUT VALIDATION CHECKLIST\n"
-        + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        + "\n"
-        + "Before returning your response, verify every item on this checklist:\n"
-        + "\n"
-        + "[ ] The response is a raw JSON object with no markdown code fences\n"
-        + "[ ] The `questions` array contains exactly {maxQuestions} items\n"
-        + "[ ] Every `question` and `answer` field is non-empty\n"
-        + "[ ] Every `choices` array (when present) contains exactly 4 options and includes the correct answer\n"
-        + "[ ] All text except English words and sentences is written in Korean\n"
-        + "[ ] All content is derived from the provided input data with no fabricated content\n"
-        + "[ ] No two questions are identical in both source content and question type";
+        + "Rules:\n"
+        + "- No markdown code fence or extra text.\n"
+        + "- Generate exactly {maxQuestions} items.\n"
+        + "- `question_main` and `answer` must be non-empty.\n"
+        + "- `question_material` may be omitted or null when no supplemental text is needed.\n"
+        + "- Keep all instructions in Korean; English is allowed only for quiz content.\n"
+        + "- Every choices array must contain exactly 4 options and include the answer.\n"
+        + "- Use only provided input data and avoid duplicate questions.";
   }
 
   public static final class ParseResult {

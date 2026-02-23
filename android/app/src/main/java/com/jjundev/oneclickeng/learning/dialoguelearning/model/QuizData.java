@@ -135,30 +135,45 @@ public class QuizData {
   }
 
   public static class QuizQuestion {
-    private String question;
+    private String questionMain;
+    private String questionMaterial;
     private String answer;
     private List<String> choices;
     private String explanation;
 
     public QuizQuestion() {}
 
-    public QuizQuestion(String question, String answer) {
-      this(question, answer, null, null);
+    public QuizQuestion(String questionMain, String answer) {
+      this(questionMain, null, answer, null, null);
     }
 
-    public QuizQuestion(String question, String answer, List<String> choices, String explanation) {
-      this.question = question;
+    public QuizQuestion(
+        String questionMain,
+        String questionMaterial,
+        String answer,
+        List<String> choices,
+        String explanation) {
+      this.questionMain = questionMain;
+      this.questionMaterial = questionMaterial;
       this.answer = answer;
       this.choices = choices;
       this.explanation = explanation;
     }
 
-    public String getQuestion() {
-      return question;
+    public String getQuestionMain() {
+      return questionMain;
     }
 
-    public void setQuestion(String question) {
-      this.question = question;
+    public void setQuestionMain(String questionMain) {
+      this.questionMain = questionMain;
+    }
+
+    public String getQuestionMaterial() {
+      return questionMaterial;
+    }
+
+    public void setQuestionMaterial(String questionMaterial) {
+      this.questionMaterial = questionMaterial;
     }
 
     public String getAnswer() {
