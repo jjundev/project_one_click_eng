@@ -227,12 +227,21 @@ public class SessionSummaryBinder {
               updateExpressionToggleUi(toggleBtn, nextRequested, currentTotal);
 
               if (collapsedAfterClick) {
-                // Smooth scroll to the toggle button after collapsing
+                // After collapsing, center the toggle button in the visible scroll area.
                 NestedScrollView scrollView = rootView.findViewById(R.id.scroll_view_summary);
                 if (scrollView != null) {
                   scrollView.post(
                       () -> {
-                        int targetY = toggleBtn.getTop();
+                        View content = scrollView.getChildAt(0);
+                        if (content == null) {
+                          return;
+                        }
+                        int targetY =
+                            calculateCenteredScrollTargetY(
+                                toggleBtn.getTop(),
+                                Math.max(toggleBtn.getHeight(), 0),
+                                scrollView.getHeight(),
+                                content.getHeight());
                         scrollView.smoothScrollTo(0, targetY);
                       });
                 }
@@ -247,6 +256,17 @@ public class SessionSummaryBinder {
     for (int i = 0; i < container.getChildCount(); i++) {
       container.getChildAt(i).setVisibility(i < safeVisibleCount ? View.VISIBLE : View.GONE);
     }
+  }
+
+  static int calculateCenteredScrollTargetY(
+      int toggleTop, int toggleHeight, int viewportHeight, int contentHeight) {
+    int safeToggleHeight = Math.max(0, toggleHeight);
+    int safeViewportHeight = Math.max(0, viewportHeight);
+    int safeContentHeight = Math.max(0, contentHeight);
+
+    int desiredY = toggleTop + (safeToggleHeight / 2) - (safeViewportHeight / 2);
+    int scrollRange = Math.max(0, safeContentHeight - safeViewportHeight);
+    return Math.max(0, Math.min(desiredY, scrollRange));
   }
 
   private static Integer toIntegerTag(Object value) {
