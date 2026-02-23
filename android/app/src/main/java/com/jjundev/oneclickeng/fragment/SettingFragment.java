@@ -15,20 +15,31 @@ import androidx.appcompat.widget.AppCompatButton;
 import androidx.fragment.app.Fragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.WriteBatch;
 import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.activity.LoginActivity;
-import com.jjundev.oneclickeng.settings.AppSettings;
+import com.jjundev.oneclickeng.dialog.LearningDataResetDialog;
 import com.jjundev.oneclickeng.settings.AppSettingsStore;
+import com.jjundev.oneclickeng.settings.LearningDataRetentionPolicy;
+import java.util.ArrayList;
+import java.util.List;
 
-public class SettingFragment extends Fragment {
+public class SettingFragment extends Fragment
+    implements LearningDataResetDialog.OnLearningDataResetListener {
   private static final String TAG = "SettingFragment";
+  private static final String TAG_LEARNING_DATA_RESET_DIALOG = "LearningDataResetDialog";
+  private static final int FIRESTORE_BATCH_DELETE_LIMIT = 450;
 
   @Nullable private AppSettingsStore appSettingsStore;
 
   private boolean bindingState;
+  private boolean isLearningDataResetInProgress;
 
   private LinearLayout layoutProfileNickname;
+  private LinearLayout layoutInitLearningData;
   private TextView tvProfileNicknameValue;
 
   private TextView tvAppVersion;
@@ -54,6 +65,7 @@ public class SettingFragment extends Fragment {
 
   private void bindViews(@NonNull View view) {
     layoutProfileNickname = view.findViewById(R.id.layout_profile_nickname);
+    layoutInitLearningData = view.findViewById(R.id.layout_init_learning_data);
     tvProfileNicknameValue = view.findViewById(R.id.tv_profile_nickname_value);
     tvAppVersion = view.findViewById(R.id.tv_app_version);
     tvLogout = view.findViewById(R.id.tv_logout);
@@ -66,6 +78,10 @@ public class SettingFragment extends Fragment {
   private void setupListeners() {
     if (layoutProfileNickname != null) {
       layoutProfileNickname.setOnClickListener(v -> showNicknameEditDialog());
+    }
+
+    if (layoutInitLearningData != null) {
+      layoutInitLearningData.setOnClickListener(v -> showLearningDataResetDialog());
     }
 
     if (tvLogout != null) {
@@ -145,7 +161,6 @@ public class SettingFragment extends Fragment {
     if (store == null) {
       return;
     }
-    AppSettings settings = store.getSettings();
     bindingState = true;
 
     if (tvProfileNicknameValue != null) {
@@ -153,6 +168,150 @@ public class SettingFragment extends Fragment {
     }
 
     bindingState = false;
+  }
+
+  private void showLearningDataResetDialog() {
+    if (isLearningDataResetInProgress) {
+      return;
+    }
+    if (getChildFragmentManager().findFragmentByTag(TAG_LEARNING_DATA_RESET_DIALOG) != null) {
+      return;
+    }
+    LearningDataResetDialog dialog = new LearningDataResetDialog();
+    dialog.show(getChildFragmentManager(), TAG_LEARNING_DATA_RESET_DIALOG);
+  }
+
+  @Override
+  public void onLearningDataResetRequested(
+      @NonNull LearningDataRetentionPolicy.Preset preset, @NonNull LearningDataResetDialog dialog) {
+    if (isLearningDataResetInProgress) {
+      dialog.showLoading(false);
+      return;
+    }
+
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+    if (user == null) {
+      dialog.showLoading(false);
+      showToastSafe(R.string.settings_learning_reset_login_required);
+      return;
+    }
+
+    setLearningDataResetInProgress(true);
+    long nowEpochMs = System.currentTimeMillis();
+
+    FirebaseFirestore.getInstance()
+        .collection("users")
+        .document(user.getUid())
+        .collection("saved_cards")
+        .get()
+        .addOnSuccessListener(
+            querySnapshot -> {
+              List<DocumentSnapshot> docsToDelete = new ArrayList<>();
+              for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                if (shouldDeleteDocument(document, preset, nowEpochMs)) {
+                  docsToDelete.add(document);
+                }
+              }
+
+              if (docsToDelete.isEmpty()) {
+                setLearningDataResetInProgress(false);
+                dialog.showLoading(false);
+                if (dialog.isAdded()) {
+                  dialog.dismiss();
+                }
+                showToastSafe(R.string.settings_learning_reset_nothing_to_delete);
+                return;
+              }
+
+              deleteSavedCardsInChunks(docsToDelete, 0, 0, dialog);
+            })
+        .addOnFailureListener(
+            e -> {
+              setLearningDataResetInProgress(false);
+              dialog.showLoading(false);
+              logDebug("Failed to query learning data for reset: " + e.getMessage());
+              showToastSafe(R.string.settings_learning_reset_failed);
+            });
+  }
+
+  private boolean shouldDeleteDocument(
+      @NonNull DocumentSnapshot document,
+      @NonNull LearningDataRetentionPolicy.Preset preset,
+      long nowEpochMs) {
+    if (preset == LearningDataRetentionPolicy.Preset.DELETE_ALL) {
+      return true;
+    }
+    Long timestamp = document.getLong("timestamp");
+    return LearningDataRetentionPolicy.shouldDelete(timestamp, preset, nowEpochMs);
+  }
+
+  private void deleteSavedCardsInChunks(
+      @NonNull List<DocumentSnapshot> docsToDelete,
+      int startIndex,
+      int deletedCount,
+      @NonNull LearningDataResetDialog dialog) {
+    int endIndex = Math.min(startIndex + FIRESTORE_BATCH_DELETE_LIMIT, docsToDelete.size());
+    WriteBatch batch = FirebaseFirestore.getInstance().batch();
+
+    for (int i = startIndex; i < endIndex; i++) {
+      batch.delete(docsToDelete.get(i).getReference());
+    }
+
+    batch
+        .commit()
+        .addOnSuccessListener(
+            unused -> {
+              int nextDeletedCount = deletedCount + (endIndex - startIndex);
+              if (endIndex >= docsToDelete.size()) {
+                onLearningDataResetCompleted(dialog, nextDeletedCount);
+                return;
+              }
+              deleteSavedCardsInChunks(docsToDelete, endIndex, nextDeletedCount, dialog);
+            })
+        .addOnFailureListener(
+            e -> {
+              setLearningDataResetInProgress(false);
+              dialog.showLoading(false);
+              logDebug("Failed to delete learning data batch: " + e.getMessage());
+              if (deletedCount > 0) {
+                showToastSafe(
+                    getString(R.string.settings_learning_reset_partial_failed, deletedCount));
+                return;
+              }
+              showToastSafe(R.string.settings_learning_reset_failed);
+            });
+  }
+
+  private void onLearningDataResetCompleted(
+      @NonNull LearningDataResetDialog dialog, int deletedCount) {
+    setLearningDataResetInProgress(false);
+    dialog.showLoading(false);
+    if (dialog.isAdded()) {
+      dialog.dismiss();
+    }
+    showToastSafe(getString(R.string.settings_learning_reset_success_count, deletedCount));
+  }
+
+  private void setLearningDataResetInProgress(boolean inProgress) {
+    isLearningDataResetInProgress = inProgress;
+    if (layoutInitLearningData != null) {
+      layoutInitLearningData.setEnabled(!inProgress);
+      layoutInitLearningData.setAlpha(inProgress ? 0.6f : 1f);
+    }
+  }
+
+  private void showToastSafe(int messageResId) {
+    if (!isAdded()) {
+      return;
+    }
+    Toast.makeText(requireContext(), messageResId, Toast.LENGTH_SHORT).show();
+  }
+
+  private void showToastSafe(@NonNull String message) {
+    if (!isAdded()) {
+      return;
+    }
+    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
   }
 
   private void logDebug(@NonNull String message) {
