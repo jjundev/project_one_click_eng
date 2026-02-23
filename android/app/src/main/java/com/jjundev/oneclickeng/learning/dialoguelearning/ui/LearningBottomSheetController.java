@@ -82,6 +82,8 @@ public class LearningBottomSheetController {
 
                 bottomSheetBehavior.setPeekHeight(minHeight);
                 bottomSheetBehavior.setMaxHeight(maxHeight);
+                chatRenderer.setFooterHeight(minHeight);
+                chatRenderer.syncFooterWithBottomSheet(bottomSheet);
                 bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
                 setVisible(false);
@@ -93,6 +95,7 @@ public class LearningBottomSheetController {
 
   public void setVisible(boolean visible) {
     bottomSheetRenderer.showSheet(visible);
+    syncChatFooterForCurrentSheetState();
   }
 
   public View replaceOrReuseContent(
@@ -138,6 +141,7 @@ public class LearningBottomSheetController {
 
   public void clearContent() {
     bottomSheetRenderer.clearContent();
+    syncChatFooterForCurrentSheetState();
   }
 
   public void changeContent(@NonNull Runnable action) {
@@ -231,5 +235,18 @@ public class LearningBottomSheetController {
     }
 
     return visibleHeight;
+  }
+
+  private void syncChatFooterForCurrentSheetState() {
+    View sheet = bottomSheet;
+    if (sheet == null) {
+      chatRenderer.setFooterHeight(0);
+      return;
+    }
+    if (sheet.getVisibility() == View.VISIBLE) {
+      sheet.post(() -> chatRenderer.syncFooterWithBottomSheet(sheet));
+      return;
+    }
+    chatRenderer.setFooterHeight(0);
   }
 }

@@ -110,7 +110,6 @@ public final class DialogueTurnCoordinator {
       if (bottomSheetController != null) {
         bottomSheetController.setAutoScrollRequested(true);
       }
-      chatAdapter.setFooterHeight(0);
     }
     if (chatRenderer != null) {
       chatRenderer.scrollToBottom();
