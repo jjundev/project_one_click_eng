@@ -13,6 +13,7 @@ import com.jjundev.oneclickeng.learning.dialoguelearning.model.QuizData;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.SummaryData;
 import com.jjundev.oneclickeng.learning.quiz.session.QuizStreamingSessionStore;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -454,6 +455,7 @@ public class DialogueQuizViewModel extends ViewModel {
       result.add(answer);
     }
 
+    Collections.shuffle(result);
     return result;
   }
 

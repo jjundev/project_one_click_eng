@@ -268,6 +268,45 @@ public class DialogueQuizViewModelTest {
     assertNull(secondState.getQuestionState().getQuestionMaterial());
   }
 
+  @Test
+  public void choices_areShuffled_soAnswerIsNotAlwaysFirst() {
+    FakeQuizGenerationManager manager = new FakeQuizGenerationManager();
+    DialogueQuizViewModel viewModel = new DialogueQuizViewModel(manager);
+
+    viewModel.initialize("{}", 10);
+    for (int i = 1; i <= 10; i++) {
+      String answer = "A" + i;
+      manager.emitQuestion(0, buildFourChoiceQuestion("Q" + i, answer));
+    }
+    manager.completeRequest(0, null);
+
+    boolean foundQuestionWithAnswerNotFirst = false;
+    for (int i = 1; i <= 10; i++) {
+      String answer = "A" + i;
+      DialogueQuizViewModel.QuizUiState state = viewModel.getUiState().getValue();
+      assertNotNull(state);
+      assertEquals(DialogueQuizViewModel.QuizUiState.Status.READY, state.getStatus());
+      assertEquals("Q" + i, state.getQuestionState().getQuestionMain());
+      assertTrue(state.getQuestionState().getChoices().contains(answer));
+
+      if (!answer.equals(state.getQuestionState().getChoices().get(0))) {
+        foundQuestionWithAnswerNotFirst = true;
+      }
+
+      viewModel.onChoiceSelected(answer);
+      assertEquals(DialogueQuizViewModel.PrimaryActionResult.CHECKED, viewModel.onPrimaryAction());
+      if (i < 10) {
+        assertEquals(
+            DialogueQuizViewModel.PrimaryActionResult.MOVED_TO_NEXT, viewModel.onPrimaryAction());
+      } else {
+        assertEquals(
+            DialogueQuizViewModel.PrimaryActionResult.COMPLETED, viewModel.onPrimaryAction());
+      }
+    }
+
+    assertTrue(foundQuestionWithAnswerNotFirst);
+  }
+
   @NonNull
   private static QuizData.QuizQuestion buildChoiceQuestion(
       @NonNull String question, @NonNull String answer) {
@@ -283,6 +322,17 @@ public class DialogueQuizViewModelTest {
         questionMaterial,
         answer,
         Arrays.asList(answer, "Wrong-A", "Wrong-B"),
+        null);
+  }
+
+  @NonNull
+  private static QuizData.QuizQuestion buildFourChoiceQuestion(
+      @NonNull String questionMain, @NonNull String answer) {
+    return new QuizData.QuizQuestion(
+        questionMain,
+        null,
+        answer,
+        Arrays.asList(answer, "Wrong-A", "Wrong-B", "Wrong-C"),
         null);
   }
 
