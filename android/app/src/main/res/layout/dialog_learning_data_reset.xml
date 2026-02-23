@@ -15,55 +15,46 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="24dp">
+            android:padding="@dimen/dialog_content_padding">
 
             <TextView
                 android:id="@+id/tv_header"
+                style="@style/DialogTextHeader"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="6dp"
-                android:text="@string/settings_learning_reset_title"
-                android:textColor="@color/text_primary"
-                android:textSize="22sp"
-                android:textStyle="bold" />
+                android:layout_marginBottom="@dimen/dialog_header_bottom_margin"
+                android:text="@string/settings_learning_reset_title" />
 
             <TextView
                 android:id="@+id/tv_subtitle"
+                style="@style/DialogTextSubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
-                android:text="@string/settings_learning_reset_subtitle"
-                android:textColor="@color/grey_600"
-                android:textSize="14sp" />
+                android:layout_marginBottom="@dimen/dialog_subtitle_bottom_margin"
+                android:text="@string/settings_learning_reset_subtitle" />
+
+            <TextView
+                style="@style/DialogTextSectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_section_label_bottom_margin"
+                android:text="@string/settings_learning_reset_section_title" />
 
             <com.google.android.material.card.MaterialCardView
+                style="@style/DialogCard"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardBackgroundColor="@color/grey_50"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/grey_200"
-                app:strokeWidth="1dp">
+                android:layout_height="wrap_content">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="18dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/settings_learning_reset_section_title"
-                        android:textColor="@color/grey_700"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                    android:padding="@dimen/dialog_card_content_padding">
 
                     <RadioGroup
                         android:id="@+id/rg_retention_preset"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp">
+                        android:layout_height="wrap_content">
 
                         <RadioButton
                             android:id="@+id/rb_keep_1w"
@@ -71,7 +62,7 @@
                             android:layout_height="wrap_content"
                             android:text="@string/settings_learning_reset_option_keep_1w"
                             android:textColor="@color/grey_700"
-                            android:textSize="14sp" />
+                            android:textSize="@dimen/dialog_subtitle_text_size" />
 
                         <RadioButton
                             android:id="@+id/rb_keep_2w"
@@ -79,7 +70,7 @@
                             android:layout_height="wrap_content"
                             android:text="@string/settings_learning_reset_option_keep_2w"
                             android:textColor="@color/grey_700"
-                            android:textSize="14sp" />
+                            android:textSize="@dimen/dialog_subtitle_text_size" />
 
                         <RadioButton
                             android:id="@+id/rb_keep_1m"
@@ -87,7 +78,7 @@
                             android:layout_height="wrap_content"
                             android:text="@string/settings_learning_reset_option_keep_1m"
                             android:textColor="@color/grey_700"
-                            android:textSize="14sp" />
+                            android:textSize="@dimen/dialog_subtitle_text_size" />
 
                         <RadioButton
                             android:id="@+id/rb_keep_3m"
@@ -95,7 +86,7 @@
                             android:layout_height="wrap_content"
                             android:text="@string/settings_learning_reset_option_keep_3m"
                             android:textColor="@color/grey_700"
-                            android:textSize="14sp" />
+                            android:textSize="@dimen/dialog_subtitle_text_size" />
 
                         <RadioButton
                             android:id="@+id/rb_delete_all"
@@ -103,56 +94,41 @@
                             android:layout_height="wrap_content"
                             android:text="@string/settings_learning_reset_option_all"
                             android:textColor="@color/grey_700"
-                            android:textSize="14sp" />
+                            android:textSize="@dimen/dialog_subtitle_text_size" />
                     </RadioGroup>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <TextView
                 android:id="@+id/tv_reset_description"
+                style="@style/DialogTextHelper"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:textColor="@color/grey_500"
-                android:textSize="13sp" />
+                android:layout_marginTop="12dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:orientation="horizontal"
-                android:weightSum="2">
+                android:layout_marginTop="@dimen/dialog_action_top_margin"
+                android:orientation="horizontal">
 
                 <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/btn_reset_cancel"
+                    style="@style/DialogButtonSecondary"
                     android:layout_width="0dp"
-                    android:layout_height="52dp"
                     android:layout_weight="1"
-                    android:layout_marginEnd="6dp"
-                    android:background="@drawable/bg_close_button_primary"
-                    android:backgroundTint="@color/grey_200"
-                    android:elevation="0dp"
-                    android:stateListAnimator="@null"
-                    android:text="@string/settings_learning_reset_cancel"
-                    android:textAllCaps="false"
-                    android:textColor="@color/grey_700"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    android:text="@string/settings_learning_reset_cancel" />
+
+                <Space
+                    android:layout_width="@dimen/dialog_action_gap"
+                    android:layout_height="0dp" />
 
                 <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/btn_reset_confirm"
+                    style="@style/DialogButtonPrimary"
                     android:layout_width="0dp"
-                    android:layout_height="52dp"
                     android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:background="@drawable/bg_close_button_primary"
-                    android:elevation="0dp"
-                    android:stateListAnimator="@null"
-                    android:text="@string/settings_learning_reset_confirm"
-                    android:textAllCaps="false"
-                    android:textColor="@color/white"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    android:text="@string/settings_learning_reset_confirm" />
             </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
@@ -164,7 +140,7 @@
         android:layout_gravity="center"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:padding="40dp"
+        android:padding="@dimen/dialog_loading_padding"
         android:visibility="gone">
 
         <ProgressBar
@@ -174,13 +150,12 @@
             android:indeterminateTint="@color/primary_blue" />
 
         <TextView
+            style="@style/DialogTextBody"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="@dimen/dialog_loading_text_margin_top"
             android:text="@string/settings_learning_reset_loading"
-            android:textColor="@color/text_primary"
-            android:textSize="16sp"
             android:textStyle="bold" />
     </LinearLayout>
 

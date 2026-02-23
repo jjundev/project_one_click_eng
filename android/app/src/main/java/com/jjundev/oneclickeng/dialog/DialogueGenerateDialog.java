@@ -107,19 +107,19 @@ public class DialogueGenerateDialog extends DialogFragment {
     String description;
     switch (level) {
       case "Beginner":
-        description = "기초적인 단어와 간단한 문장으로 대화합니다.";
+        description = "기초적인 단어와 간단한 문장으로 대화할 수 있어요.";
         break;
       case "Elementary":
-        description = "익숙한 주제에 대해 짧고 쉬운 표현을 사용합니다.";
+        description = "익숙한 주제에 대해 짧고 쉬운 표현을 사용할 수 있어요.";
         break;
       case "Intermediate":
-        description = "일상적인 대화를 자연스럽게 나눌 수 있는 수준입니다.";
+        description = "일상적인 대화를 자연스럽게 나눌 수 있어요.";
         break;
       case "Upper-Intermediate":
-        description = "다양한 주제에 대해 복잡한 문장을 구사합니다.";
+        description = "다양한 주제에 대해 복잡한 문장을 구사할 수 있어요.";
         break;
       case "Advanced":
-        description = "전문적인 주제나 추상적인 개념도 유창하게 표현합니다.";
+        description = "전문적인 주제나 추상적인 개념도 유창하게 표현할 수 있어요.";
         break;
       default:
         description = "";

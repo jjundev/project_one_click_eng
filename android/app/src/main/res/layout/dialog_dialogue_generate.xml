@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -15,113 +15,102 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="24dp">
+            android:padding="@dimen/dialog_content_padding">
 
             <TextView
                 android:id="@+id/tv_header"
+                style="@style/DialogTextHeader"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="6dp"
-                android:text="대본 설정"
-                android:textColor="@color/text_primary"
-                android:textSize="22sp"
-                android:textStyle="bold" />
+                android:layout_marginBottom="@dimen/dialog_header_bottom_margin"
+                android:text="대본 설정" />
 
             <TextView
+                style="@style/DialogTextSubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                android:text="AI가 상황에 맞는 영어 대화를 생성해요"
-                android:textColor="@color/grey_600"
-                android:textSize="14sp" />
+                android:layout_marginBottom="@dimen/dialog_subtitle_bottom_margin"
+                android:text="AI가 상황에 맞는 영어 대화를 생성해요" />
 
             <TextView
+                style="@style/DialogTextSectionLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:text="주제 (Topic)"
-                android:textColor="@color/grey_700"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:layout_marginBottom="@dimen/dialog_section_label_bottom_margin"
+                android:text="주제 (Topic)" />
 
-            <FrameLayout
+            <com.google.android.material.card.MaterialCardView
+                style="@style/DialogCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                android:background="@drawable/bg_edittext_grey">
+                android:layout_marginBottom="@dimen/dialog_section_bottom_margin">
 
                 <EditText
                     android:id="@+id/et_topic_input"
+                    style="@style/DialogTextBody"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="@android:color/transparent"
                     android:hint="예) 카페에서 주문할 때"
                     android:inputType="textCapSentences"
-                    android:padding="16dp"
+                    android:padding="@dimen/dialog_card_content_padding"
                     android:text="인사"
-                    android:textColor="@color/black"
-                    android:textSize="16sp" />
-            </FrameLayout>
+                    android:textColorHint="@color/grey_400" />
+            </com.google.android.material.card.MaterialCardView>
 
             <TextView
+                style="@style/DialogTextSectionLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:text="난이도 (Level)"
-                android:textColor="@color/grey_700"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:layout_marginBottom="@dimen/dialog_section_label_bottom_margin"
+                android:text="난이도 (Level)" />
 
             <com.google.android.material.textfield.TextInputLayout
                 style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
                 android:layout_height="64dp"
                 app:boxBackgroundColor="@color/grey_100"
-                app:boxCornerRadiusBottomEnd="16dp"
-                app:boxCornerRadiusBottomStart="16dp"
-                app:boxCornerRadiusTopEnd="16dp"
-                app:boxCornerRadiusTopStart="16dp"
+                app:boxCornerRadiusBottomEnd="@dimen/dialog_card_corner_radius"
+                app:boxCornerRadiusBottomStart="@dimen/dialog_card_corner_radius"
+                app:boxCornerRadiusTopEnd="@dimen/dialog_card_corner_radius"
+                app:boxCornerRadiusTopStart="@dimen/dialog_card_corner_radius"
                 app:boxStrokeWidth="0dp"
                 app:boxStrokeWidthFocused="0dp"
                 app:hintEnabled="false">
 
                 <AutoCompleteTextView
                     android:id="@+id/spinner_level"
+                    style="@style/DialogTextBody"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:inputType="none"
                     android:padding="0dp"
-                    android:text="Intermediate"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp" />
+                    android:text="Intermediate" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <TextView
                 android:id="@+id/tv_level_description"
+                style="@style/DialogTextHelper"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="24dp"
                 android:layout_marginStart="4dp"
-                android:text="일상적인 대화를 자연스럽게 나눌 수 있는 수준입니다."
-                android:textColor="@color/grey_500"
-                android:textSize="13sp" />
+                android:layout_marginTop="@dimen/dialog_section_label_bottom_margin"
+                android:layout_marginBottom="@dimen/dialog_section_bottom_margin"
+                android:text="일상적인 대화를 자연스럽게 나눌 수 있는 수준이에요." />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
+                android:layout_marginBottom="@dimen/dialog_section_label_bottom_margin"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <TextView
+                    style="@style/DialogTextSectionLabel"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="길이 (Length)"
-                    android:textColor="@color/grey_700"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
+                    android:text="길이 (Length)" />
 
                 <TextView
                     android:id="@+id/tv_length_value"
@@ -129,7 +118,7 @@
                     android:layout_height="wrap_content"
                     android:text="10줄"
                     android:textColor="@color/primary_blue"
-                    android:textSize="14sp"
+                    android:textSize="@dimen/dialog_section_label_text_size"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -137,7 +126,7 @@
                 android:id="@+id/sb_length"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="5dp"
+                android:layout_marginHorizontal="@dimen/dialog_seek_horizontal_margin"
                 android:max="18"
                 android:paddingStart="0dp"
                 android:paddingEnd="0dp"
@@ -149,14 +138,10 @@
 
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/btn_confirm_generate"
+                style="@style/DialogButtonPrimary"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="24dp"
-                android:background="@drawable/bg_rounded_button"
-                android:text="대본 생성하기"
-                android:textColor="@color/white"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:layout_marginTop="@dimen/dialog_action_top_margin"
+                android:text="대본 생성하기" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
@@ -167,7 +152,7 @@
         android:layout_gravity="center"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:padding="40dp"
+        android:padding="@dimen/dialog_loading_padding"
         android:visibility="gone">
 
         <ProgressBar
@@ -177,13 +162,12 @@
             android:indeterminateTint="@color/primary_blue" />
 
         <TextView
+            style="@style/DialogTextBody"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="@dimen/dialog_loading_text_margin_top"
             android:text="AI가 대본을 생성하고 있어요..."
-            android:textColor="@color/text_primary"
-            android:textSize="16sp"
             android:textStyle="bold" />
     </LinearLayout>
 

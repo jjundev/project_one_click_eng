@@ -116,7 +116,7 @@
     <string name="settings_api_test_missing_key">API key가 비어 있어요.</string>
     <string name="settings_model_reset">기본값으로 초기화</string>
     <string name="settings_learning_reset_title">학습 데이터 정리</string>
-    <string name="settings_learning_reset_subtitle">이전 학습 기록을 삭제해요.</string>
+    <string name="settings_learning_reset_subtitle">이전 학습 기록을 삭제해요</string>
     <string name="settings_learning_reset_section_title">보존 기간</string>
     <string name="settings_learning_reset_option_keep_1w">최근 1주만 남기기</string>
     <string name="settings_learning_reset_option_keep_2w">최근 2주만 남기기</string>
@@ -150,7 +150,7 @@
 
     <string name="settings_mute_blocked_toast">무음 모드가 켜져 있어 재생이 차단돼요.</string>
     <string name="dialogue_learning_settings_title">학습 설정</string>
-    <string name="dialogue_learning_settings_subtitle">학습 관련 설정을 조정할 수 있어요.</string>
+    <string name="dialogue_learning_settings_subtitle">학습 관련 설정을 조정할 수 있어요</string>
     <string name="dialogue_learning_settings_section_mute">음소거</string>
     <string name="dialogue_learning_settings_section_mute_placeholder">다음 작업에서 음소거 토글이 연결돼요.</string>
     <string name="dialogue_learning_settings_section_tts">TTS 설정</string>
