@@ -175,6 +175,7 @@ public class DialogueSummaryFragment extends Fragment {
     DialogueSummaryViewModelFactory factory =
         new DialogueSummaryViewModelFactory(
             LearningDependencyProvider.provideSessionSummaryLlmManager(
+                requireContext().getApplicationContext(),
                 settings.resolveEffectiveApiKey(BuildConfig.GEMINI_API_KEY),
                 settings.getLlmModelSummary()));
     viewModel = new ViewModelProvider(this, factory).get(DialogueSummaryViewModel.class);

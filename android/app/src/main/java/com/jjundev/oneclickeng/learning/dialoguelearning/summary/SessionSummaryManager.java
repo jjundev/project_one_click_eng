@@ -1,13 +1,22 @@
 package com.jjundev.oneclickeng.learning.dialoguelearning.summary;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISessionSummaryLlmManager;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -22,9 +31,31 @@ import okio.BufferedSource;
 
 /** One-shot LLM manager for summary section refinement. */
 public class SessionSummaryManager implements ISessionSummaryLlmManager {
+  private static final String TAG = "SessionSummaryManager";
   private static final String BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
   private static final String DEFAULT_MODEL_NAME = "gemini-3-flash-preview";
   private static final int MAX_WORDS = 12;
+  private static final int CACHE_TTL_SECONDS = 3600; // 1 hour
+  private static final int MIN_REMAINING_TTL_SECONDS = 300; // 5 minutes
+
+  private static final String PREF_NAME = "gemini_session_summary_cache_prefs";
+  private static final String KEY_EXPRESSION_CACHE_NAME =
+      "gemini_session_summary_expression_cache_name_v1";
+  private static final String KEY_EXPRESSION_CACHE_CREATED =
+      "gemini_session_summary_expression_cache_created_at";
+  private static final String KEY_EXPRESSION_CACHE_TTL =
+      "gemini_session_summary_expression_cache_ttl_seconds";
+  private static final String KEY_WORD_CACHE_NAME = "gemini_session_summary_word_cache_name_v1";
+  private static final String KEY_WORD_CACHE_CREATED = "gemini_session_summary_word_cache_created";
+  private static final String KEY_WORD_CACHE_TTL = "gemini_session_summary_word_cache_ttl_seconds";
+
+  private static final String DISPLAY_NAME_EXPRESSION_FILTER =
+      "SessionSummaryExpressionFilterPrompt";
+  private static final String DISPLAY_NAME_WORD_EXTRACTION = "SessionSummaryWordExtractionPrompt";
+  private static final String EXPRESSION_FILTER_PROMPT_ASSET_PATH =
+      "prompts/session_summary/expression_filter_system_prompt.md";
+  private static final String WORD_EXTRACTION_PROMPT_ASSET_PATH =
+      "prompts/session_summary/word_extraction_system_prompt.md";
 
   private final OkHttpClient client;
   private final OkHttpClient streamingClient;
@@ -32,8 +63,56 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
   private final Handler mainHandler;
   private final String apiKey;
   private final String modelName;
+  private final Context context;
+  private final SharedPreferences prefs;
+  private final CacheState expressionFilterCache = new CacheState();
+  private final CacheState wordExtractionCache = new CacheState();
+  private final Object promptCacheLock = new Object();
 
-  public SessionSummaryManager(String apiKey, String modelName) {
+  @Nullable private volatile String expressionFilterSystemPromptCache;
+  @Nullable private volatile String wordExtractionSystemPromptCache;
+
+  private enum CacheType {
+    EXPRESSION_FILTER,
+    WORD_EXTRACTION
+  }
+
+  private enum CacheValidationStatus {
+    VALID,
+    INVALID,
+    ERROR
+  }
+
+  private static final class CacheState {
+    private final Object lock = new Object();
+    @Nullable private String cachedContentName;
+    private boolean cacheReady = false;
+  }
+
+  private static final class CacheValidationResult {
+    private final CacheValidationStatus status;
+    private final long remainingSeconds;
+
+    private CacheValidationResult(CacheValidationStatus status, long remainingSeconds) {
+      this.status = status;
+      this.remainingSeconds = remainingSeconds;
+    }
+
+    private static CacheValidationResult valid(long remainingSeconds) {
+      return new CacheValidationResult(CacheValidationStatus.VALID, remainingSeconds);
+    }
+
+    private static CacheValidationResult invalid() {
+      return new CacheValidationResult(CacheValidationStatus.INVALID, 0);
+    }
+
+    private static CacheValidationResult error() {
+      return new CacheValidationResult(CacheValidationStatus.ERROR, 0);
+    }
+  }
+
+  public SessionSummaryManager(Context context, String apiKey, String modelName) {
+    this.context = context.getApplicationContext();
     this.apiKey = normalizeOrDefault(apiKey, "");
     this.modelName = normalizeOrDefault(modelName, DEFAULT_MODEL_NAME);
     this.client =
@@ -50,6 +129,7 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
             .build();
     this.gson = new Gson();
     this.mainHandler = new Handler(Looper.getMainLooper());
+    this.prefs = this.context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
   }
 
   @Override
@@ -68,86 +148,12 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
     new Thread(
             () -> {
               try {
-                JsonObject requestBody = new JsonObject();
-                addExpressionFilterSystemInstruction(requestBody);
-
-                JsonArray contents = new JsonArray();
-                JsonObject userContent = new JsonObject();
-                userContent.addProperty("role", "user");
-                JsonArray parts = new JsonArray();
-                JsonObject part = new JsonObject();
-                part.addProperty("text", buildExpressionFilterUserPrompt(bundle));
-                parts.add(part);
-                userContent.add("parts", parts);
-                contents.add(userContent);
-                requestBody.add("contents", contents);
-
-                JsonObject generationConfig = new JsonObject();
-                generationConfig.addProperty("responseMimeType", "application/json");
-                requestBody.add("generationConfig", generationConfig);
-
-                String url =
-                    BASE_URL
-                        + "/models/"
-                        + modelName
-                        + ":streamGenerateContent?alt=sse&key="
-                        + apiKey;
-                Request request =
-                    new Request.Builder()
-                        .url(url)
-                        .post(
-                            RequestBody.create(
-                                gson.toJson(requestBody), MediaType.parse("application/json")))
-                        .build();
-
-                try (Response response = streamingClient.newCall(request).execute()) {
-                  if (!response.isSuccessful()) {
-                    mainHandler.post(
-                        () ->
-                            callback.onFailure(
-                                "Expression filter request failed: " + response.code()));
-                    return;
-                  }
-
-                  StringBuilder accumulated = new StringBuilder();
-                  int emittedCount = 0;
-
-                  BufferedSource source = response.body().source();
-                  while (!source.exhausted()) {
-                    String line = source.readUtf8Line();
-                    if (line == null || !line.startsWith("data: ")) {
-                      continue;
-                    }
-                    String json = line.substring(6).trim();
-                    if (json.equals("[DONE]")) {
-                      break;
-                    }
-
-                    String chunkText = extractTextFromSseChunk(json);
-                    if (chunkText.isEmpty()) {
-                      continue;
-                    }
-                    accumulated.append(chunkText);
-
-                    // Try to parse newly completed expression objects
-                    List<ISessionSummaryLlmManager.FilteredExpression> parsed =
-                        tryParseExpressions(accumulated.toString());
-                    for (int i = emittedCount; i < parsed.size(); i++) {
-                      ISessionSummaryLlmManager.FilteredExpression expr = parsed.get(i);
-                      mainHandler.post(() -> callback.onExpressionReceived(expr));
-                    }
-                    emittedCount = parsed.size();
-                  }
-
-                  // Final parse of the complete accumulated text
-                  List<ISessionSummaryLlmManager.FilteredExpression> finalParsed =
-                      tryParseExpressions(accumulated.toString());
-                  for (int i = emittedCount; i < finalParsed.size(); i++) {
-                    ISessionSummaryLlmManager.FilteredExpression expr = finalParsed.get(i);
-                    mainHandler.post(() -> callback.onExpressionReceived(expr));
-                  }
-
-                  mainHandler.post(callback::onComplete);
+                String cachedContentName = ensureCacheReady(CacheType.EXPRESSION_FILTER);
+                boolean completed =
+                    executeExpressionFilterRequest(bundle, callback, cachedContentName, true);
+                if (!completed) {
+                  invalidateCache(CacheType.EXPRESSION_FILTER);
+                  executeExpressionFilterRequest(bundle, callback, null, false);
                 }
               } catch (Exception e) {
                 mainHandler.post(
@@ -178,52 +184,14 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
     new Thread(
             () -> {
               try {
-                JsonObject requestBody = new JsonObject();
-                JsonObject systemInstruction = new JsonObject();
-                JsonArray systemParts = new JsonArray();
-                JsonObject systemPart = new JsonObject();
-                systemPart.addProperty("text", buildWordExtractionSystemPrompt());
-                systemParts.add(systemPart);
-                systemInstruction.add("parts", systemParts);
-                requestBody.add("systemInstruction", systemInstruction);
-
-                JsonArray contents = new JsonArray();
-                JsonObject userContent = new JsonObject();
-                userContent.addProperty("role", "user");
-                JsonArray parts = new JsonArray();
-                JsonObject part = new JsonObject();
-                part.addProperty(
-                    "text", buildWordExtractionUserPrompt(words, sentences, userOriginalSentences));
-                parts.add(part);
-                userContent.add("parts", parts);
-                contents.add(userContent);
-                requestBody.add("contents", contents);
-
-                JsonObject generationConfig = new JsonObject();
-                generationConfig.addProperty("responseMimeType", "application/json");
-                requestBody.add("generationConfig", generationConfig);
-
-                String url = BASE_URL + "/models/" + modelName + ":generateContent?key=" + apiKey;
-                Request request =
-                    new Request.Builder()
-                        .url(url)
-                        .post(
-                            RequestBody.create(
-                                gson.toJson(requestBody), MediaType.parse("application/json")))
-                        .build();
-
-                try (Response response = client.newCall(request).execute()) {
-                  String body = response.body() != null ? response.body().string() : "";
-                  if (!response.isSuccessful()) {
-                    mainHandler.post(
-                        () -> callback.onFailure("Summary LLM request failed: " + response.code()));
-                    return;
-                  }
-
-                  String responseText = extractFirstTextPart(body);
-                  List<ISessionSummaryLlmManager.ExtractedWord> extractedWords =
-                      parseExtractedWordsPayload(responseText);
-                  mainHandler.post(() -> callback.onSuccess(extractedWords));
+                String cachedContentName = ensureCacheReady(CacheType.WORD_EXTRACTION);
+                boolean completed =
+                    executeWordExtractionRequest(
+                        words, sentences, userOriginalSentences, callback, cachedContentName, true);
+                if (!completed) {
+                  invalidateCache(CacheType.WORD_EXTRACTION);
+                  executeWordExtractionRequest(
+                      words, sentences, userOriginalSentences, callback, null, false);
                 }
               } catch (Exception e) {
                 mainHandler.post(() -> callback.onFailure("Summary LLM error: " + e.getMessage()));
@@ -232,18 +200,424 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
         .start();
   }
 
-  private void addExpressionFilterSystemInstruction(JsonObject requestBody) {
-    String systemPrompt = buildExpressionFilterSystemPrompt();
+  private boolean executeExpressionFilterRequest(
+      @NonNull SummaryFeatureBundle bundle,
+      @NonNull ISessionSummaryLlmManager.ExpressionFilterCallback callback,
+      @Nullable String cachedContentName,
+      boolean allowRetryWithoutCache)
+      throws IOException {
+    JsonObject requestBody = buildExpressionFilterRequestBody(bundle, cachedContentName);
+    String url = BASE_URL + "/models/" + modelName + ":streamGenerateContent?alt=sse&key=" + apiKey;
+    Request request =
+        new Request.Builder()
+            .url(url)
+            .post(RequestBody.create(gson.toJson(requestBody), MediaType.parse("application/json")))
+            .build();
+
+    try (Response response = streamingClient.newCall(request).execute()) {
+      if (!response.isSuccessful()) {
+        int code = response.code();
+        if (cachedContentName != null && allowRetryWithoutCache && (code == 400 || code == 404)) {
+          return false;
+        }
+        mainHandler.post(() -> callback.onFailure("Expression filter request failed: " + code));
+        return true;
+      }
+
+      if (response.body() == null) {
+        mainHandler.post(() -> callback.onFailure("Expression filter response body is empty"));
+        return true;
+      }
+
+      StringBuilder accumulated = new StringBuilder();
+      int emittedCount = 0;
+
+      BufferedSource source = response.body().source();
+      while (!source.exhausted()) {
+        String line = source.readUtf8Line();
+        if (line == null || !line.startsWith("data: ")) {
+          continue;
+        }
+        String json = line.substring(6).trim();
+        if (json.equals("[DONE]")) {
+          break;
+        }
+
+        String chunkText = extractTextFromSseChunk(json);
+        if (chunkText.isEmpty()) {
+          continue;
+        }
+        accumulated.append(chunkText);
+
+        List<ISessionSummaryLlmManager.FilteredExpression> parsed =
+            tryParseExpressions(accumulated.toString());
+        for (int i = emittedCount; i < parsed.size(); i++) {
+          ISessionSummaryLlmManager.FilteredExpression expr = parsed.get(i);
+          mainHandler.post(() -> callback.onExpressionReceived(expr));
+        }
+        emittedCount = parsed.size();
+      }
+
+      List<ISessionSummaryLlmManager.FilteredExpression> finalParsed =
+          tryParseExpressions(accumulated.toString());
+      for (int i = emittedCount; i < finalParsed.size(); i++) {
+        ISessionSummaryLlmManager.FilteredExpression expr = finalParsed.get(i);
+        mainHandler.post(() -> callback.onExpressionReceived(expr));
+      }
+
+      mainHandler.post(callback::onComplete);
+      return true;
+    }
+  }
+
+  private boolean executeWordExtractionRequest(
+      @NonNull List<String> words,
+      @NonNull List<String> sentences,
+      @NonNull List<String> userOriginalSentences,
+      @NonNull ISessionSummaryLlmManager.WordExtractionCallback callback,
+      @Nullable String cachedContentName,
+      boolean allowRetryWithoutCache)
+      throws IOException {
+    JsonObject requestBody =
+        buildWordExtractionRequestBody(words, sentences, userOriginalSentences, cachedContentName);
+    String url = BASE_URL + "/models/" + modelName + ":generateContent?key=" + apiKey;
+    Request request =
+        new Request.Builder()
+            .url(url)
+            .post(RequestBody.create(gson.toJson(requestBody), MediaType.parse("application/json")))
+            .build();
+
+    try (Response response = client.newCall(request).execute()) {
+      String body = response.body() != null ? response.body().string() : "";
+      if (!response.isSuccessful()) {
+        int code = response.code();
+        if (cachedContentName != null && allowRetryWithoutCache && (code == 400 || code == 404)) {
+          return false;
+        }
+        mainHandler.post(() -> callback.onFailure("Summary LLM request failed: " + code));
+        return true;
+      }
+
+      String responseText = extractFirstTextPart(body);
+      List<ISessionSummaryLlmManager.ExtractedWord> extractedWords =
+          parseExtractedWordsPayload(responseText);
+      mainHandler.post(() -> callback.onSuccess(extractedWords));
+      return true;
+    }
+  }
+
+  private JsonObject buildExpressionFilterRequestBody(
+      @NonNull SummaryFeatureBundle bundle, @Nullable String cachedContentName) {
+    JsonObject requestBody = new JsonObject();
+    if (cachedContentName != null) {
+      requestBody.addProperty("cachedContent", cachedContentName);
+    } else {
+      addExpressionFilterSystemInstruction(requestBody);
+    }
+
+    JsonArray contents = new JsonArray();
+    JsonObject userContent = new JsonObject();
+    userContent.addProperty("role", "user");
+    JsonArray parts = new JsonArray();
+    JsonObject part = new JsonObject();
+    part.addProperty("text", buildExpressionFilterUserPrompt(bundle));
+    parts.add(part);
+    userContent.add("parts", parts);
+    contents.add(userContent);
+    requestBody.add("contents", contents);
+
+    JsonObject generationConfig = new JsonObject();
+    generationConfig.addProperty("responseMimeType", "application/json");
+    requestBody.add("generationConfig", generationConfig);
+    return requestBody;
+  }
+
+  private JsonObject buildWordExtractionRequestBody(
+      @NonNull List<String> words,
+      @NonNull List<String> sentences,
+      @NonNull List<String> userOriginalSentences,
+      @Nullable String cachedContentName) {
+    JsonObject requestBody = new JsonObject();
+    if (cachedContentName != null) {
+      requestBody.addProperty("cachedContent", cachedContentName);
+    } else {
+      addWordExtractionSystemInstruction(requestBody);
+    }
+
+    JsonArray contents = new JsonArray();
+    JsonObject userContent = new JsonObject();
+    userContent.addProperty("role", "user");
+    JsonArray parts = new JsonArray();
+    JsonObject part = new JsonObject();
+    part.addProperty(
+        "text", buildWordExtractionUserPrompt(words, sentences, userOriginalSentences));
+    parts.add(part);
+    userContent.add("parts", parts);
+    contents.add(userContent);
+    requestBody.add("contents", contents);
+
+    JsonObject generationConfig = new JsonObject();
+    generationConfig.addProperty("responseMimeType", "application/json");
+    requestBody.add("generationConfig", generationConfig);
+    return requestBody;
+  }
+
+  @Nullable
+  private String ensureCacheReady(@NonNull CacheType cacheType) {
+    CacheState state = getCacheState(cacheType);
+    synchronized (state.lock) {
+      if (state.cacheReady && state.cachedContentName != null) {
+        return state.cachedContentName;
+      }
+
+      String cachedContentName = prefs.getString(getCacheNameKey(cacheType), null);
+      if (cachedContentName != null) {
+        long createdAt = prefs.getLong(getCacheCreatedKey(cacheType), 0);
+        int ttl = prefs.getInt(getCacheTtlKey(cacheType), CACHE_TTL_SECONDS);
+        long elapsedSeconds = (System.currentTimeMillis() - createdAt) / 1000L;
+
+        if (elapsedSeconds <= ttl) {
+          CacheValidationResult validationResult = validateCacheFromServer(cachedContentName);
+          if (validationResult.status == CacheValidationStatus.VALID
+              && validationResult.remainingSeconds > MIN_REMAINING_TTL_SECONDS) {
+            state.cachedContentName = cachedContentName;
+            state.cacheReady = true;
+            return cachedContentName;
+          }
+        }
+        clearLocalCacheData(cacheType);
+      }
+
+      String newCacheName = createCache(cacheType);
+      if (newCacheName != null) {
+        state.cachedContentName = newCacheName;
+        state.cacheReady = true;
+        return newCacheName;
+      }
+
+      state.cachedContentName = null;
+      state.cacheReady = false;
+      return null;
+    }
+  }
+
+  @Nullable
+  private String createCache(@NonNull CacheType cacheType) {
+    try {
+      JsonObject requestBody = new JsonObject();
+      requestBody.addProperty("model", "models/" + modelName);
+
+      JsonArray contents = new JsonArray();
+
+      JsonObject userContent = new JsonObject();
+      userContent.addProperty("role", "user");
+      JsonArray userParts = new JsonArray();
+      JsonObject userPart = new JsonObject();
+      userPart.addProperty("text", getCacheInitUserPrompt(cacheType));
+      userParts.add(userPart);
+      userContent.add("parts", userParts);
+      contents.add(userContent);
+
+      JsonObject modelContent = new JsonObject();
+      modelContent.addProperty("role", "model");
+      JsonArray modelParts = new JsonArray();
+      JsonObject modelPart = new JsonObject();
+      modelPart.addProperty("text", getCacheInitModelPrompt(cacheType));
+      modelParts.add(modelPart);
+      modelContent.add("parts", modelParts);
+      contents.add(modelContent);
+
+      requestBody.add("contents", contents);
+      addSystemInstructionForCacheType(requestBody, cacheType);
+      requestBody.addProperty("ttl", CACHE_TTL_SECONDS + "s");
+      requestBody.addProperty("displayName", getCacheDisplayName(cacheType));
+
+      String url = BASE_URL + "/cachedContents?key=" + apiKey;
+      Request request =
+          new Request.Builder()
+              .url(url)
+              .post(
+                  RequestBody.create(gson.toJson(requestBody), MediaType.parse("application/json")))
+              .build();
+
+      try (Response response = client.newCall(request).execute()) {
+        String body = response.body() != null ? response.body().string() : "";
+        if (!response.isSuccessful()) {
+          Log.w(TAG, "Cache creation failed(" + cacheType + "): " + response.code() + " " + body);
+          return null;
+        }
+
+        JsonObject result = JsonParser.parseString(body).getAsJsonObject();
+        String cacheName = result.get("name").getAsString();
+        saveLocalCacheData(cacheType, cacheName);
+        Log.i(TAG, "Cache created(" + cacheType + "): " + cacheName);
+        return cacheName;
+      }
+    } catch (Exception e) {
+      Log.e(TAG, "createCache failed(" + cacheType + ")", e);
+      return null;
+    }
+  }
+
+  private CacheValidationResult validateCacheFromServer(@NonNull String cacheName) {
+    try {
+      String url = BASE_URL + "/" + cacheName + "?key=" + apiKey;
+      Request request = new Request.Builder().url(url).get().build();
+      try (Response response = client.newCall(request).execute()) {
+        if (response.code() == 404) {
+          return CacheValidationResult.invalid();
+        }
+        if (!response.isSuccessful()) {
+          return CacheValidationResult.error();
+        }
+        String body = response.body() != null ? response.body().string() : "";
+        JsonObject result = JsonParser.parseString(body).getAsJsonObject();
+        if (!result.has("expireTime")) {
+          return CacheValidationResult.error();
+        }
+
+        Instant expireTime = Instant.parse(result.get("expireTime").getAsString());
+        long remainingSeconds = expireTime.getEpochSecond() - Instant.now().getEpochSecond();
+        return CacheValidationResult.valid(remainingSeconds);
+      }
+    } catch (Exception e) {
+      Log.w(TAG, "validateCacheFromServer failed: " + cacheName, e);
+      return CacheValidationResult.error();
+    }
+  }
+
+  private void invalidateCache(@NonNull CacheType cacheType) {
+    CacheState state = getCacheState(cacheType);
+    synchronized (state.lock) {
+      state.cachedContentName = null;
+      state.cacheReady = false;
+      clearLocalCacheData(cacheType);
+    }
+  }
+
+  private CacheState getCacheState(@NonNull CacheType cacheType) {
+    return cacheType == CacheType.EXPRESSION_FILTER ? expressionFilterCache : wordExtractionCache;
+  }
+
+  private String getCacheNameKey(@NonNull CacheType cacheType) {
+    return cacheType == CacheType.EXPRESSION_FILTER
+        ? KEY_EXPRESSION_CACHE_NAME
+        : KEY_WORD_CACHE_NAME;
+  }
+
+  private String getCacheCreatedKey(@NonNull CacheType cacheType) {
+    return cacheType == CacheType.EXPRESSION_FILTER
+        ? KEY_EXPRESSION_CACHE_CREATED
+        : KEY_WORD_CACHE_CREATED;
+  }
+
+  private String getCacheTtlKey(@NonNull CacheType cacheType) {
+    return cacheType == CacheType.EXPRESSION_FILTER ? KEY_EXPRESSION_CACHE_TTL : KEY_WORD_CACHE_TTL;
+  }
+
+  private String getCacheDisplayName(@NonNull CacheType cacheType) {
+    return cacheType == CacheType.EXPRESSION_FILTER
+        ? DISPLAY_NAME_EXPRESSION_FILTER
+        : DISPLAY_NAME_WORD_EXTRACTION;
+  }
+
+  private void saveLocalCacheData(@NonNull CacheType cacheType, @NonNull String cacheName) {
+    prefs
+        .edit()
+        .putString(getCacheNameKey(cacheType), cacheName)
+        .putLong(getCacheCreatedKey(cacheType), System.currentTimeMillis())
+        .putInt(getCacheTtlKey(cacheType), CACHE_TTL_SECONDS)
+        .apply();
+  }
+
+  private void clearLocalCacheData(@NonNull CacheType cacheType) {
+    prefs
+        .edit()
+        .remove(getCacheNameKey(cacheType))
+        .remove(getCacheCreatedKey(cacheType))
+        .remove(getCacheTtlKey(cacheType))
+        .apply();
+  }
+
+  private String getCacheInitUserPrompt(@NonNull CacheType cacheType) {
+    if (cacheType == CacheType.EXPRESSION_FILTER) {
+      return "Initialize session summary expression filtering.";
+    }
+    return "Initialize session summary word extraction.";
+  }
+
+  private String getCacheInitModelPrompt(@NonNull CacheType cacheType) {
+    if (cacheType == CacheType.EXPRESSION_FILTER) {
+      return "I am ready to filter and rank learning expressions.";
+    }
+    return "I am ready to extract learning vocabulary in JSON format.";
+  }
+
+  private void addSystemInstructionForCacheType(
+      @NonNull JsonObject requestBody, @NonNull CacheType cacheType) {
+    if (cacheType == CacheType.EXPRESSION_FILTER) {
+      addExpressionFilterSystemInstruction(requestBody);
+      return;
+    }
+    addWordExtractionSystemInstruction(requestBody);
+  }
+
+  private void addExpressionFilterSystemInstruction(@NonNull JsonObject requestBody) {
+    addSystemInstruction(requestBody, buildExpressionFilterSystemPrompt());
+  }
+
+  private void addWordExtractionSystemInstruction(@NonNull JsonObject requestBody) {
+    addSystemInstruction(requestBody, buildWordExtractionSystemPrompt());
+  }
+
+  private void addSystemInstruction(@NonNull JsonObject requestBody, @NonNull String promptText) {
     JsonObject systemInstruction = new JsonObject();
     JsonArray systemParts = new JsonArray();
     JsonObject systemPart = new JsonObject();
-    systemPart.addProperty("text", systemPrompt);
+    systemPart.addProperty("text", promptText);
     systemParts.add(systemPart);
     systemInstruction.add("parts", systemParts);
     requestBody.add("systemInstruction", systemInstruction);
   }
 
   private String buildExpressionFilterSystemPrompt() {
+    String cachedPrompt = expressionFilterSystemPromptCache;
+    if (cachedPrompt != null && !cachedPrompt.isEmpty()) {
+      return cachedPrompt;
+    }
+    synchronized (promptCacheLock) {
+      if (expressionFilterSystemPromptCache != null
+          && !expressionFilterSystemPromptCache.isEmpty()) {
+        return expressionFilterSystemPromptCache;
+      }
+      String prompt = readAssetFile(EXPRESSION_FILTER_PROMPT_ASSET_PATH);
+      if (prompt.isEmpty()) {
+        prompt = buildExpressionFilterSystemPromptFallback();
+      }
+      expressionFilterSystemPromptCache = prompt;
+      return prompt;
+    }
+  }
+
+  private String buildWordExtractionSystemPrompt() {
+    String cachedPrompt = wordExtractionSystemPromptCache;
+    if (cachedPrompt != null && !cachedPrompt.isEmpty()) {
+      return cachedPrompt;
+    }
+    synchronized (promptCacheLock) {
+      if (wordExtractionSystemPromptCache != null && !wordExtractionSystemPromptCache.isEmpty()) {
+        return wordExtractionSystemPromptCache;
+      }
+      String prompt = readAssetFile(WORD_EXTRACTION_PROMPT_ASSET_PATH);
+      if (prompt.isEmpty()) {
+        prompt = buildWordExtractionSystemPromptFallback();
+      }
+      wordExtractionSystemPromptCache = prompt;
+      return prompt;
+    }
+  }
+
+  private String buildExpressionFilterSystemPromptFallback() {
     return "You are an English learning expression filter for Korean learners.\n"
         + "Return JSON only with this exact top-level shape:\n"
         + "{\n"
@@ -271,7 +645,7 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
         + gson.toJson(payload);
   }
 
-  private String buildWordExtractionSystemPrompt() {
+  private String buildWordExtractionSystemPromptFallback() {
     return "You are an English vocabulary extractor for Korean learners.\n"
         + "Your goal: identify words the learner likely encountered for the FIRST TIME.\n"
         + "Focus on:\n"
@@ -305,6 +679,21 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
         + "Compare userOriginalSentences with sentences to find words the user didn't know.\n"
         + "Input data:\n"
         + gson.toJson(payload);
+  }
+
+  private String readAssetFile(String fileName) {
+    try (InputStream is = context.getAssets().open(fileName);
+        BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
+      StringBuilder sb = new StringBuilder();
+      String line;
+      while ((line = reader.readLine()) != null) {
+        sb.append(line).append("\n");
+      }
+      return sb.toString().trim();
+    } catch (IOException e) {
+      Log.e(TAG, "Failed to read asset file: " + fileName, e);
+      return "";
+    }
   }
 
   private String extractFirstTextPart(String body) {

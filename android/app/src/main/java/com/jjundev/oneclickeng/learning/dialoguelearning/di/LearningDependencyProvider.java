@@ -53,8 +53,8 @@ public final class LearningDependencyProvider {
 
   @NonNull
   public static ISessionSummaryLlmManager provideSessionSummaryLlmManager(
-      @NonNull String apiKey, @NonNull String modelName) {
-    return new SessionSummaryManager(apiKey, modelName);
+      @NonNull Context appContext, @NonNull String apiKey, @NonNull String modelName) {
+    return new SessionSummaryManager(appContext, apiKey, modelName);
   }
 
   @NonNull
