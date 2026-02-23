@@ -46,7 +46,8 @@
                     android:text="레스토랑 주문하기"
                     android:textColor="@color/black"
                     android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:maxLines="1"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"

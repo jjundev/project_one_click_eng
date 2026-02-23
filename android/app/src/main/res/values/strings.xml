@@ -48,6 +48,7 @@
     <string name="quiz_error_title">퀴즈를 불러오지 못했어요</string>
     <string name="quiz_error_default">문제를 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.</string>
     <string name="quiz_retry">다시 시도</string>
+    <string name="quiz_toolbar_title">복습 퀴즈</string>
     <string name="quiz_progress_format">%1$d / %2$d</string>
     <string name="quiz_answer_input_hint">정답을 입력해 주세요</string>
     <string name="quiz_primary_check">정답 확인</string>

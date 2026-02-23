@@ -10,6 +10,7 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -58,6 +59,8 @@ public class DialogueQuizActivity extends AppCompatActivity {
   @Nullable private View completedView;
   @Nullable private View bottomSheetView;
   @Nullable private BottomSheetBehavior<View> bottomSheetBehavior;
+  @Nullable private ImageButton btnLeft;
+  @Nullable private TextView tvTitle;
   @Nullable private TextView tvErrorMessage;
   @Nullable private MaterialButton btnRetry;
   @Nullable private TextView tvProgress;
@@ -84,6 +87,7 @@ public class DialogueQuizActivity extends AppCompatActivity {
   private int lastLoggedQuestionIndex = -1;
   private boolean autoCheckPending = false;
   private boolean showNextButtonScheduled = false;
+  private int requestedQuestionCount = 5;
 
   @Override
   protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -115,12 +119,14 @@ public class DialogueQuizActivity extends AppCompatActivity {
         });
 
     bindViews();
-    initViewModel();
     bindListeners();
 
     Intent intent = getIntent();
     String summaryJson = intent.getStringExtra(EXTRA_SUMMARY_JSON);
-    int requestedQuestionCount = intent.getIntExtra(EXTRA_REQUESTED_QUESTION_COUNT, 5);
+    requestedQuestionCount = Math.max(1, intent.getIntExtra(EXTRA_REQUESTED_QUESTION_COUNT, 5));
+    configureToolbar();
+
+    initViewModel();
     if (viewModel != null) {
       viewModel.initialize(summaryJson, requestedQuestionCount);
     }
@@ -139,10 +145,12 @@ public class DialogueQuizActivity extends AppCompatActivity {
     contentView = findViewById(R.id.layout_quiz_content);
     completedView = findViewById(R.id.layout_quiz_completed);
     bottomSheetView = findViewById(R.id.bottom_sheet_quiz);
+    btnLeft = findViewById(R.id.btn_left);
+    tvTitle = findViewById(R.id.tv_title);
     tvErrorMessage = findViewById(R.id.tv_quiz_error_message);
     btnRetry = findViewById(R.id.btn_quiz_retry);
-    tvProgress = findViewById(R.id.tv_quiz_progress);
-    progressBar = findViewById(R.id.progress_quiz);
+    tvProgress = findViewById(R.id.tv_progress);
+    progressBar = findViewById(R.id.progress_bar);
     tvQuestion = findViewById(R.id.tv_quiz_question);
     choiceContainer = findViewById(R.id.layout_quiz_choice_container);
     inputAnswerLayout = findViewById(R.id.layout_quiz_answer_input);
@@ -177,6 +185,10 @@ public class DialogueQuizActivity extends AppCompatActivity {
   }
 
   private void bindListeners() {
+    if (btnLeft != null) {
+      btnLeft.setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
+    }
+
     if (btnRetry != null) {
       btnRetry.setOnClickListener(
           v -> {
@@ -230,6 +242,7 @@ public class DialogueQuizActivity extends AppCompatActivity {
   private void renderUiState(@NonNull DialogueQuizViewModel.QuizUiState state) {
     switch (state.getStatus()) {
       case LOADING:
+        updateToolbarProgress(0, requestedQuestionCount);
         showOnly(loadingView);
         break;
       case ERROR:
@@ -260,6 +273,7 @@ public class DialogueQuizActivity extends AppCompatActivity {
   }
 
   private void renderCompleted(@NonNull DialogueQuizViewModel.QuizUiState state) {
+    updateToolbarProgress(state.getTotalQuestions(), state.getTotalQuestions());
     if (tvCompletedSummary != null) {
       tvCompletedSummary.setText(
           getString(
@@ -284,21 +298,7 @@ public class DialogueQuizActivity extends AppCompatActivity {
       return;
     }
 
-    if (tvProgress != null) {
-      tvProgress.setText(
-          getString(
-              R.string.quiz_progress_format,
-              state.getCurrentQuestionNumber(),
-              state.getTotalQuestions()));
-    }
-    if (progressBar != null) {
-      progressBar.setMax(Math.max(1, state.getTotalQuestions()));
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-        progressBar.setProgress(state.getCurrentQuestionNumber(), true);
-      } else {
-        progressBar.setProgress(state.getCurrentQuestionNumber());
-      }
-    }
+    updateToolbarProgress(state.getCurrentQuestionNumber(), state.getTotalQuestions());
     if (tvQuestion != null) {
       tvQuestion.setText(questionState.getQuestion());
     }
@@ -631,6 +631,29 @@ public class DialogueQuizActivity extends AppCompatActivity {
   private void setVisible(@Nullable View view, boolean visible) {
     if (view != null) {
       view.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+  }
+
+  private void configureToolbar() {
+    if (tvTitle != null) {
+      tvTitle.setText(R.string.quiz_toolbar_title);
+    }
+    updateToolbarProgress(0, requestedQuestionCount);
+  }
+
+  private void updateToolbarProgress(int current, int total) {
+    int safeTotal = Math.max(1, total);
+    int safeCurrent = Math.max(0, Math.min(current, safeTotal));
+    if (tvProgress != null) {
+      tvProgress.setText(getString(R.string.quiz_progress_format, safeCurrent, safeTotal));
+    }
+    if (progressBar != null) {
+      progressBar.setMax(safeTotal);
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        progressBar.setProgress(safeCurrent, true);
+      } else {
+        progressBar.setProgress(safeCurrent);
+      }
     }
   }
 

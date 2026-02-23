@@ -41,8 +41,7 @@ import java.util.UUID;
 public class SessionSummaryBinder {
 
   public static void bind(View rootView, SummaryData data) {
-    if (data == null)
-      return;
+    if (data == null) return;
 
     // 1. Score
     TextView tvScore = rootView.findViewById(R.id.tv_total_score);
@@ -100,9 +99,10 @@ public class SessionSummaryBinder {
       toggleBtn.setVisibility(View.GONE);
     }
     if (errorText != null) {
-      String finalMessage = isBlank(message)
-          ? rootView.getContext().getString(R.string.summary_expressions_load_error)
-          : message;
+      String finalMessage =
+          isBlank(message)
+              ? rootView.getContext().getString(R.string.summary_expressions_load_error)
+              : message;
       errorText.setText(finalMessage);
       errorText.setVisibility(View.VISIBLE);
     }
@@ -141,6 +141,10 @@ public class SessionSummaryBinder {
     TextView errorText = rootView.findViewById(R.id.tv_summary_expressions_error);
     TextView toggleBtn = rootView.findViewById(R.id.btn_expression_toggle);
 
+    if (container == null) {
+      return;
+    }
+
     if (skeleton != null) {
       skeleton.stopShimmer();
       skeleton.setVisibility(View.GONE);
@@ -149,16 +153,31 @@ public class SessionSummaryBinder {
       errorText.setVisibility(View.GONE);
     }
 
+    int totalCount = items == null ? 0 : items.size();
+    Integer requestedTag =
+        toggleBtn == null
+            ? null
+            : toIntegerTag(toggleBtn.getTag(R.id.tag_expression_requested_visible_count));
+    Integer lastTotalTag =
+        toggleBtn == null
+            ? null
+            : toIntegerTag(toggleBtn.getTag(R.id.tag_expression_last_total_count));
+    int requestedVisibleCount =
+        ExpressionPaginationPolicy.resolveRequestedVisibleCount(
+            requestedTag, lastTotalTag, totalCount);
+
     container.removeAllViews();
     container.setVisibility(View.VISIBLE);
     if (items == null || items.isEmpty()) {
       if (toggleBtn != null) {
+        toggleBtn.setTag(R.id.tag_expression_requested_visible_count, 0);
+        toggleBtn.setTag(R.id.tag_expression_last_total_count, 0);
         toggleBtn.setVisibility(View.GONE);
+        toggleBtn.setOnClickListener(null);
       }
       return;
     }
 
-    final int COLLAPSED_COUNT = 3;
     LayoutInflater inflater = LayoutInflater.from(rootView.getContext());
     for (int i = 0; i < items.size(); i++) {
       SummaryData.ExpressionItem item = items.get(i);
@@ -169,37 +188,45 @@ public class SessionSummaryBinder {
       TextView afterTextView = itemView.findViewById(R.id.tv_expression_after);
       ((TextView) itemView.findViewById(R.id.tv_expression_explanation))
           .setText(item.getExplanation());
-      boolean isPreciseType = applyExpressionTheme(itemView, expressionTypeTextView, item.getType());
+      boolean isPreciseType =
+          applyExpressionTheme(itemView, expressionTypeTextView, item.getType());
       if (afterTextView != null) {
         afterTextView.setText(buildHighlightedAfterText(itemView, item, isPreciseType));
       }
       bindSaveButton(itemView, R.id.btn_save_expression, item);
-      // Initially hide items beyond COLLAPSED_COUNT
-      if (i >= COLLAPSED_COUNT) {
-        itemView.setVisibility(View.GONE);
-      }
       container.addView(itemView);
     }
+    applyExpressionVisibility(container, requestedVisibleCount);
 
-    // Toggle button
     if (toggleBtn != null) {
-      if (items.size() <= COLLAPSED_COUNT) {
-        toggleBtn.setVisibility(View.GONE);
+      toggleBtn.setTag(R.id.tag_expression_requested_visible_count, requestedVisibleCount);
+      toggleBtn.setTag(R.id.tag_expression_last_total_count, totalCount);
+
+      boolean hasToggle = updateExpressionToggleUi(toggleBtn, requestedVisibleCount, totalCount);
+      if (!hasToggle) {
+        toggleBtn.setOnClickListener(null);
       } else {
-        toggleBtn.setVisibility(View.VISIBLE);
-        toggleBtn.setText("더 보기 (" + (items.size() - COLLAPSED_COUNT) + ")");
-        toggleBtn.setTag(Boolean.FALSE); // collapsed state
         toggleBtn.setOnClickListener(
             v -> {
-              boolean isExpanded = Boolean.TRUE.equals(toggleBtn.getTag());
-              for (int i = COLLAPSED_COUNT; i < container.getChildCount(); i++) {
-                container.getChildAt(i).setVisibility(isExpanded ? View.GONE : View.VISIBLE);
-              }
-              toggleBtn.setTag(!isExpanded);
-              toggleBtn.setText(
-                  isExpanded ? "더 보기 (" + (items.size() - COLLAPSED_COUNT) + ")" : "접기");
+              int currentTotal = container.getChildCount();
+              Integer currentRequestedTag =
+                  toIntegerTag(toggleBtn.getTag(R.id.tag_expression_requested_visible_count));
+              Integer currentLastTotalTag =
+                  toIntegerTag(toggleBtn.getTag(R.id.tag_expression_last_total_count));
+              int currentRequested =
+                  ExpressionPaginationPolicy.resolveRequestedVisibleCount(
+                      currentRequestedTag, currentLastTotalTag, currentTotal);
+              int nextRequested =
+                  ExpressionPaginationPolicy.nextRequestedVisibleCountAfterClick(
+                      currentRequested, currentTotal);
+              boolean collapsedAfterClick = nextRequested < currentRequested;
 
-              if (isExpanded) {
+              applyExpressionVisibility(container, nextRequested);
+              toggleBtn.setTag(R.id.tag_expression_requested_visible_count, nextRequested);
+              toggleBtn.setTag(R.id.tag_expression_last_total_count, currentTotal);
+              updateExpressionToggleUi(toggleBtn, nextRequested, currentTotal);
+
+              if (collapsedAfterClick) {
                 // Smooth scroll to the toggle button after collapsing
                 NestedScrollView scrollView = rootView.findViewById(R.id.scroll_view_summary);
                 if (scrollView != null) {
@@ -213,6 +240,31 @@ public class SessionSummaryBinder {
             });
       }
     }
+  }
+
+  private static void applyExpressionVisibility(LinearLayout container, int visibleCount) {
+    int safeVisibleCount = Math.max(0, visibleCount);
+    for (int i = 0; i < container.getChildCount(); i++) {
+      container.getChildAt(i).setVisibility(i < safeVisibleCount ? View.VISIBLE : View.GONE);
+    }
+  }
+
+  private static Integer toIntegerTag(Object value) {
+    return value instanceof Integer ? (Integer) value : null;
+  }
+
+  private static boolean updateExpressionToggleUi(
+      TextView toggleBtn, int requestedVisibleCount, int totalCount) {
+    String toggleText =
+        ExpressionPaginationPolicy.computeToggleText(requestedVisibleCount, totalCount);
+    if (toggleText == null) {
+      toggleBtn.setVisibility(View.GONE);
+      toggleBtn.setOnClickListener(null);
+      return false;
+    }
+    toggleBtn.setVisibility(View.VISIBLE);
+    toggleBtn.setText(toggleText);
+    return true;
   }
 
   private static boolean applyExpressionTheme(
@@ -231,16 +283,19 @@ public class SessionSummaryBinder {
     }
     if (expressionTypeTextView != null) {
       expressionTypeTextView.setText(normalizedType);
-      int typeColorRes = isPreciseType ? R.color.expression_precise_accent : R.color.expression_natural_accent;
+      int typeColorRes =
+          isPreciseType ? R.color.expression_precise_accent : R.color.expression_natural_accent;
       expressionTypeTextView.setTextColor(
           ContextCompat.getColor(itemView.getContext(), typeColorRes));
     }
     if (afterLabel != null) {
-      int labelColorRes = isPreciseType ? R.color.expression_precise_accent : R.color.expression_natural_accent;
+      int labelColorRes =
+          isPreciseType ? R.color.expression_precise_accent : R.color.expression_natural_accent;
       afterLabel.setTextColor(ContextCompat.getColor(itemView.getContext(), labelColorRes));
     }
     if (afterCard != null) {
-      int bgColorRes = isPreciseType ? R.color.expression_precise_after_bg : R.color.expression_natural_after_bg;
+      int bgColorRes =
+          isPreciseType ? R.color.expression_precise_after_bg : R.color.expression_natural_after_bg;
       afterCard.setCardBackgroundColor(ContextCompat.getColor(itemView.getContext(), bgColorRes));
     }
     return isPreciseType;
@@ -285,7 +340,8 @@ public class SessionSummaryBinder {
     }
 
     SpannableStringBuilder builder = new SpannableStringBuilder(after);
-    int accentRes = isPreciseType ? R.color.expression_precise_accent : R.color.expression_natural_accent;
+    int accentRes =
+        isPreciseType ? R.color.expression_precise_accent : R.color.expression_natural_accent;
     int accentColor = ContextCompat.getColor(itemView.getContext(), accentRes);
     int highlightBgColor = (accentColor & 0x00FFFFFF) | 0x33000000;
     for (String phrase : highlightPhrases) {
@@ -452,9 +508,10 @@ public class SessionSummaryBinder {
       skeleton.setVisibility(View.GONE);
     }
     if (errorText != null) {
-      String finalMessage = isBlank(message)
-          ? rootView.getContext().getString(R.string.summary_words_load_error)
-          : message;
+      String finalMessage =
+          isBlank(message)
+              ? rootView.getContext().getString(R.string.summary_words_load_error)
+              : message;
       errorText.setText(finalMessage);
       errorText.setVisibility(View.VISIBLE);
     }
@@ -503,20 +560,21 @@ public class SessionSummaryBinder {
     updateSaveStatusLabel(itemView, false);
     updateSavedCardBorder(itemView, false);
 
-    Runnable toggleSaveState = () -> {
-      playSaveWaveAnimation(itemView, saveButton);
-      boolean isSaved = !saveButton.isSelected();
-      saveButton.setSelected(isSaved);
-      updateSaveButtonState(saveButton, isSaved);
-      updateSaveStatusLabel(itemView, isSaved);
-      updateSavedCardBorder(itemView, isSaved);
+    Runnable toggleSaveState =
+        () -> {
+          playSaveWaveAnimation(itemView, saveButton);
+          boolean isSaved = !saveButton.isSelected();
+          saveButton.setSelected(isSaved);
+          updateSaveButtonState(saveButton, isSaved);
+          updateSaveStatusLabel(itemView, isSaved);
+          updateSavedCardBorder(itemView, isSaved);
 
-      if (isSaved) {
-        saveCardToFirebase(itemView, itemData);
-      } else {
-        removeCardFromFirebase(itemData);
-      }
-    };
+          if (isSaved) {
+            saveCardToFirebase(itemView, itemData);
+          } else {
+            removeCardFromFirebase(itemData);
+          }
+        };
 
     saveButton.setOnClickListener(v -> toggleSaveState.run());
     itemView.setOnClickListener(v -> toggleSaveState.run());
@@ -593,8 +651,7 @@ public class SessionSummaryBinder {
 
   private static void removeCardFromFirebase(Object itemData) {
     FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-    if (user == null)
-      return;
+    if (user == null) return;
 
     String cardId = generateDeterministicId(itemData);
     FirebaseFirestore.getInstance()
@@ -650,13 +707,15 @@ public class SessionSummaryBinder {
     final float maxRadius = (float) Math.hypot(cardView.getWidth(), cardView.getHeight());
     final int baseColor = ContextCompat.getColor(cardView.getContext(), R.color.save_icon_gold);
 
-    final android.graphics.drawable.GradientDrawable cardFlash = new android.graphics.drawable.GradientDrawable();
+    final android.graphics.drawable.GradientDrawable cardFlash =
+        new android.graphics.drawable.GradientDrawable();
     cardFlash.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
     cardFlash.setColor(baseColor);
     cardFlash.setAlpha(0);
     cardFlash.setBounds(0, 0, cardView.getWidth(), cardView.getHeight());
 
-    final android.graphics.drawable.GradientDrawable wave = new android.graphics.drawable.GradientDrawable();
+    final android.graphics.drawable.GradientDrawable wave =
+        new android.graphics.drawable.GradientDrawable();
     wave.setShape(android.graphics.drawable.GradientDrawable.OVAL);
     wave.setColor(baseColor);
     wave.setAlpha(0);

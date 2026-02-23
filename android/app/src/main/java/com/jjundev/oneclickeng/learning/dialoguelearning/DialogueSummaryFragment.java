@@ -27,6 +27,10 @@ public class DialogueSummaryFragment extends Fragment {
   public static final String ARG_SUMMARY_JSON = "arg_summary_json";
   public static final String ARG_FEATURE_BUNDLE_JSON = "arg_feature_bundle_json";
   private static final String TAG = "JOB_J-20260217-003";
+  private static final String STATE_EXPRESSION_REQUESTED_VISIBLE_COUNT =
+      "state_expression_requested_visible_count";
+  private static final String STATE_EXPRESSION_LAST_TOTAL_COUNT =
+      "state_expression_last_total_count";
 
   private BottomSheetBehavior<MaterialCardView> bottomSheetBehavior;
   private NestedScrollView scrollView;
@@ -95,6 +99,7 @@ public class DialogueSummaryFragment extends Fragment {
               }
             });
 
+    restoreExpressionToggleState(view, savedInstanceState);
     initViewModel(view, savedInstanceState);
     logDebug("summary fragment entered");
     view.findViewById(R.id.btn_finish_summary)
@@ -114,6 +119,7 @@ public class DialogueSummaryFragment extends Fragment {
     if (viewModel != null) {
       viewModel.saveState(outState);
     }
+    saveExpressionToggleState(outState);
   }
 
   @Override
@@ -121,6 +127,45 @@ public class DialogueSummaryFragment extends Fragment {
     super.onDestroyView();
     if (viewModel != null) {
       viewModel.onViewDestroyed();
+    }
+  }
+
+  private void restoreExpressionToggleState(
+      @NonNull View rootView, @Nullable Bundle savedInstanceState) {
+    if (savedInstanceState == null) {
+      return;
+    }
+    View toggleBtn = rootView.findViewById(R.id.btn_expression_toggle);
+    if (toggleBtn == null) {
+      return;
+    }
+    if (savedInstanceState.containsKey(STATE_EXPRESSION_REQUESTED_VISIBLE_COUNT)) {
+      int requestedVisibleCount =
+          savedInstanceState.getInt(STATE_EXPRESSION_REQUESTED_VISIBLE_COUNT);
+      toggleBtn.setTag(R.id.tag_expression_requested_visible_count, requestedVisibleCount);
+    }
+    if (savedInstanceState.containsKey(STATE_EXPRESSION_LAST_TOTAL_COUNT)) {
+      int lastTotalCount = savedInstanceState.getInt(STATE_EXPRESSION_LAST_TOTAL_COUNT);
+      toggleBtn.setTag(R.id.tag_expression_last_total_count, lastTotalCount);
+    }
+  }
+
+  private void saveExpressionToggleState(@NonNull Bundle outState) {
+    View rootView = getView();
+    if (rootView == null) {
+      return;
+    }
+    View toggleBtn = rootView.findViewById(R.id.btn_expression_toggle);
+    if (toggleBtn == null) {
+      return;
+    }
+    Object requestedVisibleCount = toggleBtn.getTag(R.id.tag_expression_requested_visible_count);
+    if (requestedVisibleCount instanceof Integer) {
+      outState.putInt(STATE_EXPRESSION_REQUESTED_VISIBLE_COUNT, (Integer) requestedVisibleCount);
+    }
+    Object lastTotalCount = toggleBtn.getTag(R.id.tag_expression_last_total_count);
+    if (lastTotalCount instanceof Integer) {
+      outState.putInt(STATE_EXPRESSION_LAST_TOTAL_COUNT, (Integer) lastTotalCount);
     }
   }
 
