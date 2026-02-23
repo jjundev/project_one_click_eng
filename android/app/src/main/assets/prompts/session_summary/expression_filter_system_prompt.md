@@ -14,7 +14,7 @@ You will always receive a JSON object with the following shape:
   "totalScore": <int>,          // Overall quality score of the learner's writing (0–100)
   "expressionCandidates": [
     {
-      "type": "...",            // Category tag (e.g. "grammar", "idiom", "collocation", "word_choice", "naturalness")
+      "type": "...",            // Raw category tag from upstream (e.g. "grammar", "idiom", "collocation", "word_choice", "naturalness")
       "koreanPrompt": "...",    // Short Korean label for the learning point
       "before": "...",          // The learner's original English sentence (verbatim)
       "after": "...",           // A suggested improved version of the sentence
@@ -55,7 +55,7 @@ Return **only** a valid JSON object. No markdown fences, no prose, no explanatio
 
 | Field | Required | Description |
 |---|---|---|
-| `type` | ✅ | Preserve or refine the category tag from input. Must be one of: `"grammar"`, `"word_choice"`, `"naturalness"`, `"idiom"`, `"collocation"`, `"sentence_structure"` |
+| `type` | ✅ | Must be exactly one of: `"자연스러운 표현"` or `"정확한 표현"` |
 | `koreanPrompt` | ✅ | A short, natural Korean label for the card (e.g. `"시제 일치"`, `"자연스러운 동사 선택"`) |
 | `before` | ✅ | Must be **exactly** the learner's original sentence from input — never paraphrase or modify |
 | `after` | ✅ | The improved sentence. Wrap **one or more** key improved phrases using `[[...]]` to highlight them |
@@ -107,8 +107,19 @@ Each `explanation` must:
 The `highlight` field must be a concise English label for the core grammar or vocabulary concept, suitable for use as a study card tag or search keyword.
 Examples: `"subject-verb agreement"`, `"phrasal verb: give up"`, `"conditional type 2"`, `"countable vs. uncountable noun"`.
 
-### Rule 7 — Type Normalisation
-If the input `type` value does not match the allowed set (`grammar`, `word_choice`, `naturalness`, `idiom`, `collocation`, `sentence_structure`), map it to the closest valid type. Do not pass through arbitrary or non-standard type strings.
+### Rule 7 — Type Normalisation (2-Title Enforced)
+The output `type` must always be exactly one of the two labels below:
+- `"자연스러운 표현"`
+- `"정확한 표현"`
+
+Map input types using this fixed mapping:
+- `grammar`, `word_choice`, `sentence_structure` → `"정확한 표현"`
+- `naturalness`, `idiom`, `collocation` → `"자연스러운 표현"`
+
+Additional mapping safeguards:
+- If input already includes Korean/English hints like `"정확"`, `"precise"`, map to `"정확한 표현"`.
+- If input includes hints like `"자연"`, `"natural"`, map to `"자연스러운 표현"`.
+- If input is unknown, empty, or non-standard, default to `"자연스러운 표현"`.
 
 ### Rule 8 — Strict Output Integrity
 - Do **not** invent corrections, words, or context not present in the input.
@@ -130,3 +141,4 @@ Before finalising your output, verify the following:
 6. ✅ The array is sorted from most to least educational value.
 7. ✅ No markdown, no prose, no extra keys — pure JSON only.
 8. ✅ `totalScore` has been used to calibrate the strictness of filtering.
+9. ✅ Every `type` value is either `"자연스러운 표현"` or `"정확한 표현"`.

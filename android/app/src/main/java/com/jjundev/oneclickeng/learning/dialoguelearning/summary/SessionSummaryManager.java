@@ -40,17 +40,17 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
 
   private static final String PREF_NAME = "gemini_session_summary_cache_prefs";
   private static final String KEY_EXPRESSION_CACHE_NAME =
-      "gemini_session_summary_expression_cache_name_v2";
+      "gemini_session_summary_expression_cache_name_v3";
   private static final String KEY_EXPRESSION_CACHE_CREATED =
-      "gemini_session_summary_expression_cache_created_at";
+      "gemini_session_summary_expression_cache_created_at_v3";
   private static final String KEY_EXPRESSION_CACHE_TTL =
-      "gemini_session_summary_expression_cache_ttl_seconds";
+      "gemini_session_summary_expression_cache_ttl_seconds_v3";
   private static final String KEY_WORD_CACHE_NAME = "gemini_session_summary_word_cache_name_v2";
   private static final String KEY_WORD_CACHE_CREATED = "gemini_session_summary_word_cache_created";
   private static final String KEY_WORD_CACHE_TTL = "gemini_session_summary_word_cache_ttl_seconds";
 
   private static final String DISPLAY_NAME_EXPRESSION_FILTER =
-      "SessionSummaryExpressionFilterPrompt_v2";
+      "SessionSummaryExpressionFilterPrompt_v3";
   private static final String DISPLAY_NAME_WORD_EXTRACTION = "SessionSummaryWordExtractionPrompt_v2";
   private static final String EXPRESSION_FILTER_PROMPT_ASSET_PATH =
           "prompts/session_summary/expression_filter_system_prompt.md";
@@ -630,9 +630,13 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
         + "4) Re-order selected expressions from most educational to least.\n"
         + "5) expressions.before must exactly reuse the user's original English sentence.\n"
         + "6) In expressions.after, wrap the key improved phrase with [[...]] (one or more allowed).\n"
-        + "7) Keep Korean fields natural and concise.\n"
-        + "8) Do not include markdown code fences.\n"
-        + "9) Do not invent facts outside input.";
+        + "7) expressions.type must be exactly one of \"자연스러운 표현\" or \"정확한 표현\".\n"
+        + "8) Map input types grammar/word_choice/sentence_structure to \"정확한 표현\".\n"
+        + "9) Map input types naturalness/idiom/collocation to \"자연스러운 표현\".\n"
+        + "10) If type is unknown, empty, or non-standard, default to \"자연스러운 표현\".\n"
+        + "11) Keep Korean fields natural and concise.\n"
+        + "12) Do not include markdown code fences.\n"
+        + "13) Do not invent facts outside input.";
   }
 
   private String buildExpressionFilterUserPrompt(SummaryFeatureBundle bundle) {

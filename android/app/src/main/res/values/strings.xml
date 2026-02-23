@@ -114,7 +114,7 @@
     <string name="settings_api_test_missing_key">API key가 비어 있습니다.</string>
     <string name="settings_model_reset">기본값으로 초기화</string>
     <string name="settings_learning_reset_title">학습 데이터 정리</string>
-    <string name="settings_learning_reset_subtitle">보존 기간을 선택하면 이전 학습 기록을 삭제합니다.</string>
+    <string name="settings_learning_reset_subtitle">이전 학습 기록을 삭제합니다.</string>
     <string name="settings_learning_reset_section_title">보존 기간</string>
     <string name="settings_learning_reset_option_keep_1w">최근 1주만 남기기</string>
     <string name="settings_learning_reset_option_keep_2w">최근 2주만 남기기</string>
