@@ -8,7 +8,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.activity.EdgeToEdge;
 import androidx.activity.OnBackPressedCallback;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -20,7 +19,7 @@ import com.jjundev.oneclickeng.learning.dialoguelearning.DialogueLearningFragmen
 import com.jjundev.oneclickeng.learning.dialoguelearning.DialogueSummaryFragment;
 import java.util.List;
 
-public class DialogueLearningActivity extends AppCompatActivity
+public class DialogueLearningActivity extends LearningActivity
     implements DialogueLearningFragment.OnScriptProgressListener,
         ExitConfirmDialog.OnExitConfirmListener {
   private static final String TAG = "JOB_J-20260216-004";

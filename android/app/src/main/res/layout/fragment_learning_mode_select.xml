@@ -101,6 +101,7 @@
                     android:orientation="horizontal">
 
                     <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/card_study_time"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -119,7 +120,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="오늘 공부"
+                                android:text="@string/study_time_total_label"
                                 android:textColor="@color/grey_600"
                                 android:textSize="12sp" />
 

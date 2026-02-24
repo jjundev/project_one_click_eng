@@ -1,6 +1,11 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">OneClickEng</string>
     <string name="greeting_format">반가워요, %1$s님!</string>
+    <string name="study_time_total_label">총 공부</string>
+    <string name="study_time_minutes_format">%1$d분</string>
+    <string name="study_time_hours_minutes_format">%1$d시간 %2$02d분</string>
+    <string name="study_time_today_popup_format">오늘 학습: %1$s</string>
+    <string name="streak_info_format">%1$d일째 열공 중 🔥</string>
     <!-- Preference Titles -->
     <string name="messages_header">Messages</string>
     <string name="sync_header">Sync</string>
