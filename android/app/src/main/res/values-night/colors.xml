@@ -1,4 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <!-- Theme role colors (Dark) -->
+    <color name="theme_color_background">#121212</color>
+    <color name="theme_color_surface">#363537</color>
+    <color name="theme_color_surface_variant">#363537</color>
+    <color name="theme_color_on_background">#FFFFFF</color>
+    <color name="theme_color_on_surface_variant">#757575</color>
+    <color name="semantic_bg_base">@color/theme_color_background</color>
+    <color name="semantic_surface">@color/theme_color_surface</color>
+    <color name="semantic_surface_variant">@color/theme_color_surface_variant</color>
+    <color name="semantic_text_primary">@color/theme_color_on_background</color>
+    <color name="semantic_text_secondary">@color/theme_color_on_surface_variant</color>
+    <color name="semantic_icon_secondary">@color/theme_color_on_surface_variant</color>
+    <color name="semantic_divider">#4A4A4A</color>
+    <color name="semantic_ripple">#26FFFFFF</color>
+    <color name="semantic_sheet_handle">#757575</color>
 </resources>

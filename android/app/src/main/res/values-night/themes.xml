@@ -9,6 +9,13 @@
         <item name="colorSecondary">@color/teal_200</item>
         <item name="colorSecondaryVariant">@color/teal_200</item>
         <item name="colorOnSecondary">@color/black</item>
+        <!-- Semantic role colors -->
+        <item name="colorBackground">@color/theme_color_background</item>
+        <item name="colorSurface">@color/theme_color_surface</item>
+        <item name="colorSurfaceVariant">@color/theme_color_surface_variant</item>
+        <item name="colorOnBackground">@color/theme_color_on_background</item>
+        <item name="colorOnSurfaceVariant">@color/theme_color_on_surface_variant</item>
+        <item name="android:windowBackground">@color/theme_color_background</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->

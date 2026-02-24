@@ -4,13 +4,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/background_main">
+    android:background="?attr/colorBackground">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#FFFFFF"
+        android:background="?attr/colorSurface"
         android:elevation="0dp"
         android:paddingHorizontal="10dp"
         app:contentInsetStart="0dp"
@@ -36,7 +36,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="알림"
                 android:src="@drawable/ic_notifications"
-                app:tint="#808080"></ImageButton>
+                app:tint="?attr/colorOnSurfaceVariant"></ImageButton>
 
         </LinearLayout>
 
@@ -65,7 +65,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="반가워요, 민수님!"
-                    android:textColor="@color/text_primary"
+                    android:textColor="?attr/colorOnBackground"
                     android:textSize="24sp"
                     android:textStyle="bold" />
 
@@ -74,7 +74,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="오늘 10분만 학습해 볼까요?"
-                    android:textColor="@color/grey_600"
+                    android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="16sp" />
             </LinearLayout>
 
@@ -106,7 +106,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginEnd="8dp"
-                        app:cardBackgroundColor="@color/grey_100"
+                        app:cardBackgroundColor="?attr/colorSurfaceVariant"
                         app:cardCornerRadius="16dp"
                         app:cardElevation="0dp">
 
@@ -121,7 +121,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/study_time_total_label"
-                                android:textColor="@color/grey_600"
+                                android:textColor="?attr/colorOnSurfaceVariant"
                                 android:textSize="12sp" />
 
                             <com.jjundev.oneclickeng.widget.SlotMachineTextView
@@ -129,7 +129,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="0분"
-                                android:textColor="@color/text_primary"
+                                android:textColor="?attr/colorOnBackground"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
                         </LinearLayout>
@@ -140,7 +140,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginStart="8dp"
-                        app:cardBackgroundColor="@color/grey_100"
+                        app:cardBackgroundColor="?attr/colorSurfaceVariant"
                         app:cardCornerRadius="16dp"
                         app:cardElevation="0dp">
 
@@ -155,7 +155,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="획득 포인트"
-                                android:textColor="@color/grey_600"
+                                android:textColor="?attr/colorOnSurfaceVariant"
                                 android:textSize="12sp" />
 
                             <com.jjundev.oneclickeng.widget.SlotMachineTextView
@@ -163,7 +163,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="0XP"
-                                android:textColor="@color/text_primary"
+                                android:textColor="?attr/colorOnBackground"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
                         </LinearLayout>

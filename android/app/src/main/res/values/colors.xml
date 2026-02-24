@@ -8,6 +8,22 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
+    <!-- Theme role colors (Light) -->
+    <color name="theme_color_background">#F5F5F5</color>
+    <color name="theme_color_surface">#F5F5F5</color>
+    <color name="theme_color_surface_variant">#FFFFFF</color>
+    <color name="theme_color_on_background">#000000</color>
+    <color name="theme_color_on_surface_variant">#BDBDBD</color>
+    <color name="semantic_bg_base">@color/theme_color_background</color>
+    <color name="semantic_surface">@color/theme_color_surface</color>
+    <color name="semantic_surface_variant">@color/theme_color_surface_variant</color>
+    <color name="semantic_text_primary">@color/theme_color_on_background</color>
+    <color name="semantic_text_secondary">@color/theme_color_on_surface_variant</color>
+    <color name="semantic_icon_secondary">@color/theme_color_on_surface_variant</color>
+    <color name="semantic_divider">#E0E0E0</color>
+    <color name="semantic_ripple">#14000000</color>
+    <color name="semantic_sheet_handle">#C9D1DB</color>
+
     <!-- Chat UI Colors -->
     <color name="toss_blue">#39A0ED</color>
     <color name="primary_blue">@color/toss_blue</color>

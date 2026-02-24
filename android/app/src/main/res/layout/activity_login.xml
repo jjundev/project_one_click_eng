@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_main"
+    android:background="?attr/colorBackground"
     tools:context=".activity.LoginActivity">
 
     <!-- Background VideoView (Placeholder for now) -->
@@ -58,7 +58,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="1초 만에 빠른 시작"
-                        android:textColor="#191919"
+                        android:textColor="?attr/colorOnBackground"
                         android:textSize="24sp"
                         android:textStyle="bold"
                         android:layout_marginBottom="8dp" />
@@ -68,7 +68,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="복잡한 가입 절차 없이 바로 학습을 시작하세요."
-                        android:textColor="#616161"
+                        android:textColor="?attr/colorOnSurfaceVariant"
                         android:textSize="15sp"
                         android:layout_marginBottom="32dp" />
 

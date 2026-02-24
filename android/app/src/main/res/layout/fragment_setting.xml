@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/grey_50"
+    android:background="?attr/colorBackground"
     android:fillViewport="true">
 
     <LinearLayout
@@ -19,7 +19,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/settings_header_title"
-            android:textColor="@color/text_primary"
+            android:textColor="?attr/colorOnBackground"
             android:textSize="28sp"
             android:textStyle="bold" />
 
@@ -28,7 +28,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="@string/settings_header_subtitle"
-            android:textColor="@color/grey_600"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="14sp" />
 
         <!-- ===== 프로필 설정 라벨 ===== -->
@@ -39,7 +39,7 @@
             android:layout_marginStart="4dp"
             android:letterSpacing="0.08"
             android:text="프로필 설정"
-            android:textColor="@color/grey_500"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="12sp"
             android:textStyle="bold" />
 
@@ -48,7 +48,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            app:cardBackgroundColor="@color/white"
+            app:cardBackgroundColor="?attr/colorSurfaceVariant"
             app:cardCornerRadius="16dp"
             app:cardElevation="0dp"
             app:strokeWidth="0dp">
@@ -68,7 +68,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="닉네임"
-                    android:textColor="@color/text_primary"
+                    android:textColor="?attr/colorOnBackground"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
@@ -83,7 +83,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="8dp"
                     android:text="학습자"
-                    android:textColor="@color/grey_600"
+                    android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="15sp" />
 
                 <ImageView
@@ -91,7 +91,7 @@
                     android:layout_height="16dp"
                     android:src="@drawable/ic_chevron_right"
                     android:contentDescription="변경하기"
-                    app:tint="@color/grey_400" />
+                    app:tint="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -103,7 +103,7 @@
             android:layout_marginStart="4dp"
             android:letterSpacing="0.08"
             android:text="학습 설정"
-            android:textColor="@color/grey_500"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="12sp"
             android:textStyle="bold" />
 
@@ -112,7 +112,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            app:cardBackgroundColor="@color/white"
+            app:cardBackgroundColor="?attr/colorSurfaceVariant"
             app:cardCornerRadius="16dp"
             app:cardElevation="0dp"
             app:strokeWidth="0dp">
@@ -132,7 +132,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="학습 데이터 정리"
-                    android:textColor="@color/text_primary"
+                    android:textColor="?attr/colorOnBackground"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
@@ -146,7 +146,7 @@
                     android:layout_height="16dp"
                     android:src="@drawable/ic_chevron_right"
                     android:contentDescription="변경하기"
-                    app:tint="@color/grey_400" />
+                    app:tint="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -155,7 +155,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            app:cardBackgroundColor="@color/white"
+            app:cardBackgroundColor="?attr/colorSurfaceVariant"
             app:cardCornerRadius="16dp"
             app:cardElevation="0dp"
             app:strokeWidth="0dp">
@@ -175,7 +175,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="누적 기록 초기화"
-                    android:textColor="@color/text_primary"
+                    android:textColor="?attr/colorOnBackground"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
@@ -189,7 +189,7 @@
                     android:layout_height="16dp"
                     android:src="@drawable/ic_chevron_right"
                     android:contentDescription="변경하기"
-                    app:tint="@color/grey_400" />
+                    app:tint="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -201,7 +201,7 @@
             android:layout_marginStart="4dp"
             android:letterSpacing="0.08"
             android:text="@string/settings_section_app_info"
-            android:textColor="@color/grey_500"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="12sp"
             android:textStyle="bold" />
 
@@ -210,7 +210,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            app:cardBackgroundColor="@color/white"
+            app:cardBackgroundColor="?attr/colorSurfaceVariant"
             app:cardCornerRadius="16dp"
             app:cardElevation="0dp"
             app:strokeWidth="0dp">
@@ -227,14 +227,14 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/settings_app_version_label"
-                    android:textColor="@color/text_primary"
+                    android:textColor="?attr/colorOnBackground"
                     android:textSize="15sp" />
 
                 <TextView
                     android:id="@+id/tv_app_version"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/grey_500"
+                    android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="14sp" />
 
             </LinearLayout>
@@ -250,7 +250,7 @@
             android:background="?attr/selectableItemBackground"
             android:padding="8dp"
             android:text="로그아웃"
-            android:textColor="@color/grey_400"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="12sp" />
 
     </LinearLayout>

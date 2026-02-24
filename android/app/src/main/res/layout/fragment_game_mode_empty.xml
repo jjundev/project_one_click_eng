@@ -4,13 +4,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/background_main">
+    android:background="?attr/colorBackground">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#FFFFFF"
+        android:background="?attr/colorSurface"
         android:elevation="0dp"
         android:paddingHorizontal="10dp"
         app:contentInsetStart="0dp"
@@ -36,7 +36,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="알림"
                 android:src="@drawable/ic_notifications"
-                app:tint="#808080" />
+                app:tint="?attr/colorOnSurfaceVariant" />
 
         </LinearLayout>
 
@@ -60,7 +60,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="어떤 게임을 즐겨볼까요?"
-                android:textColor="@color/text_primary"
+                android:textColor="?attr/colorOnBackground"
                 android:textSize="22sp"
                 android:textStyle="bold"
                 android:layout_marginStart="8dp" />
@@ -72,7 +72,7 @@
                 android:layout_marginBottom="24dp"
                 android:layout_marginStart="8dp"
                 android:text="다양한 미니게임으로 영어를 더 재밌게!"
-                android:textColor="@color/grey_600"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="14sp" />
 
             <TextView
@@ -81,7 +81,7 @@
                 android:layout_marginTop="100dp"
                 android:gravity="center"
                 android:text="더 유익하고 재미있는 게임들로\n곧 찾아뵙겠습니다!"
-                android:textColor="@color/grey_600"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="16sp"
                 android:lineSpacingExtra="8dp" />
 
