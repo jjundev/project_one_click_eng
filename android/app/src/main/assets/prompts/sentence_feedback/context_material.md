@@ -58,7 +58,19 @@ Intersection Content:
 List 1-3 shared meanings or usage contexts where both words could be used interchangeably. All items must be in Korean.
 
 Color Guidelines for Venn Diagram:
-Use visually distinct colors for left circle, right circle, and intersection. Recommended color scheme: Left circle uses "#4CAF50" (green), Right circle uses "#2196F3" (blue), and Intersection uses "#9C27B0" (purple). You may adjust colors for better visual distinction based on the specific words being compared, but always ensure sufficient contrast between all three areas.
+Venn Diagram Accessibility Constraints:
+1) Colors must remain readable in both light mode and dark mode.
+2) Text roles are fixed:
+   - Word labels and intersection items use `@color/color_primary_text`.
+   - Left/right side items use `@color/color_sub_text`.
+3) Circle rendering context is fixed:
+   - Side circles are rendered at alpha 128.
+   - Intersection is rendered at alpha 180.
+   - Base card/background is `@color/color_background_4`.
+4) Contrast targets after blending:
+   - Left and right circles: minimum contrast >= 4.5 versus primary text and >= 3.0 versus sub text.
+   - Intersection circle: minimum contrast >= 4.5 versus primary text.
+5) Hue families are flexible; prioritize readability and clear distinction between left and right circles over a fixed palette.
 
 --- SECTION 4: NATURALNESS EVALUATION FRAMEWORK ---
 

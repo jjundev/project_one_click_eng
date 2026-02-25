@@ -564,6 +564,7 @@ public class SentenceFeedbackManager
         + "Step 3 — Conceptual Bridge (Korean-English Mapping):\n"
         + "Create a literal back-translation of the user's English sentence into Korean to show the student what their English sentence actually conveys in Korean. Then explain the conceptual gap between what they intended to say and what they actually said. \n"
         + "**Venn Diagram**: Use a Venn diagram concept to compare two key vocabulary words or expressions: one from the user's translation and one from the recommended correction. The left circle represents the user's choice, the right circle represents the recommended choice. The intersection shows shared meanings. All items must be written in Korean, following the \"Casual & Easy\" guideline.\n"
+        + "**Venn Diagram Accessibility Constraints**: Colors must stay readable in both light mode and dark mode. Text roles are fixed: word labels and intersection items map to `@color/color_primary_text`, while left/right side items map to `@color/color_sub_text`. The app draws side circles at alpha 128 and intersection at alpha 180 on `@color/color_background_4`. Choose color hex values that keep contrast high in both modes.\n"
         + "\n"
         + "Step 4 — Naturalness Enhancement:\n"
         + "Provide a version of the sentence that a native English speaker would naturally say, going beyond mere grammatical correctness to achieve idiomatic fluency. Highlight the parts that differ from the grammatically correct version. Provide exactly two specific reasons explaining why the natural version sounds more native, each with a keyword and a detailed Korean description. Ensure these descriptions are empathy-driven and benefit-focused.\n"
@@ -703,7 +704,8 @@ public class SentenceFeedbackManager
         + "Rule 7: The \"encouragementMessage\" must be a warm, supportive message in **polite informal Korean (Haeyo-che)** that acknowledges the student's effort. It should be emotional and encouraging (e.g., \"정말 잘했어요!\", \"멋진 시도예요!\").\n"
         + "Rule 8: **ALL Korean text must use the polite informal 'Haeyo-che' (해요체).** It must be natural, conversational, and **strictly avoid difficult grammatical jargon** (refer to Tone & Style Guidelines). Explanations must be concise (max 2 lines) and **Benefit-First**.\n"
         + "Rule 9: The Venn diagram should compare the most instructive pair of words or expressions from the user's translation versus the correction. Choose words where the comparison will teach the student something meaningful about English vocabulary or usage.\n"
-        + "Rule 10: Respond ONLY with valid JSON. Do not include any markdown formatting, code blocks, or explanatory text outside the JSON structure.";
+        + "Rule 10: Venn color output must satisfy accessibility targets for both light and dark mode after alpha blending: for left/right circles, minimum contrast should be >= 4.5 against primary text and >= 3.0 against sub text; for the intersection circle, minimum contrast should be >= 4.5 against primary text. You may use any hue family as long as readability and left/right distinction are preserved.\n"
+        + "Rule 11: Respond ONLY with valid JSON. Do not include any markdown formatting, code blocks, or explanatory text outside the JSON structure.";
   }
 
   private String buildContextMaterial_Dummy() {
@@ -767,7 +769,19 @@ public class SentenceFeedbackManager
         + "List 1-3 shared meanings or usage contexts where both words could be used interchangeably. All items must be in Korean.\n"
         + "\n"
         + "Color Guidelines for Venn Diagram:\n"
-        + "Use visually distinct colors for left circle, right circle, and intersection. Recommended color scheme: Left circle uses \"#4CAF50\" (green), Right circle uses \"#2196F3\" (blue), and Intersection uses \"#9C27B0\" (purple). You may adjust colors for better visual distinction based on the specific words being compared, but always ensure sufficient contrast between all three areas.\n"
+        + "Venn Diagram Accessibility Constraints:\n"
+        + "1) Colors must remain readable in both light mode and dark mode.\n"
+        + "2) Text roles are fixed:\n"
+        + "   - Word labels and intersection items use `@color/color_primary_text`.\n"
+        + "   - Left/right side items use `@color/color_sub_text`.\n"
+        + "3) Circle rendering context is fixed:\n"
+        + "   - Side circles are rendered at alpha 128.\n"
+        + "   - Intersection is rendered at alpha 180.\n"
+        + "   - Base card/background is `@color/color_background_4`.\n"
+        + "4) Contrast targets after blending:\n"
+        + "   - Left and right circles: minimum contrast >= 4.5 versus primary text and >= 3.0 versus sub text.\n"
+        + "   - Intersection circle: minimum contrast >= 4.5 versus primary text.\n"
+        + "5) Hue families are flexible; prioritize readability and clear distinction between left and right circles over a fixed palette.\n"
         + "\n"
         + "--- SECTION 4: NATURALNESS EVALUATION FRAMEWORK ---\n"
         + "\n"

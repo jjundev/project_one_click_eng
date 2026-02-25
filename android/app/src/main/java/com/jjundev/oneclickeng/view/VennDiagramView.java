@@ -1,6 +1,7 @@
 package com.jjundev.oneclickeng.view;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -9,7 +10,11 @@ import android.graphics.Typeface;
 import android.util.AttributeSet;
 import android.view.View;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
+import com.jjundev.oneclickeng.R;
+import com.jjundev.oneclickeng.learning.dialoguelearning.model.VennCircle;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.VennDiagram;
+import com.jjundev.oneclickeng.learning.dialoguelearning.model.VennIntersection;
 import java.util.List;
 
 /**
@@ -20,6 +25,27 @@ import java.util.List;
  */
 public class VennDiagramView extends View {
 
+  private static final int SIDE_ALPHA = 128;
+  private static final int INTERSECTION_ALPHA = 180;
+
+  private static final double MIN_PRIMARY_CONTRAST_SIDE = 4.5d;
+  private static final double MIN_SUB_CONTRAST_SIDE = 3.0d;
+  private static final double MIN_PRIMARY_CONTRAST_INTERSECTION = 4.5d;
+
+  private static final double MIN_SIDE_COLOR_DISTANCE = 50d;
+  private static final double MIN_INTERSECTION_COLOR_DISTANCE = 40d;
+
+  private static final int FALLBACK_LEFT_COLOR = 0xFF439B79;
+  private static final int FALLBACK_RIGHT_COLOR = 0xFF448DEB;
+  private static final int FALLBACK_INTERSECTION_COLOR = 0xFFB869F7;
+
+  private static final int LIGHT_BG_FALLBACK = 0xFFFFFFFF;
+  private static final int DARK_BG_FALLBACK = 0xFF1A1B20;
+  private static final int LIGHT_PRIMARY_TEXT_FALLBACK = 0xFF353C45;
+  private static final int DARK_PRIMARY_TEXT_FALLBACK = 0xFFF2F3F5;
+  private static final int LIGHT_SUB_TEXT_FALLBACK = 0xFF676B73;
+  private static final int DARK_SUB_TEXT_FALLBACK = 0xFFA9ADB6;
+
   private VennDiagram vennDiagram;
 
   // Paints
@@ -27,8 +53,17 @@ public class VennDiagramView extends View {
   private Paint rightCirclePaint;
   private Paint intersectionPaint;
   private Paint labelPaint;
-  private Paint itemPaint;
+  private Paint sideItemPaint;
+  private Paint intersectionItemPaint;
   private Paint strokePaint;
+
+  // Reference colors for contrast checks
+  private int lightBackgroundColor;
+  private int darkBackgroundColor;
+  private int lightPrimaryTextColor;
+  private int darkPrimaryTextColor;
+  private int lightSubTextColor;
+  private int darkSubTextColor;
 
   // Dimensions
   private float circleRadius;
@@ -53,20 +88,22 @@ public class VennDiagramView extends View {
   }
 
   private void init() {
+    resolveContrastReferenceColors();
+
     // Left circle paint
     leftCirclePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     leftCirclePaint.setStyle(Paint.Style.FILL);
-    leftCirclePaint.setColor(0x804CAF50); // Default green with alpha
+    leftCirclePaint.setColor(withAlpha(FALLBACK_LEFT_COLOR, SIDE_ALPHA));
 
     // Right circle paint
     rightCirclePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     rightCirclePaint.setStyle(Paint.Style.FILL);
-    rightCirclePaint.setColor(0x802196F3); // Default blue with alpha
+    rightCirclePaint.setColor(withAlpha(FALLBACK_RIGHT_COLOR, SIDE_ALPHA));
 
     // Intersection paint
     intersectionPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     intersectionPaint.setStyle(Paint.Style.FILL);
-    intersectionPaint.setColor(0x808BC34A); // Default light green with alpha
+    intersectionPaint.setColor(withAlpha(FALLBACK_INTERSECTION_COLOR, INTERSECTION_ALPHA));
 
     // Stroke paint for circle outlines
     strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -79,37 +116,247 @@ public class VennDiagramView extends View {
     labelPaint.setTextSize(36f);
     labelPaint.setTextAlign(Paint.Align.CENTER);
     labelPaint.setTypeface(Typeface.DEFAULT_BOLD);
-    labelPaint.setColor(Color.BLACK);
+    labelPaint.setColor(ContextCompat.getColor(getContext(), R.color.color_primary_text));
 
-    // Item paint (for list items)
-    itemPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    itemPaint.setTextSize(24f);
-    itemPaint.setTextAlign(Paint.Align.CENTER);
-    itemPaint.setColor(0xFF333333);
+    // Side item paint: left/right list items use color_sub_text
+    sideItemPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    sideItemPaint.setTextSize(24f);
+    sideItemPaint.setTextAlign(Paint.Align.CENTER);
+    sideItemPaint.setColor(ContextCompat.getColor(getContext(), R.color.color_sub_text));
+
+    // Intersection item paint: intersection list items use color_primary_text
+    intersectionItemPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    intersectionItemPaint.setTextSize(24f);
+    intersectionItemPaint.setTextAlign(Paint.Align.CENTER);
+    intersectionItemPaint.setColor(ContextCompat.getColor(getContext(), R.color.color_primary_text));
+  }
+
+  private void resolveContrastReferenceColors() {
+    lightBackgroundColor = resolveColorForMode(R.color.color_background_4, false, LIGHT_BG_FALLBACK);
+    darkBackgroundColor = resolveColorForMode(R.color.color_background_4, true, DARK_BG_FALLBACK);
+    lightPrimaryTextColor =
+        resolveColorForMode(R.color.color_primary_text, false, LIGHT_PRIMARY_TEXT_FALLBACK);
+    darkPrimaryTextColor =
+        resolveColorForMode(R.color.color_primary_text, true, DARK_PRIMARY_TEXT_FALLBACK);
+    lightSubTextColor = resolveColorForMode(R.color.color_sub_text, false, LIGHT_SUB_TEXT_FALLBACK);
+    darkSubTextColor = resolveColorForMode(R.color.color_sub_text, true, DARK_SUB_TEXT_FALLBACK);
+  }
+
+  private int resolveColorForMode(int colorRes, boolean nightMode, int fallback) {
+    try {
+      Context baseContext = getContext();
+      if (baseContext == null) {
+        return fallback;
+      }
+      Configuration configuration = new Configuration(baseContext.getResources().getConfiguration());
+      configuration.uiMode =
+          (configuration.uiMode & ~Configuration.UI_MODE_NIGHT_MASK)
+              | (nightMode ? Configuration.UI_MODE_NIGHT_YES : Configuration.UI_MODE_NIGHT_NO);
+      Context modeContext = baseContext.createConfigurationContext(configuration);
+      return ContextCompat.getColor(modeContext, colorRes);
+    } catch (Exception e) {
+      return fallback;
+    }
   }
 
   /** Set the Venn diagram data and refresh the view */
   public void setVennDiagram(VennDiagram diagram) {
     this.vennDiagram = diagram;
-    if (diagram != null) {
-      if (diagram.getLeftCircle() != null) {
-        int color = diagram.getLeftCircle().getColorInt();
-        leftCirclePaint.setColor(withAlpha(color, 128));
-      }
-      if (diagram.getRightCircle() != null) {
-        int color = diagram.getRightCircle().getColorInt();
-        rightCirclePaint.setColor(withAlpha(color, 128));
-      }
-      if (diagram.getIntersection() != null) {
-        int color = diagram.getIntersection().getColorInt();
-        intersectionPaint.setColor(withAlpha(color, 180));
-      }
+    if (diagram == null) {
+      leftCirclePaint.setColor(withAlpha(FALLBACK_LEFT_COLOR, SIDE_ALPHA));
+      rightCirclePaint.setColor(withAlpha(FALLBACK_RIGHT_COLOR, SIDE_ALPHA));
+      intersectionPaint.setColor(withAlpha(FALLBACK_INTERSECTION_COLOR, INTERSECTION_ALPHA));
+      invalidate();
+      return;
     }
+
+    int leftInputColor = resolveCircleColor(diagram.getLeftCircle(), FALLBACK_LEFT_COLOR);
+    int rightInputColor = resolveCircleColor(diagram.getRightCircle(), FALLBACK_RIGHT_COLOR);
+    int intersectionInputColor =
+        resolveIntersectionColor(diagram.getIntersection(), FALLBACK_INTERSECTION_COLOR);
+
+    int resolvedLeftColor = chooseSideColor(leftInputColor, FALLBACK_LEFT_COLOR, null);
+    int resolvedRightColor = chooseSideColor(rightInputColor, FALLBACK_RIGHT_COLOR, resolvedLeftColor);
+
+    // Keep left and right circles distinguishable. Prefer replacing right as requested.
+    if (colorDistance(resolvedLeftColor, resolvedRightColor) < MIN_SIDE_COLOR_DISTANCE) {
+      resolvedRightColor = chooseSideColor(FALLBACK_RIGHT_COLOR, FALLBACK_RIGHT_COLOR, resolvedLeftColor);
+    }
+
+    int resolvedIntersectionColor =
+        chooseIntersectionColor(intersectionInputColor, resolvedLeftColor, resolvedRightColor);
+
+    leftCirclePaint.setColor(withAlpha(resolvedLeftColor, SIDE_ALPHA));
+    rightCirclePaint.setColor(withAlpha(resolvedRightColor, SIDE_ALPHA));
+    intersectionPaint.setColor(withAlpha(resolvedIntersectionColor, INTERSECTION_ALPHA));
+
     invalidate();
   }
 
-  private int withAlpha(int color, int alpha) {
+  private static int withAlpha(int color, int alpha) {
     return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
+  }
+
+  private int chooseSideColor(int preferredColor, int fallbackColor, @Nullable Integer avoidColor) {
+    int[] candidates =
+        new int[] {
+          preferredColor,
+          fallbackColor,
+          adjustLightness(preferredColor, 0.85f),
+          adjustLightness(preferredColor, 1.15f),
+          adjustHue(preferredColor, 20f),
+          adjustHue(preferredColor, -20f),
+          adjustHue(fallbackColor, 20f),
+          FALLBACK_LEFT_COLOR,
+          FALLBACK_RIGHT_COLOR
+        };
+
+    for (int candidate : candidates) {
+      if (!passesSideContrast(candidate)) {
+        continue;
+      }
+      if (avoidColor != null && colorDistance(candidate, avoidColor) < MIN_SIDE_COLOR_DISTANCE) {
+        continue;
+      }
+      return candidate;
+    }
+
+    return fallbackColor;
+  }
+
+  private int chooseIntersectionColor(int preferredColor, int leftColor, int rightColor) {
+    int[] candidates =
+        new int[] {
+          preferredColor,
+          FALLBACK_INTERSECTION_COLOR,
+          adjustHue(preferredColor, 24f),
+          adjustHue(preferredColor, -24f),
+          adjustLightness(preferredColor, 0.9f),
+          adjustLightness(preferredColor, 1.1f)
+        };
+
+    for (int candidate : candidates) {
+      if (!passesIntersectionContrast(candidate)) {
+        continue;
+      }
+      if (colorDistance(candidate, leftColor) < MIN_INTERSECTION_COLOR_DISTANCE
+          || colorDistance(candidate, rightColor) < MIN_INTERSECTION_COLOR_DISTANCE) {
+        continue;
+      }
+      return candidate;
+    }
+
+    for (int candidate : candidates) {
+      if (passesIntersectionContrast(candidate)) {
+        return candidate;
+      }
+    }
+
+    return FALLBACK_INTERSECTION_COLOR;
+  }
+
+  private boolean passesSideContrast(int circleColor) {
+    int lightFill = blendWithBackground(circleColor, lightBackgroundColor, SIDE_ALPHA);
+    int darkFill = blendWithBackground(circleColor, darkBackgroundColor, SIDE_ALPHA);
+
+    double minPrimaryContrast =
+        Math.min(
+            contrastRatio(lightPrimaryTextColor, lightFill),
+            contrastRatio(darkPrimaryTextColor, darkFill));
+    double minSubContrast =
+        Math.min(
+            contrastRatio(lightSubTextColor, lightFill),
+            contrastRatio(darkSubTextColor, darkFill));
+
+    return minPrimaryContrast >= MIN_PRIMARY_CONTRAST_SIDE
+        && minSubContrast >= MIN_SUB_CONTRAST_SIDE;
+  }
+
+  private boolean passesIntersectionContrast(int circleColor) {
+    int lightFill = blendWithBackground(circleColor, lightBackgroundColor, INTERSECTION_ALPHA);
+    int darkFill = blendWithBackground(circleColor, darkBackgroundColor, INTERSECTION_ALPHA);
+    double minPrimaryContrast =
+        Math.min(
+            contrastRatio(lightPrimaryTextColor, lightFill),
+            contrastRatio(darkPrimaryTextColor, darkFill));
+    return minPrimaryContrast >= MIN_PRIMARY_CONTRAST_INTERSECTION;
+  }
+
+  private static int adjustHue(int color, float hueDelta) {
+    float[] hsv = new float[3];
+    Color.colorToHSV(color, hsv);
+    hsv[0] = (hsv[0] + hueDelta + 360f) % 360f;
+    return Color.HSVToColor(hsv);
+  }
+
+  private static int adjustLightness(int color, float factor) {
+    float[] hsv = new float[3];
+    Color.colorToHSV(color, hsv);
+    hsv[2] = clamp(hsv[2] * factor, 0.25f, 0.95f);
+    return Color.HSVToColor(hsv);
+  }
+
+  private static float clamp(float value, float min, float max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  private static double colorDistance(int colorA, int colorB) {
+    int dr = Color.red(colorA) - Color.red(colorB);
+    int dg = Color.green(colorA) - Color.green(colorB);
+    int db = Color.blue(colorA) - Color.blue(colorB);
+    return Math.sqrt(dr * dr + dg * dg + db * db);
+  }
+
+  private static int blendWithBackground(int foregroundColor, int backgroundColor, int alpha) {
+    int r = (Color.red(foregroundColor) * alpha + Color.red(backgroundColor) * (255 - alpha)) / 255;
+    int g =
+        (Color.green(foregroundColor) * alpha + Color.green(backgroundColor) * (255 - alpha)) / 255;
+    int b = (Color.blue(foregroundColor) * alpha + Color.blue(backgroundColor) * (255 - alpha)) / 255;
+    return Color.rgb(r, g, b);
+  }
+
+  private static double contrastRatio(int textColor, int backgroundColor) {
+    double textLum = relativeLuminance(textColor);
+    double backgroundLum = relativeLuminance(backgroundColor);
+    double lighter = Math.max(textLum, backgroundLum);
+    double darker = Math.min(textLum, backgroundLum);
+    return (lighter + 0.05d) / (darker + 0.05d);
+  }
+
+  private static double relativeLuminance(int color) {
+    double r = linearize(Color.red(color) / 255.0d);
+    double g = linearize(Color.green(color) / 255.0d);
+    double b = linearize(Color.blue(color) / 255.0d);
+    return (0.2126d * r) + (0.7152d * g) + (0.0722d * b);
+  }
+
+  private static double linearize(double channel) {
+    return channel <= 0.04045d ? channel / 12.92d : Math.pow((channel + 0.055d) / 1.055d, 2.4d);
+  }
+
+  private static int resolveCircleColor(@Nullable VennCircle circle, int fallback) {
+    if (circle == null) {
+      return fallback;
+    }
+    return parseHexColorOrFallback(circle.getColor(), fallback);
+  }
+
+  private static int resolveIntersectionColor(@Nullable VennIntersection intersection, int fallback) {
+    if (intersection == null) {
+      return fallback;
+    }
+    return parseHexColorOrFallback(intersection.getColor(), fallback);
+  }
+
+  private static int parseHexColorOrFallback(@Nullable String colorHex, int fallback) {
+    if (colorHex == null) {
+      return fallback;
+    }
+    try {
+      return Color.parseColor(colorHex.trim());
+    } catch (Exception ignored) {
+      return fallback;
+    }
   }
 
   @Override
@@ -202,7 +449,7 @@ public class VennDiagramView extends View {
         float y = itemStartY;
         float x = leftCenterX - circleRadius * 0.4f;
         for (String item : leftItems) {
-          canvas.drawText("• " + item, x, y, itemPaint);
+          canvas.drawText("• " + item, x, y, sideItemPaint);
           y += itemLineHeight;
         }
       }
@@ -224,7 +471,7 @@ public class VennDiagramView extends View {
         float y = itemStartY;
         float x = rightCenterX + circleRadius * 0.4f;
         for (String item : rightItems) {
-          canvas.drawText("• " + item, x, y, itemPaint);
+          canvas.drawText("• " + item, x, y, sideItemPaint);
           y += itemLineHeight;
         }
       }
@@ -237,7 +484,7 @@ public class VennDiagramView extends View {
         float y = centerY + circleRadius * 0.2f;
         float x = (leftCenterX + rightCenterX) / 2f;
         for (String item : intersectionItems) {
-          canvas.drawText(item, x, y, itemPaint);
+          canvas.drawText(item, x, y, intersectionItemPaint);
           y += itemLineHeight;
         }
       }
