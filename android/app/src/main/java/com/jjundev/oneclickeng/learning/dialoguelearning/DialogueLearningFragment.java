@@ -1608,7 +1608,8 @@ public class DialogueLearningFragment extends Fragment {
     }
     if (tvListeningStatus != null) {
       tvListeningStatus.setText("분석 실패: " + state.getError());
-      tvListeningStatus.setTextColor(0xFFE53935);
+      tvListeningStatus.setTextColor(
+          ContextCompat.getColor(tvListeningStatus.getContext(), R.color.state_error));
     }
     if (loadingSpinner != null) {
       loadingSpinner.setVisibility(View.GONE);

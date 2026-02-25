@@ -26,6 +26,7 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:layout_gravity="center"
+                android:contentDescription="FINISHED"
                 android:src="@drawable/ic_check"
                 app:tint="#4CAF50" />
 
@@ -37,7 +38,7 @@
             android:layout_height="wrap_content"
             android:text="학습 완료!"
             android:textSize="22sp"
-            android:textColor="#1A1A1A"
+            android:textColor="@color/color_primary_text"
             android:textStyle="bold"
             android:layout_marginBottom="8dp" />
 
@@ -46,7 +47,7 @@
             android:layout_height="wrap_content"
             android:text="@string/learning_finished_quiz_subtitle"
             android:textSize="14sp"
-            android:textColor="#666666"
+            android:textColor="@color/color_sub_text"
             android:gravity="center"
             android:lineSpacingMultiplier="1.4"
             android:layout_marginBottom="32dp" />
@@ -59,7 +60,7 @@
             android:text="@string/learning_finished_quiz_button"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@android:color/white"
+            android:textColor="@color/color_text_on_fixed_bg"
             app:backgroundTint="#4CAF50"
             app:cornerRadius="16dp"
             android:layout_marginBottom="12dp" />

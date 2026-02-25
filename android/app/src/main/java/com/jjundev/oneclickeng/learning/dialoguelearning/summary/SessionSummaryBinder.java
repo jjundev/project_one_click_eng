@@ -736,7 +736,7 @@ public class SessionSummaryBinder {
 
   private static void updateSaveButtonState(ImageButton saveButton, boolean isSaved) {
     int iconRes = isSaved ? R.drawable.ic_bookmark_filled : R.drawable.ic_bookmark_border;
-    int tintColorRes = isSaved ? R.color.save_icon_gold : R.color.grey_400;
+    int tintColorRes = isSaved ? R.color.save_icon_gold : R.color.semantic_icon_secondary;
     int tintColor = ContextCompat.getColor(saveButton.getContext(), tintColorRes);
     saveButton.setImageResource(iconRes);
     ImageViewCompat.setImageTintList(saveButton, ColorStateList.valueOf(tintColor));

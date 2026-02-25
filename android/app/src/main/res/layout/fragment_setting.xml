@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorBackground"
+    android:background="@color/color_background_1"
     android:fillViewport="true">
 
     <LinearLayout
@@ -69,8 +69,7 @@
                     android:layout_height="wrap_content"
                     android:text="닉네임"
                     android:textColor="?attr/colorOnBackground"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:textSize="16sp" />
 
                 <View
                     android:layout_width="0dp"
@@ -133,8 +132,7 @@
                     android:layout_height="wrap_content"
                     android:text="학습 데이터 정리"
                     android:textColor="?attr/colorOnBackground"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:textSize="16sp" />
 
                 <View
                     android:layout_width="0dp"
@@ -176,8 +174,7 @@
                     android:layout_height="wrap_content"
                     android:text="누적 기록 초기화"
                     android:textColor="?attr/colorOnBackground"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:textSize="16sp" />
 
                 <View
                     android:layout_width="0dp"

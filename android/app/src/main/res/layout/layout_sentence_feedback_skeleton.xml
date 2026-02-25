@@ -16,7 +16,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="#E0E0E0"
+            android:background="@color/semantic_divider"
             android:layout_marginBottom="24dp" />
 
         <!-- Writing Score 스켈레톤 -->
@@ -57,7 +57,7 @@
             android:layout_height="wrap_content"
             app:cardCornerRadius="12dp"
             app:cardElevation="0dp"
-            app:cardBackgroundColor="#F5F5F5"
+            app:cardBackgroundColor="?attr/colorSurfaceVariant"
             android:layout_marginBottom="24dp">
 
             <LinearLayout
@@ -72,7 +72,7 @@
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="0dp"
-                    app:cardBackgroundColor="#FFFFFF"
+                    app:cardBackgroundColor="?attr/colorSurfaceVariant"
                     android:layout_marginBottom="16dp">
 
                     <View
@@ -112,7 +112,7 @@
             android:layout_height="wrap_content"
             app:cardCornerRadius="12dp"
             app:cardElevation="0dp"
-            app:cardBackgroundColor="#F5F5F5"
+            app:cardBackgroundColor="?attr/colorSurfaceVariant"
             android:layout_marginBottom="24dp">
 
             <LinearLayout
@@ -134,7 +134,7 @@
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="0dp"
-                    app:cardBackgroundColor="#FFFFFF"
+                    app:cardBackgroundColor="?attr/colorSurfaceVariant"
                     android:layout_marginBottom="16dp">
 
                     <View
@@ -164,7 +164,7 @@
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="0dp"
-                    app:cardBackgroundColor="#FFFFFF">
+                    app:cardBackgroundColor="?attr/colorSurfaceVariant">
 
                     <View
                         android:layout_width="match_parent"
@@ -190,7 +190,7 @@
             android:layout_height="wrap_content"
             app:cardCornerRadius="12dp"
             app:cardElevation="0dp"
-            app:cardBackgroundColor="#F5F5F5"
+            app:cardBackgroundColor="?attr/colorSurfaceVariant"
             android:layout_marginBottom="24dp">
 
             <LinearLayout
@@ -212,7 +212,7 @@
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="0dp"
-                    app:cardBackgroundColor="#FFFFFF"
+                    app:cardBackgroundColor="?attr/colorSurfaceVariant"
                     android:layout_marginBottom="16dp">
 
                     <LinearLayout
@@ -265,7 +265,7 @@
             android:layout_height="wrap_content"
             app:cardCornerRadius="12dp"
             app:cardElevation="0dp"
-            app:cardBackgroundColor="#F5F5F5"
+            app:cardBackgroundColor="?attr/colorSurfaceVariant"
             android:layout_marginBottom="24dp">
 
             <LinearLayout
@@ -295,7 +295,7 @@
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="0dp"
-                    app:cardBackgroundColor="#FFFFFF">
+                    app:cardBackgroundColor="?attr/colorSurfaceVariant">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -335,7 +335,7 @@
             android:layout_height="wrap_content"
             app:cardCornerRadius="12dp"
             app:cardElevation="0dp"
-            app:cardBackgroundColor="#F5F5F5"
+            app:cardBackgroundColor="?attr/colorSurfaceVariant"
             android:layout_marginBottom="24dp">
 
             <LinearLayout
@@ -356,7 +356,7 @@
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="0dp"
-                    app:cardBackgroundColor="#FFFFFF"
+                    app:cardBackgroundColor="?attr/colorSurfaceVariant"
                     android:layout_marginBottom="16dp">
 
                     <LinearLayout
@@ -392,7 +392,7 @@
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="0dp"
-                    app:cardBackgroundColor="#FFFFFF"
+                    app:cardBackgroundColor="?attr/colorSurfaceVariant"
                     android:layout_marginBottom="16dp">
 
                     <LinearLayout
@@ -428,7 +428,7 @@
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="0dp"
-                    app:cardBackgroundColor="#FFFFFF">
+                    app:cardBackgroundColor="?attr/colorSurfaceVariant">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -459,7 +459,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="#E0E0E0"
+            android:background="@color/semantic_divider"
             android:layout_marginBottom="24dp" />
 
     </LinearLayout>

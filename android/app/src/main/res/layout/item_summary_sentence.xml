@@ -5,10 +5,10 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="12dp"
-    app:cardBackgroundColor="@color/white"
+    app:cardBackgroundColor="@color/color_background_2"
     app:cardCornerRadius="16dp"
     app:cardElevation="0dp"
-    app:strokeColor="@color/grey_300"
+    app:strokeColor="@color/semantic_divider"
     app:strokeWidth="1dp">
 
     <LinearLayout
@@ -41,7 +41,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/desc_save_sentence"
                 android:src="@drawable/ic_bookmark_border"
-                app:tint="@color/grey_400" />
+                app:tint="?attr/colorOnSurfaceVariant" />
         </LinearLayout>
 
         <TextView
@@ -51,7 +51,7 @@
             android:layout_marginTop="6dp"
             android:lineSpacingMultiplier="1.4"
             android:text="This is a sentence that I liked during the session."
-            android:textColor="#1A1A1A"
+            android:textColor="?attr/colorOnBackground"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -62,7 +62,7 @@
             android:layout_marginTop="8dp"
             android:lineSpacingMultiplier="1.4"
             android:text="이번 세션 중에 맘에 들었던 문장입니다."
-            android:textColor="@color/grey_600"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="14sp" />
 
     </LinearLayout>

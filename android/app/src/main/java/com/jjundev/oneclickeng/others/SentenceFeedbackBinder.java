@@ -32,12 +32,13 @@ import java.util.List;
 public class SentenceFeedbackBinder {
 
   // Colors for text segments
-  private static final int COLOR_NORMAL = 0xFF1A1A1A;
   private static final int COLOR_INCORRECT = 0xFFF44336; // Red
   private static final int COLOR_CORRECTION = 0xFF4CAF50; // Green
-  private static final int COLOR_HIGHLIGHT_BG = 0xFFFFEB3B; // Yellow background
 
   private final View rootView;
+  private final int colorNormal;
+  private final int colorHighlightBg;
+  private final int colorHighlightText;
   private SentenceFeedback feedback;
   private TtsActionListener ttsActionListener;
   private ParaphrasingBookmarkDelegate paraphrasingBookmarkDelegate;
@@ -126,6 +127,11 @@ public class SentenceFeedbackBinder {
 
   public SentenceFeedbackBinder(View rootView) {
     this.rootView = rootView;
+    this.colorNormal = ContextCompat.getColor(rootView.getContext(), R.color.color_primary_text);
+    this.colorHighlightBg =
+        ContextCompat.getColor(rootView.getContext(), R.color.color_feedback_highlight_bg);
+    this.colorHighlightText =
+        ContextCompat.getColor(rootView.getContext(), R.color.color_feedback_highlight_text);
     bindViews();
   }
 
@@ -770,7 +776,7 @@ public class SentenceFeedbackBinder {
     switch (type) {
       case TextSegment.TYPE_NORMAL:
         builder.setSpan(
-            new ForegroundColorSpan(COLOR_NORMAL), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            new ForegroundColorSpan(colorNormal), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         break;
 
       case TextSegment.TYPE_INCORRECT:
@@ -790,7 +796,12 @@ public class SentenceFeedbackBinder {
 
       case TextSegment.TYPE_HIGHLIGHT:
         builder.setSpan(
-            new BackgroundColorSpan(COLOR_HIGHLIGHT_BG),
+            new BackgroundColorSpan(colorHighlightBg),
+            start,
+            end,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        builder.setSpan(
+            new ForegroundColorSpan(colorHighlightText),
             start,
             end,
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);

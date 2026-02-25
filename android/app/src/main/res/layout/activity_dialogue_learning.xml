@@ -10,7 +10,7 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/colorSurface"
+        android:background="@color/color_background_2"
         app:contentInsetStart="0dp"
         app:contentInsetEnd="0dp"
         android:elevation="0dp"
@@ -31,7 +31,7 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:scaleType="centerInside"
-                app:tint="?attr/colorOnSurfaceVariant" />
+                app:tint="@color/color_toolbar_icon" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -45,7 +45,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="레스토랑 주문하기"
-                    android:textColor="?attr/colorOnBackground"
+                    android:textColor="@color/color_primary_text"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:maxLines="1"/>
@@ -65,7 +65,7 @@
                     <TextView
                         android:id="@+id/tv_progress"
                         android:text="1 of 20"
-                        android:textColor="?attr/colorOnBackground"
+                        android:textColor="@color/color_sub_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp" />
@@ -82,7 +82,7 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:scaleType="centerInside"
-                app:tint="?attr/colorOnSurfaceVariant" />
+                app:tint="@color/color_toolbar_icon" />
 
         </LinearLayout>
 

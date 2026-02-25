@@ -12,7 +12,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:indeterminate="true"
-        app:indicatorColor="?attr/colorOnBackground"
+        app:indicatorColor="@color/color_progressbar"
         app:indicatorSize="56dp"
         app:trackColor="?attr/colorSurface"
         app:trackCornerRadius="4dp"
@@ -24,7 +24,7 @@
         android:layout_marginTop="24dp"
         android:letterSpacing="-0.02"
         android:text="로그인 중..."
-        android:textColor="?attr/colorOnBackground"
+        android:textColor="@color/color_primary_text"
         android:textSize="20sp"
         android:textStyle="bold" />
 
@@ -34,6 +34,6 @@
         android:layout_marginTop="8dp"
         android:letterSpacing="-0.02"
         android:text="잠시만 기다려주세요"
-        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textColor="@color/color_sub_text"
         android:textSize="14sp" />
 </LinearLayout>

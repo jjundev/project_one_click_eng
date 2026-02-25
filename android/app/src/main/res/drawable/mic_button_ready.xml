@@ -16,7 +16,7 @@
         android:right="4dp"
         android:bottom="4dp">
         <shape android:shape="oval">
-            <solid android:color="#FFFFFF" />
+            <solid android:color="@color/color_background_2" />
         </shape>
     </item>
     <!-- 중앙 회색 원형 버튼 -->

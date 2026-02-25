@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/color_background_2"
     android:fillViewport="true">
 
     <LinearLayout
@@ -26,7 +27,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
                 android:text="영작할 문장:"
-                android:textColor="#333333"
+                android:textColor="@color/color_primary_text"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
@@ -36,7 +37,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardBackgroundColor="#F5F5F5"
+                app:cardBackgroundColor="@color/color_background_3"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp">
 
@@ -47,7 +48,7 @@
                     android:lineSpacingMultiplier="1.3"
                     android:padding="16dp"
                     android:text="This is sentence_to_translate."
-                    android:textColor="#1A1A1A"
+                    android:textColor="@color/color_primary_text"
                     android:textSize="16sp" />
 
             </com.google.android.material.card.MaterialCardView>
@@ -59,7 +60,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
                 android:text="영작한 문장:"
-                android:textColor="#333333"
+                android:textColor="@color/color_primary_text"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
@@ -69,7 +70,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
-                app:cardBackgroundColor="#E3F2FD"
+                app:cardBackgroundColor="@color/color_background_translated_sentence_card"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp">
 
@@ -91,8 +92,8 @@
                         android:hint="음성이 여기에 표시됩니다..."
                         android:lineSpacingMultiplier="1.3"
                         android:text=""
-                        android:textColor="#1A1A1A"
-                        android:textColorHint="#9E9E9E"
+                        android:textColor="@color/color_primary_text"
+                        android:textColorHint="@color/color_sub_text"
                         android:textSize="16sp" />
 
                     <ImageView
@@ -101,7 +102,7 @@
                         android:layout_height="24dp"
                         android:src="@drawable/ic_speaker"
                         android:layout_marginStart="8dp"
-                        app:tint="#757575"
+                        app:tint="@color/color_sub_text"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:clickable="true"
                         android:focusable="true" />
@@ -123,7 +124,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginBottom="24dp"
-                android:background="#E0E0E0" />
+                android:background="@color/semantic_divider" />
 
             <!-- 영작 점수 라벨 -->
             <TextView
@@ -133,7 +134,7 @@
                 android:layout_gravity="center_horizontal"
                 android:text="스피킹 점수"
                 android:textSize="16sp"
-                android:textColor="#333333"
+                android:textColor="@color/color_primary_text"
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp" />
 
@@ -161,7 +162,7 @@
                     android:layout_height="wrap_content"
                     android:text="/100"
                     android:textSize="20sp"
-                    android:textColor="#9E9E9E"
+                    android:textColor="@color/color_sub_text"
                     android:layout_marginStart="4dp" />
 
             </LinearLayout>
@@ -174,7 +175,7 @@
                 android:layout_gravity="center_horizontal"
                 android:text="몇몇 부분만 고치면 완벽해져요!"
                 android:textSize="16sp"
-                android:textColor="#666666"
+                android:textColor="@color/color_sub_text"
                 android:layout_marginBottom="24dp" />
 
             <!-- 말하기 피드백 점수 카드들 -->
@@ -192,7 +193,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="6dp"
                     android:layout_weight="1"
-                    app:cardBackgroundColor="#F5F5F5"
+                    app:cardBackgroundColor="@color/color_background_3"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="0dp">
 
@@ -207,7 +208,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="유창성"
-                            android:textColor="#1A1A1A"
+                            android:textColor="@color/color_primary_text"
                             android:textSize="14sp"
                             android:textStyle="bold" />
 
@@ -233,7 +234,7 @@
                     android:layout_marginStart="6dp"
                     android:layout_marginEnd="6dp"
                     android:layout_weight="1"
-                    app:cardBackgroundColor="#F5F5F5"
+                    app:cardBackgroundColor="@color/color_background_3"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="0dp">
 
@@ -248,7 +249,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="자신감"
-                            android:textColor="#1A1A1A"
+                            android:textColor="@color/color_primary_text"
                             android:textSize="14sp"
                             android:textStyle="bold" />
 
@@ -273,7 +274,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
                     android:layout_weight="1"
-                    app:cardBackgroundColor="#F5F5F5"
+                    app:cardBackgroundColor="@color/color_background_3"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="0dp">
 
@@ -288,7 +289,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="망설임"
-                            android:textColor="#1A1A1A"
+                            android:textColor="@color/color_primary_text"
                             android:textSize="14sp"
                             android:textStyle="bold" />
 
@@ -321,7 +322,7 @@
                 android:id="@+id/divider_speaking_sentence"
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:background="#E0E0E0"
+                android:background="@color/semantic_divider"
                 android:layout_marginBottom="24dp" />
 
             <com.facebook.shimmer.ShimmerFrameLayout
@@ -364,7 +365,7 @@
                 android:layout_gravity="center_horizontal"
                 android:text="영작 점수"
                 android:textSize="16sp"
-                android:textColor="#333333"
+                android:textColor="@color/color_primary_text"
                 android:textStyle="bold"
                 android:visibility="gone"
                 android:layout_marginBottom="8dp" />
@@ -395,7 +396,7 @@
                     android:layout_height="wrap_content"
                     android:text="/100"
                     android:textSize="20sp"
-                    android:textColor="#9E9E9E"
+                    android:textColor="@color/color_sub_text"
                     android:layout_marginStart="4dp" />
 
             </LinearLayout>
@@ -408,7 +409,7 @@
                 android:layout_gravity="center_horizontal"
                 android:text="몇몇 부분만 고치면 완벽해져요!"
                 android:textSize="16sp"
-                android:textColor="#666666"
+                android:textColor="@color/color_sub_text"
                 android:visibility="gone"
                 android:layout_marginBottom="24dp" />
 
@@ -434,7 +435,7 @@
                         android:layout_height="wrap_content"
                         app:cardCornerRadius="12dp"
                         app:cardElevation="0dp"
-                        app:cardBackgroundColor="#F5F5F5"
+                        app:cardBackgroundColor="@color/color_background_3"
                         android:layout_marginBottom="24dp">
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -446,7 +447,7 @@
                                 android:layout_height="wrap_content"
                                 app:cardCornerRadius="12dp"
                                 app:cardElevation="0dp"
-                                app:cardBackgroundColor="#FFFFFF"
+                                app:cardBackgroundColor="@color/color_background_4"
                                 android:layout_marginBottom="16dp">
                                 <View
                                     android:layout_width="match_parent"
@@ -473,7 +474,7 @@
                 android:layout_height="wrap_content"
                 android:text="기초 문법(Grammar)"
                 android:textSize="16sp"
-                android:textColor="#333333"
+                android:textColor="@color/color_primary_text"
                 android:textStyle="bold"
                 android:visibility="gone"
                 android:layout_marginBottom="8dp" />
@@ -484,7 +485,7 @@
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
-                app:cardBackgroundColor="#F5F5F5"
+                app:cardBackgroundColor="@color/color_background_3"
                 android:visibility="gone"
                 android:layout_marginBottom="24dp">
 
@@ -501,7 +502,7 @@
                         android:layout_height="wrap_content"
                         app:cardCornerRadius="12dp"
                         app:cardElevation="0dp"
-                        app:cardBackgroundColor="#FFFFFF"
+                        app:cardBackgroundColor="@color/color_background_4"
                         android:layout_marginBottom="16dp">
 
                     <LinearLayout
@@ -518,7 +519,7 @@
                             android:layout_weight="1"
                             android:text="I saw him."
                             android:textSize="14sp"
-                            android:textColor="#1A1A1A"
+                            android:textColor="@color/color_primary_text"
                             android:lineSpacingMultiplier="1.4" />
 
                         <ImageView
@@ -527,7 +528,7 @@
                             android:layout_height="24dp"
                             android:src="@drawable/ic_speaker"
                             android:layout_marginStart="8dp"
-                            app:tint="#757575"
+                            app:tint="?attr/colorOnSurfaceVariant"
                             android:background="?attr/selectableItemBackgroundBorderless"
                             android:clickable="true"
                             android:focusable="true" />
@@ -543,7 +544,7 @@
                         android:layout_height="wrap_content"
                         android:text="어제(yesterday)처럼 정확한 때가 주어지면 과거시제를 쓰는 것이 더 자연스러워요!"
                         android:textSize="14sp"
-                        android:textColor="#666666"
+                        android:textColor="@color/color_sub_text"
                         android:lineSpacingMultiplier="1.4" />
 
                 </LinearLayout>
@@ -572,7 +573,7 @@
                         android:layout_height="wrap_content"
                         app:cardCornerRadius="12dp"
                         app:cardElevation="0dp"
-                        app:cardBackgroundColor="#F5F5F5"
+                        app:cardBackgroundColor="@color/color_background_3"
                         android:layout_marginBottom="24dp">
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -589,7 +590,7 @@
                                 android:layout_height="wrap_content"
                                 app:cardCornerRadius="12dp"
                                 app:cardElevation="0dp"
-                                app:cardBackgroundColor="#FFFFFF"
+                                app:cardBackgroundColor="@color/color_background_4"
                                 android:layout_marginBottom="16dp">
                                 <View
                                     android:layout_width="match_parent"
@@ -612,7 +613,7 @@
                                 android:layout_height="wrap_content"
                                 app:cardCornerRadius="12dp"
                                 app:cardElevation="0dp"
-                                app:cardBackgroundColor="#FFFFFF">
+                                app:cardBackgroundColor="@color/color_background_4">
                                 <View
                                     android:layout_width="match_parent"
                                     android:layout_height="120dp"
@@ -628,7 +629,7 @@
                 android:layout_height="wrap_content"
                 android:text="원어민의 사고 이해(Conceptual Bridge)"
                 android:textSize="16sp"
-                android:textColor="#333333"
+                android:textColor="@color/color_primary_text"
                 android:textStyle="bold"
                 android:visibility="gone"
                 android:layout_marginBottom="8dp" />
@@ -639,7 +640,7 @@
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
-                app:cardBackgroundColor="#F5F5F5"
+                app:cardBackgroundColor="@color/color_background_3"
                 android:visibility="gone"
                 android:layout_marginBottom="24dp">
 
@@ -656,7 +657,7 @@
                         android:layout_height="wrap_content"
                         android:text="영작한 문장을 직역하면, "
                         android:textSize="14sp"
-                        android:textColor="#333333"
+                        android:textColor="@color/color_primary_text"
                         android:textStyle="bold"
                         android:layout_marginBottom="8dp" />
 
@@ -667,7 +668,7 @@
                         android:layout_height="wrap_content"
                         app:cardCornerRadius="12dp"
                         app:cardElevation="0dp"
-                        app:cardBackgroundColor="#FFFFFF"
+                        app:cardBackgroundColor="@color/color_background_4"
                         android:layout_marginBottom="16dp">
 
                         <TextView
@@ -677,7 +678,7 @@
                             android:padding="16dp"
                             android:text="예약하겠습니다"
                             android:textSize="14sp"
-                            android:textColor="#1A1A1A"
+                            android:textColor="@color/color_primary_text"
                             android:lineSpacingMultiplier="1.4" />
 
                     </com.google.android.material.card.MaterialCardView>
@@ -689,7 +690,7 @@
                         android:layout_height="wrap_content"
                         android:text="마치 의사 선생님과 예약한 느낌이에요!"
                         android:textSize="14sp"
-                        android:textColor="#666666"
+                        android:textColor="@color/color_sub_text"
                         android:lineSpacingMultiplier="1.4"
                         android:layout_marginBottom="8dp" />
 
@@ -700,7 +701,7 @@
                         android:layout_height="wrap_content"
                         android:text="plan과 appointment의 차이를 벤다이어그램으로 확인해보세요!"
                         android:textSize="14sp"
-                        android:textColor="#666666"
+                        android:textColor="@color/color_sub_text"
                         android:lineSpacingMultiplier="1.4"
                         android:layout_marginBottom="16dp" />
 
@@ -711,7 +712,7 @@
                         app:cardCornerRadius="12dp"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp"
-                        app:cardBackgroundColor="#FFFFFF">
+                        app:cardBackgroundColor="@color/color_background_4">
 
                         <com.jjundev.oneclickeng.view.VennDiagramView
                             android:id="@+id/view_conceptual_bridge_venn"
@@ -746,7 +747,7 @@
                         android:layout_height="wrap_content"
                         app:cardCornerRadius="12dp"
                         app:cardElevation="0dp"
-                        app:cardBackgroundColor="#F5F5F5"
+                        app:cardBackgroundColor="@color/color_background_3"
                         android:layout_marginBottom="24dp">
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -763,7 +764,7 @@
                                 android:layout_height="wrap_content"
                                 app:cardCornerRadius="12dp"
                                 app:cardElevation="0dp"
-                                app:cardBackgroundColor="#FFFFFF"
+                                app:cardBackgroundColor="@color/color_background_4"
                                 android:layout_marginBottom="16dp">
                                 <LinearLayout
                                     android:layout_width="match_parent"
@@ -800,7 +801,7 @@
                 android:layout_height="wrap_content"
                 android:text="자연스러움(Naturalness &amp; Collocation)"
                 android:textSize="16sp"
-                android:textColor="#333333"
+                android:textColor="@color/color_primary_text"
                 android:textStyle="bold"
                 android:visibility="gone"
                 android:layout_marginBottom="8dp" />
@@ -811,7 +812,7 @@
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
-                app:cardBackgroundColor="#F5F5F5"
+                app:cardBackgroundColor="@color/color_background_3"
                 android:visibility="gone"
                 android:layout_marginBottom="24dp">
 
@@ -828,7 +829,7 @@
                         android:layout_height="wrap_content"
                         android:text="자연스러운 문장:"
                         android:textSize="14sp"
-                        android:textColor="#333333"
+                        android:textColor="@color/color_primary_text"
                         android:textStyle="bold"
                         android:layout_marginBottom="8dp" />
 
@@ -839,7 +840,7 @@
                         android:layout_height="wrap_content"
                         app:cardCornerRadius="12dp"
                         app:cardElevation="0dp"
-                        app:cardBackgroundColor="#FFFFFF"
+                        app:cardBackgroundColor="@color/color_background_4"
                         android:layout_marginBottom="16dp">
 
                     <LinearLayout
@@ -861,7 +862,7 @@
                                 android:layout_weight="1"
                                 android:text="I made a mistake."
                                 android:textSize="14sp"
-                                android:textColor="#1A1A1A"
+                                android:textColor="@color/color_primary_text"
                                 android:lineSpacingMultiplier="1.4" />
 
                             <ImageView
@@ -870,7 +871,7 @@
                                 android:layout_height="24dp"
                                 android:src="@drawable/ic_speaker"
                                 android:layout_marginStart="8dp"
-                                app:tint="#757575"
+                                app:tint="?attr/colorOnSurfaceVariant"
                                 android:background="?attr/selectableItemBackgroundBorderless"
                                 android:clickable="true"
                                 android:focusable="true" />
@@ -886,7 +887,7 @@
                             android:paddingBottom="12dp"
                             android:text="(해석: 실수했어요.)"
                             android:textSize="13sp"
-                            android:textColor="#757575"
+                            android:textColor="@color/color_sub_text"
                             android:lineSpacingMultiplier="1.4" />
                     </LinearLayout>
 
@@ -899,7 +900,7 @@
                         android:layout_height="wrap_content"
                         android:text="원어민들은 실수할 때 'do'보다는 'make'를 더 많이 써요!"
                         android:textSize="14sp"
-                        android:textColor="#666666"
+                        android:textColor="@color/color_sub_text"
                         android:lineSpacingMultiplier="1.4"
                         android:layout_marginBottom="8dp" />
 
@@ -910,7 +911,7 @@
                         android:layout_height="wrap_content"
                         android:text="Reason 1"
                         android:textSize="14sp"
-                        android:textColor="#1A1A1A"
+                        android:textColor="@color/color_primary_text"
                         android:lineSpacingMultiplier="1.4"
                         android:layout_marginBottom="4dp" />
 
@@ -921,7 +922,7 @@
                         android:layout_height="wrap_content"
                         android:text="Reason 2"
                         android:textSize="14sp"
-                        android:textColor="#1A1A1A"
+                        android:textColor="@color/color_primary_text"
                         android:lineSpacingMultiplier="1.4" />
 
                 </LinearLayout>
@@ -950,7 +951,7 @@
                         android:layout_height="wrap_content"
                         app:cardCornerRadius="12dp"
                         app:cardElevation="0dp"
-                        app:cardBackgroundColor="#F5F5F5"
+                        app:cardBackgroundColor="@color/color_background_3"
                         android:layout_marginBottom="24dp">
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -973,7 +974,7 @@
                                 android:layout_height="wrap_content"
                                 app:cardCornerRadius="12dp"
                                 app:cardElevation="0dp"
-                                app:cardBackgroundColor="#FFFFFF">
+                                app:cardBackgroundColor="@color/color_background_4">
                                 <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
@@ -1001,7 +1002,7 @@
                 android:layout_height="wrap_content"
                 android:text="문맥 기반 톤 및 스타일(Tone &amp; Style)"
                 android:textSize="16sp"
-                android:textColor="#333333"
+                android:textColor="@color/color_primary_text"
                 android:textStyle="bold"
                 android:visibility="gone"
                 android:layout_marginBottom="8dp" />
@@ -1012,7 +1013,7 @@
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
-                app:cardBackgroundColor="#F5F5F5"
+                app:cardBackgroundColor="@color/color_background_3"
                 android:visibility="gone"
                 android:layout_marginBottom="24dp">
 
@@ -1029,7 +1030,7 @@
                         android:layout_height="wrap_content"
                         android:text="슬라이더를 조정해서 다양한 톤으로 바꾸어보세요!"
                         android:textSize="14sp"
-                        android:textColor="#666666"
+                        android:textColor="@color/color_sub_text"
                         android:textAlignment="center"
                         android:layout_marginBottom="16dp" />
 
@@ -1055,7 +1056,7 @@
                                 android:layout_weight="1"
                                 android:text="격식"
                                 android:textSize="12sp"
-                                android:textColor="#9E9E9E"
+                                android:textColor="@color/color_sub_text"
                                 android:textAlignment="textStart" />
 
                             <TextView
@@ -1064,7 +1065,7 @@
                                 android:layout_weight="1"
                                 android:text="캐주얼"
                                 android:textSize="12sp"
-                                android:textColor="#9E9E9E"
+                                android:textColor="@color/color_sub_text"
                                 android:textAlignment="textEnd" />
 
                         </LinearLayout>
@@ -1094,7 +1095,7 @@
 <!--                                android:layout_weight="1"-->
 <!--                                android:text="1"-->
 <!--                                android:textSize="10sp"-->
-<!--                                android:textColor="#9E9E9E"-->
+<!--                                android:textColor="@color/color_sub_text"-->
 <!--                                android:textAlignment="center" />-->
 
 <!--                            <TextView-->
@@ -1103,7 +1104,7 @@
 <!--                                android:layout_weight="1"-->
 <!--                                android:text="2"-->
 <!--                                android:textSize="10sp"-->
-<!--                                android:textColor="#9E9E9E"-->
+<!--                                android:textColor="@color/color_sub_text"-->
 <!--                                android:textAlignment="center" />-->
 
 <!--                            <TextView-->
@@ -1112,7 +1113,7 @@
 <!--                                android:layout_weight="1"-->
 <!--                                android:text="3"-->
 <!--                                android:textSize="10sp"-->
-<!--                                android:textColor="#9E9E9E"-->
+<!--                                android:textColor="@color/color_sub_text"-->
 <!--                                android:textAlignment="center" />-->
 
 <!--                            <TextView-->
@@ -1121,7 +1122,7 @@
 <!--                                android:layout_weight="1"-->
 <!--                                android:text="4"-->
 <!--                                android:textSize="10sp"-->
-<!--                                android:textColor="#9E9E9E"-->
+<!--                                android:textColor="@color/color_sub_text"-->
 <!--                                android:textAlignment="center" />-->
 
 <!--                            <TextView-->
@@ -1130,7 +1131,7 @@
 <!--                                android:layout_weight="1"-->
 <!--                                android:text="5"-->
 <!--                                android:textSize="10sp"-->
-<!--                                android:textColor="#9E9E9E"-->
+<!--                                android:textColor="@color/color_sub_text"-->
 <!--                                android:textAlignment="center" />-->
 
 <!--                        </LinearLayout>-->
@@ -1144,7 +1145,7 @@
                         android:layout_height="wrap_content"
                         app:cardCornerRadius="12dp"
                         app:cardElevation="0dp"
-                        app:cardBackgroundColor="#FFFFFF">
+                        app:cardBackgroundColor="@color/color_background_4">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -1165,7 +1166,7 @@
                                 android:layout_weight="1"
                                 android:text="I would appreciate it"
                                 android:textSize="14sp"
-                                android:textColor="#1A1A1A"
+                                android:textColor="@color/color_primary_text"
                                 android:lineSpacingMultiplier="1.4" />
 
                             <ImageView
@@ -1174,7 +1175,7 @@
                                 android:layout_height="24dp"
                                 android:src="@drawable/ic_speaker"
                                 android:layout_marginStart="8dp"
-                                app:tint="#757575"
+                                app:tint="?attr/colorOnSurfaceVariant"
                                 android:background="?attr/selectableItemBackgroundBorderless"
                                 android:clickable="true"
                                 android:focusable="true" />
@@ -1190,7 +1191,7 @@
                             android:paddingBottom="12dp"
                             android:text="(해석: 감사하겠습니다.)"
                             android:textSize="13sp"
-                            android:textColor="#757575"
+                            android:textColor="@color/color_sub_text"
                             android:lineSpacingMultiplier="1.4" />
                     </LinearLayout>
 
@@ -1222,7 +1223,7 @@
                         android:layout_height="wrap_content"
                         app:cardCornerRadius="12dp"
                         app:cardElevation="0dp"
-                        app:cardBackgroundColor="#F5F5F5"
+                        app:cardBackgroundColor="@color/color_background_3"
                         android:layout_marginBottom="24dp">
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -1240,7 +1241,7 @@
                                 android:layout_height="wrap_content"
                                 app:cardCornerRadius="12dp"
                                 app:cardElevation="0dp"
-                                app:cardBackgroundColor="#FFFFFF"
+                                app:cardBackgroundColor="@color/color_background_4"
                                 android:layout_marginBottom="16dp">
                                 <LinearLayout
                                     android:layout_width="match_parent"
@@ -1269,7 +1270,7 @@
                                 android:layout_height="wrap_content"
                                 app:cardCornerRadius="12dp"
                                 app:cardElevation="0dp"
-                                app:cardBackgroundColor="#FFFFFF"
+                                app:cardBackgroundColor="@color/color_background_4"
                                 android:layout_marginBottom="16dp">
                                 <LinearLayout
                                     android:layout_width="match_parent"
@@ -1298,7 +1299,7 @@
                                 android:layout_height="wrap_content"
                                 app:cardCornerRadius="12dp"
                                 app:cardElevation="0dp"
-                                app:cardBackgroundColor="#FFFFFF">
+                                app:cardBackgroundColor="@color/color_background_4">
                                 <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
@@ -1325,7 +1326,7 @@
                 android:layout_height="wrap_content"
                 android:text="확장된 문장 재구성(Paraphrasing)"
                 android:textSize="16sp"
-                android:textColor="#333333"
+                android:textColor="@color/color_primary_text"
                 android:textStyle="bold"
                 android:visibility="gone"
                 android:layout_marginBottom="8dp" />
@@ -1336,7 +1337,7 @@
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
-                app:cardBackgroundColor="#F5F5F5"
+                app:cardBackgroundColor="@color/color_background_3"
                 android:visibility="gone"
                 android:layout_marginBottom="24dp">
 
@@ -1354,7 +1355,7 @@
                         android:layout_height="wrap_content"
                         android:text="Level 1"
                         android:textSize="14sp"
-                        android:textColor="#333333"
+                        android:textColor="@color/color_primary_text"
                         android:textStyle="bold"
                         android:layout_marginBottom="8dp" />
 
@@ -1364,7 +1365,7 @@
                         android:layout_height="wrap_content"
                         app:cardCornerRadius="12dp"
                         app:cardElevation="0dp"
-                        app:cardBackgroundColor="#FFFFFF"
+                        app:cardBackgroundColor="@color/color_background_4"
                         android:layout_marginBottom="16dp">
 
                         <LinearLayout
@@ -1386,7 +1387,7 @@
                                     android:layout_weight="1"
                                     android:text=""
                                     android:textSize="14sp"
-                                    android:textColor="#1A1A1A"
+                                    android:textColor="@color/color_primary_text"
                                     android:lineSpacingMultiplier="1.4" />
 
                                 <ImageView
@@ -1395,7 +1396,7 @@
                                     android:layout_height="24dp"
                                     android:src="@drawable/ic_speaker"
                                     android:layout_marginStart="8dp"
-                                    app:tint="#757575"
+                                    app:tint="?attr/colorOnSurfaceVariant"
                                     android:background="?attr/selectableItemBackgroundBorderless"
                                     android:clickable="true"
                                     android:focusable="true" />
@@ -1419,7 +1420,7 @@
                                     android:background="?attr/selectableItemBackgroundBorderless"
                                     android:contentDescription="@string/desc_save_paraphrasing"
                                     android:src="@drawable/ic_bookmark_border"
-                                    app:tint="@color/grey_400" />
+                                    app:tint="?attr/colorOnSurfaceVariant" />
 
                             </LinearLayout>
 
@@ -1432,7 +1433,7 @@
                                 android:paddingBottom="12dp"
                                 android:text=""
                                 android:textSize="13sp"
-                                android:textColor="#757575"
+                                android:textColor="@color/color_sub_text"
                                 android:lineSpacingMultiplier="1.4" />
 
                         </LinearLayout>
@@ -1446,7 +1447,7 @@
                         android:layout_height="wrap_content"
                         android:text="Level 2"
                         android:textSize="14sp"
-                        android:textColor="#333333"
+                        android:textColor="@color/color_primary_text"
                         android:textStyle="bold"
                         android:layout_marginBottom="8dp" />
 
@@ -1456,7 +1457,7 @@
                         android:layout_height="wrap_content"
                         app:cardCornerRadius="12dp"
                         app:cardElevation="0dp"
-                        app:cardBackgroundColor="#FFFFFF"
+                        app:cardBackgroundColor="@color/color_background_4"
                         android:layout_marginBottom="16dp">
 
                         <LinearLayout
@@ -1478,7 +1479,7 @@
                                     android:layout_weight="1"
                                     android:text=""
                                     android:textSize="14sp"
-                                    android:textColor="#1A1A1A"
+                                    android:textColor="@color/color_primary_text"
                                     android:lineSpacingMultiplier="1.4" />
 
                                 <ImageView
@@ -1487,7 +1488,7 @@
                                     android:layout_height="24dp"
                                     android:src="@drawable/ic_speaker"
                                     android:layout_marginStart="8dp"
-                                    app:tint="#757575"
+                                    app:tint="?attr/colorOnSurfaceVariant"
                                     android:background="?attr/selectableItemBackgroundBorderless"
                                     android:clickable="true"
                                     android:focusable="true" />
@@ -1511,7 +1512,7 @@
                                     android:background="?attr/selectableItemBackgroundBorderless"
                                     android:contentDescription="@string/desc_save_paraphrasing"
                                     android:src="@drawable/ic_bookmark_border"
-                                    app:tint="@color/grey_400" />
+                                    app:tint="?attr/colorOnSurfaceVariant" />
 
                             </LinearLayout>
 
@@ -1524,7 +1525,7 @@
                                 android:paddingBottom="12dp"
                                 android:text=""
                                 android:textSize="13sp"
-                                android:textColor="#757575"
+                                android:textColor="@color/color_sub_text"
                                 android:lineSpacingMultiplier="1.4" />
 
                         </LinearLayout>
@@ -1538,7 +1539,7 @@
                         android:layout_height="wrap_content"
                         android:text="Level 3"
                         android:textSize="14sp"
-                        android:textColor="#333333"
+                        android:textColor="@color/color_primary_text"
                         android:textStyle="bold"
                         android:layout_marginBottom="8dp" />
 
@@ -1548,7 +1549,7 @@
                         android:layout_height="wrap_content"
                         app:cardCornerRadius="12dp"
                         app:cardElevation="0dp"
-                        app:cardBackgroundColor="#FFFFFF">
+                        app:cardBackgroundColor="@color/color_background_4">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -1569,7 +1570,7 @@
                                     android:layout_weight="1"
                                     android:text=""
                                     android:textSize="14sp"
-                                    android:textColor="#1A1A1A"
+                                    android:textColor="@color/color_primary_text"
                                     android:lineSpacingMultiplier="1.4" />
 
                                 <ImageView
@@ -1578,7 +1579,7 @@
                                     android:layout_height="24dp"
                                     android:src="@drawable/ic_speaker"
                                     android:layout_marginStart="8dp"
-                                    app:tint="#757575"
+                                    app:tint="?attr/colorOnSurfaceVariant"
                                     android:background="?attr/selectableItemBackgroundBorderless"
                                     android:clickable="true"
                                     android:focusable="true" />
@@ -1602,7 +1603,7 @@
                                     android:background="?attr/selectableItemBackgroundBorderless"
                                     android:contentDescription="@string/desc_save_paraphrasing"
                                     android:src="@drawable/ic_bookmark_border"
-                                    app:tint="@color/grey_400" />
+                                    app:tint="?attr/colorOnSurfaceVariant" />
 
                             </LinearLayout>
 
@@ -1615,7 +1616,7 @@
                                 android:paddingBottom="12dp"
                                 android:text=""
                                 android:textSize="13sp"
-                                android:textColor="#757575"
+                                android:textColor="@color/color_sub_text"
                                 android:lineSpacingMultiplier="1.4" />
 
                         </LinearLayout>
@@ -1630,7 +1631,7 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:background="#E0E0E0"
+                android:background="@color/semantic_divider"
                 android:layout_marginBottom="24dp" />
 
         </LinearLayout>
@@ -1648,7 +1649,7 @@
                 android:layout_gravity="center_horizontal"
                 android:text="AI 추가 질문"
                 android:textSize="16sp"
-                android:textColor="#333333"
+                android:textColor="@color/color_primary_text"
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp" />
 
@@ -1658,7 +1659,7 @@
                 android:layout_gravity="center_horizontal"
                 android:text="추가로 궁금한 부분이 있나요?"
                 android:textSize="16sp"
-                android:textColor="#666666"
+                android:textColor="@color/color_sub_text"
                 android:layout_marginBottom="24dp" />
 
             <LinearLayout
@@ -1675,9 +1676,9 @@
                     android:layout_weight="1"
                     android:background="@drawable/input_field_background"
                     android:hint="질문을 입력하세요..."
-                    android:textColorHint="#AAAAAA"
+                    android:textColorHint="?attr/colorOnSurfaceVariant"
                     android:textSize="14sp"
-                    android:textColor="#333333"
+                    android:textColor="@color/color_primary_text"
                     android:paddingStart="16dp"
                     android:paddingEnd="16dp"
                     android:inputType="textMultiLine"
@@ -1703,7 +1704,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                app:cardBackgroundColor="#F5F5F5"
+                app:cardBackgroundColor="@color/color_background_3"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
                 android:visibility="gone">
@@ -1722,7 +1723,7 @@
                         android:text="Q:"
                         android:textStyle="bold"
                         android:textSize="16sp"
-                        android:textColor="#333333"
+                        android:textColor="@color/color_primary_text"
                         android:layout_marginBottom="4dp" />
 
                     <!-- User Question -->
@@ -1731,7 +1732,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:lineSpacingMultiplier="1.3"
-                        android:textColor="#1A1A1A"
+                        android:textColor="@color/color_primary_text"
                         android:textSize="16sp"
                         android:layout_marginBottom="16dp" />
 
@@ -1743,7 +1744,7 @@
                         android:text="A:"
                         android:textStyle="bold"
                         android:textSize="16sp"
-                        android:textColor="#333333"
+                        android:textColor="@color/color_primary_text"
                         android:layout_marginBottom="4dp" />
 
                     <!-- 스켈레톤 로딩 애니메이션 -->
@@ -1787,7 +1788,7 @@
                         android:layout_height="wrap_content"
                         android:lineSpacingMultiplier="1.3"
                         android:text="This is extra_ai_response."
-                        android:textColor="#1A1A1A"
+                        android:textColor="@color/color_primary_text"
                         android:textSize="16sp"
                         android:visibility="gone" />
 
@@ -1799,7 +1800,7 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:background="#E0E0E0"
+                android:background="@color/semantic_divider"
                 android:layout_marginVertical="24dp" />
 
         </LinearLayout>

@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorBackground"
+    android:background="@color/color_background_1"
     android:fitsSystemWindows="true"
     android:orientation="vertical">
 
@@ -11,7 +11,7 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/colorSurface"
+        android:background="@color/color_background_2"
         android:elevation="0dp"
         android:paddingVertical="5dp"
         app:contentInsetEnd="0dp"
@@ -32,7 +32,7 @@
                 android:contentDescription="Back"
                 android:scaleType="centerInside"
                 android:src="@drawable/ic_arrow_back"
-                app:tint="?attr/colorOnSurfaceVariant" />
+                app:tint="@color/color_toolbar_icon" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -47,7 +47,7 @@
                     android:layout_height="wrap_content"
                     android:maxLines="1"
                     android:text="@string/quiz_toolbar_title"
-                    android:textColor="?attr/colorOnBackground"
+                    android:textColor="@color/color_primary_text"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
@@ -71,7 +71,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
                         android:text="0 / 5"
-                        android:textColor="?attr/colorOnBackground" />
+                        android:textColor="@color/color_sub_text" />
 
                 </LinearLayout>
 
@@ -84,8 +84,7 @@
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="?attr/colorBackground">
+        android:layout_weight="1">
 
     <!-- ═══ 로딩 상태 ═══ -->
     <LinearLayout
@@ -99,14 +98,14 @@
         <ProgressBar
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:indeterminateTint="@color/toss_blue" />
+            android:indeterminateTint="@color/color_progressbar" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
             android:text="@string/quiz_loading"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textColor="@color/color_sub_text"
             android:textSize="14sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -124,7 +123,7 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="?attr/colorSurfaceVariant"
+            app:cardBackgroundColor="@color/color_background_2"
             app:cardCornerRadius="16dp"
             app:cardElevation="0dp"
             app:strokeWidth="0dp">
@@ -139,7 +138,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/quiz_error_title"
-                    android:textColor="?attr/colorOnBackground"
+                    android:textColor="@color/color_primary_text"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
@@ -150,7 +149,7 @@
                     android:layout_marginTop="10dp"
                     android:lineSpacingMultiplier="1.4"
                     android:text="@string/quiz_error_default"
-                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textColor="@color/color_sub_text"
                     android:textSize="14sp" />
 
                 <com.google.android.material.button.MaterialButton
@@ -187,7 +186,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardBackgroundColor="?attr/colorSurfaceVariant"
+                app:cardBackgroundColor="@color/color_background_2"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="0dp">
@@ -202,7 +201,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/quiz_question_label"
-                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textColor="@color/color_sub_text"
                         android:textSize="12sp"
                         android:textStyle="bold" />
 
@@ -212,7 +211,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:lineSpacingMultiplier="1.35"
-                        android:textColor="?attr/colorOnBackground"
+                        android:textColor="@color/color_primary_text"
                         android:textSize="20sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -224,19 +223,35 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:visibility="gone"
-                app:cardBackgroundColor="?attr/colorSurfaceVariant"
+                app:cardBackgroundColor="@color/color_background_2"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="0dp">
 
-                <TextView
-                    android:id="@+id/tv_quiz_material"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:lineSpacingMultiplier="1.35"
-                    android:padding="20dp"
-                    android:textColor="?attr/colorOnBackground"
-                    android:textSize="16sp" />
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="보기"
+                        android:textColor="@color/color_sub_text"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_quiz_material"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:lineSpacingMultiplier="1.35"
+                        android:textColor="@color/color_primary_text"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <!-- 결과 카드 (채점 후 표시) -->
@@ -246,7 +261,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
                 android:visibility="gone"
-                app:cardBackgroundColor="?attr/colorSurfaceVariant"
+                app:cardBackgroundColor="@color/color_background_2"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="0dp">
@@ -271,7 +286,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:textColor="?attr/colorOnBackground"
+                        android:textColor="@color/color_primary_text"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -281,7 +296,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:lineSpacingMultiplier="1.4"
-                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textColor="@color/color_sub_text"
                         android:textSize="14sp"
                         android:visibility="gone" />
                 </LinearLayout>
@@ -303,10 +318,10 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="88dp"
             android:layout_height="88dp"
-            app:cardBackgroundColor="@color/expression_natural_after_bg"
+            app:cardBackgroundColor="@color/color_quiz_finish_bg"
             app:cardCornerRadius="44dp"
             app:cardElevation="0dp"
-            app:strokeColor="@color/expression_natural_accent"
+            app:strokeColor="@color/color_quiz_finish"
             app:strokeWidth="1dp">
 
             <ImageView
@@ -315,7 +330,7 @@
                 android:layout_gravity="center"
                 android:contentDescription="@null"
                 android:src="@drawable/ic_check"
-                app:tint="@color/expression_natural_accent" />
+                app:tint="@color/color_quiz_finish" />
         </com.google.android.material.card.MaterialCardView>
 
         <TextView
@@ -323,7 +338,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
             android:text="@string/quiz_completed_title"
-            android:textColor="?attr/colorOnBackground"
+            android:textColor="@color/color_primary_text"
             android:textSize="22sp"
             android:textStyle="bold" />
 
@@ -333,7 +348,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:text="4 / 5"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textColor="@color/color_sub_text"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -344,7 +359,7 @@
             android:gravity="center"
             android:lineSpacingMultiplier="1.4"
             android:text="@string/quiz_completed_subtitle"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textColor="@color/color_sub_text"
             android:textSize="14sp" />
 
         <com.google.android.material.button.MaterialButton
@@ -354,9 +369,10 @@
             android:layout_height="60dp"
             android:layout_marginTop="24dp"
             android:text="@string/quiz_finish_button"
+            android:textColor="@color/color_text_on_fixed_bg"
             android:textSize="16sp"
             android:textStyle="bold"
-            app:backgroundTint="@color/toss_blue"
+            app:backgroundTint="@color/color_quiz_finish"
             app:cornerRadius="12dp" />
     </LinearLayout>
 
@@ -394,14 +410,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/quiz_answer_input_hint"
-            app:boxBackgroundColor="?attr/colorSurfaceVariant"
+            app:boxBackgroundColor="@color/color_background_2"
             app:boxBackgroundMode="outline"
             app:boxCornerRadiusBottomEnd="12dp"
             app:boxCornerRadiusBottomStart="12dp"
             app:boxCornerRadiusTopEnd="12dp"
             app:boxCornerRadiusTopStart="12dp"
             app:boxStrokeColor="@color/semantic_divider"
-            app:hintTextColor="?attr/colorOnSurfaceVariant">
+            app:hintTextColor="@color/color_sub_text">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_quiz_answer"
@@ -411,8 +427,8 @@
                 android:inputType="text"
                 android:maxLines="3"
                 android:minLines="1"
-                android:textColor="?attr/colorOnBackground"
-                android:textColorHint="?attr/colorOnSurfaceVariant" />
+                android:textColor="@color/color_primary_text"
+                android:textColorHint="@color/color_sub_text" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- 주요 액션 버튼 -->
@@ -435,7 +451,7 @@
             android:layout_marginTop="10dp"
             android:gravity="center"
             android:text="@string/quiz_next_question_loading_notice"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textColor="@color/color_sub_text"
             android:textSize="13sp"
             android:visibility="gone" />
 

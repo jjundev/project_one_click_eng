@@ -412,12 +412,12 @@ public class DialogueQuizActivity extends AppCompatActivity {
       @NonNull String choice,
       @Nullable String selectedChoice) {
     Context context = button.getContext();
-    int defaultBg = ContextCompat.getColor(context, R.color.white);
+    int defaultBg = ContextCompat.getColor(context, R.color.color_background_2);
     int defaultStroke = ContextCompat.getColor(context, R.color.grey_300);
-    int defaultText = ContextCompat.getColor(context, R.color.text_primary);
-    int selectedBg = ContextCompat.getColor(context, R.color.shorts_progress_active);
-    int selectedStroke = ContextCompat.getColor(context, R.color.toss_blue);
-    int selectedText = ContextCompat.getColor(context, R.color.toss_blue);
+    int defaultText = ContextCompat.getColor(context, R.color.color_primary_text);
+    int selectedBg = ContextCompat.getColor(context, R.color.color_background_3);
+    int selectedStroke = ContextCompat.getColor(context, R.color.grey_300);
+    int selectedText = ContextCompat.getColor(context, R.color.color_primary_text);
 
     boolean isSelected = normalize(choice).equals(normalize(selectedChoice));
     boolean isChecked = state.isChecked();
@@ -571,6 +571,9 @@ public class DialogueQuizActivity extends AppCompatActivity {
       inputAnswerLayout.setVisibility(View.GONE);
     }
     if (btnPrimary != null) {
+        // TODO: 틀린 경우에는 분홍색 버튼, 맞은 경우에는 초록색 버튼
+      btnPrimary.setBackgroundColor(ContextCompat.getColor(this, R.color.card_purple_start));
+      btnPrimary.setTextColor(ContextCompat.getColor(this, R.color.color_text_on_fixed_bg));
       btnPrimary.setVisibility(View.VISIBLE);
       btnPrimary.setEnabled(true);
       btnPrimary.setText(lastQuestion ? R.string.quiz_primary_finish : R.string.quiz_primary_next);

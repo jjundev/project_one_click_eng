@@ -4,14 +4,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorBackground"
+    android:background="@color/color_background_1"
     android:orientation="vertical">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/colorSurface"
+        android:background="@color/color_background_1"
         android:elevation="0dp"
         android:paddingHorizontal="10dp"
         app:contentInsetStart="0dp"
@@ -123,6 +123,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="56dp"
                         android:background="@drawable/bg_rounded_button"
+                        android:backgroundTint="@color/color_dialogue_generate_button_bg"
                         android:text="5초 만에 AI 대본 만들기"
                         android:textColor="@color/white"
                         android:textSize="16sp"

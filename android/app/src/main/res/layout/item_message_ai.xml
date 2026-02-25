@@ -41,7 +41,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="English Coach"
-            android:textColor="@color/text_secondary"
+            android:textColor="@color/color_primary_text"
             android:textSize="12sp"
             android:layout_marginBottom="4dp" />
 
@@ -75,7 +75,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Hello! How can I help you today?"
-                    android:textColor="@color/black"
+                    android:textColor="@color/color_primary_text"
                     android:textSize="15sp"
                     android:lineSpacingMultiplier="1.3" />
 
@@ -85,7 +85,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="해석 보기"
-                    android:textColor="@color/text_hint"
+                    android:textColor="@color/color_sub_text"
                     android:textSize="11sp"
                     android:layout_gravity="end"
                     android:layout_marginTop="8dp"
@@ -131,6 +131,7 @@
                 android:layout_marginBottom="4dp"
                 android:src="@drawable/ic_speaker"
                 android:background="?attr/selectableItemBackgroundBorderless"
+                app:tint="@color/color_sub_text"
                 android:contentDescription="음성 재생"
                 android:clickable="true"
                 android:focusable="true"

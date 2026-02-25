@@ -4,10 +4,10 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="16dp"
-    app:cardBackgroundColor="@color/white"
+    app:cardBackgroundColor="@color/color_background_2"
     app:cardCornerRadius="16dp"
     app:cardElevation="0dp"
-    app:strokeColor="@color/grey_300"
+    app:strokeColor="@color/semantic_divider"
     app:strokeWidth="1dp">
 
     <LinearLayout
@@ -28,7 +28,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="persistent"
-                android:textColor="#1A1A1A"
+                android:textColor="?attr/colorOnBackground"
                 android:textSize="20sp"
                 android:textStyle="bold" />
 
@@ -50,7 +50,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/desc_save_word"
                 android:src="@drawable/ic_bookmark_border"
-                app:tint="@color/grey_400" />
+                app:tint="?attr/colorOnSurfaceVariant" />
         </LinearLayout>
 
         <TextView
@@ -60,7 +60,7 @@
             android:layout_marginTop="4dp"
             android:layout_marginBottom="16dp"
             android:text="끈질긴, 집요한"
-            android:textColor="@color/grey_600"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="14sp" />
 
         <TextView
@@ -68,14 +68,14 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="Example:"
-            android:textColor="@color/grey_600"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="12sp"
             android:textStyle="bold" />
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/grey_100"
+            app:cardBackgroundColor="@color/color_background_3"
             app:cardCornerRadius="12dp"
             app:cardElevation="0dp">
 
@@ -91,7 +91,7 @@
                     android:layout_height="wrap_content"
                     android:lineSpacingMultiplier="1.4"
                     android:text="She was persistent in her search for the truth."
-                    android:textColor="#333333"
+                    android:textColor="?attr/colorOnBackground"
                     android:textSize="14sp" />
 
                 <TextView
@@ -101,7 +101,7 @@
                     android:layout_marginTop="12dp"
                     android:lineSpacingMultiplier="1.4"
                     android:text="그녀는 진실을 찾는 데 끈질겼습니다."
-                    android:textColor="@color/grey_600"
+                    android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="13sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

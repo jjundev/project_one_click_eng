@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8F9FA">
+    android:background="?attr/colorBackground">
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scroll_view_summary"
@@ -17,7 +17,7 @@
             android:orientation="vertical"
             android:paddingTop="20dp"
             android:paddingHorizontal="20dp"
-            android:paddingBottom="200dp">
+            android:paddingBottom="250dp">
 
             <!-- 1. 최종 점수 섹션 -->
             <LinearLayout
@@ -34,7 +34,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
                     android:text="오늘의 학습 성취도"
-                    android:textColor="#333333"
+                    android:textColor="?attr/colorOnBackground"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
@@ -58,7 +58,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="4dp"
                         android:text="/100"
-                        android:textColor="@color/grey_400"
+                        android:textColor="?attr/colorOnSurfaceVariant"
                         android:textSize="20sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -69,7 +69,7 @@
                     android:layout_marginTop="8dp"
                     android:lineSpacingMultiplier="1.4"
                     android:text="정말 훌륭한 결과예요! 🎉"
-                    android:textColor="@color/grey_600"
+                    android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="14sp" />
             </LinearLayout>
 
@@ -77,7 +77,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginBottom="32dp"
-                android:background="#E0E0E0" />
+                android:background="@color/semantic_divider" />
 
             <!-- 2. 학습 하이라이트 섹션 -->
             <TextView
@@ -86,7 +86,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:text="학습 하이라이트"
-                android:textColor="#333333"
+                android:textColor="?attr/colorOnBackground"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
@@ -103,7 +103,7 @@
                 android:layout_marginTop="24dp"
                 android:layout_marginBottom="16dp"
                 android:text="오늘 새롭게 발견한 표현들이에요"
-                android:textColor="#333333"
+                android:textColor="?attr/colorOnBackground"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
@@ -136,10 +136,10 @@
                             android:layout_width="match_parent"
                             android:layout_height="100dp"
                             android:layout_marginBottom="8dp"
-                            app:cardBackgroundColor="@color/white"
+                            app:cardBackgroundColor="?attr/colorSurfaceVariant"
                             app:cardCornerRadius="16dp"
                             app:cardElevation="0dp"
-                            app:strokeColor="@color/grey_200"
+                            app:strokeColor="@color/semantic_divider"
                             app:strokeWidth="1dp">
 
                             <LinearLayout
@@ -173,12 +173,12 @@
                     android:id="@+id/tv_summary_expressions_error"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@color/grey_50"
+                    android:background="?attr/colorBackground"
                     android:gravity="center"
                     android:lineSpacingMultiplier="1.4"
                     android:padding="16dp"
                     android:text="@string/summary_expressions_load_error"
-                    android:textColor="@color/grey_600"
+                    android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="14sp"
                     android:visibility="gone" />
             </FrameLayout>
@@ -191,7 +191,7 @@
                 android:gravity="center"
                 android:paddingVertical="12dp"
                 android:text="더 보기"
-                android:textColor="@color/grey_600"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="14sp"
                 android:visibility="gone" />
 
@@ -208,7 +208,7 @@
                     android:layout_marginTop="24dp"
                     android:layout_marginBottom="16dp"
                     android:text="오늘 새롭게 발견한 단어들이에요"
-                    android:textColor="#333333"
+                    android:textColor="?attr/colorOnBackground"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
@@ -241,10 +241,10 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="132dp"
                                 android:layout_marginBottom="12dp"
-                                app:cardBackgroundColor="@color/white"
+                                app:cardBackgroundColor="?attr/colorSurfaceVariant"
                                 app:cardCornerRadius="16dp"
                                 app:cardElevation="0dp"
-                                app:strokeColor="@color/grey_200"
+                                app:strokeColor="@color/semantic_divider"
                                 app:strokeWidth="1dp">
 
                                 <LinearLayout
@@ -281,10 +281,10 @@
                             <com.google.android.material.card.MaterialCardView
                                 android:layout_width="match_parent"
                                 android:layout_height="132dp"
-                                app:cardBackgroundColor="@color/white"
+                                app:cardBackgroundColor="?attr/colorSurfaceVariant"
                                 app:cardCornerRadius="16dp"
                                 app:cardElevation="0dp"
-                                app:strokeColor="@color/grey_200"
+                                app:strokeColor="@color/semantic_divider"
                                 app:strokeWidth="1dp">
 
                                 <LinearLayout
@@ -324,12 +324,12 @@
                         android:id="@+id/tv_summary_words_error"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@color/grey_50"
+                        android:background="?attr/colorBackground"
                         android:gravity="center"
                         android:lineSpacingMultiplier="1.4"
                         android:padding="16dp"
                         android:text="@string/summary_words_load_error"
-                        android:textColor="@color/grey_600"
+                        android:textColor="?attr/colorOnSurfaceVariant"
                         android:textSize="14sp"
                         android:visibility="gone" />
                 </FrameLayout>
@@ -343,7 +343,7 @@
                 android:layout_marginTop="24dp"
                 android:layout_marginBottom="16dp"
                 android:text="이 문장이 마음에 드셨나요?"
-                android:textColor="#333333"
+                android:textColor="?attr/colorOnBackground"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
@@ -359,7 +359,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="4dp"
                 android:text="@string/summary_empty_liked_sentences"
-                android:textColor="@color/grey_500"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="14sp"
                 android:visibility="gone" />
 
@@ -373,7 +373,7 @@
         android:id="@+id/card_finish_bottom_sheet"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:cardBackgroundColor="@color/white"
+        app:cardBackgroundColor="?attr/colorSurfaceVariant"
         app:cardCornerRadius="32dp"
         app:cardElevation="0dp"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
@@ -390,7 +390,7 @@
             <View
                 android:layout_width="40dp"
                 android:layout_height="4dp"
-                android:background="@color/grey_300"
+                android:background="@color/semantic_divider"
                 android:layout_marginBottom="16dp" />
 
             <TextView
@@ -399,7 +399,7 @@
                 android:layout_height="wrap_content"
                 android:lineSpacingMultiplier="1.4"
                 android:text="학습을 마칠까요?"
-                android:textColor="@color/text_primary"
+                android:textColor="?attr/colorOnBackground"
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
@@ -410,7 +410,7 @@
                 android:layout_marginTop="4dp"
                 android:lineSpacingMultiplier="1.4"
                 android:text="오늘의 성과가 저장되었습니다."
-                android:textColor="@color/grey_600"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="14sp" />
 
             <com.google.android.material.button.MaterialButton
@@ -423,7 +423,7 @@
                 android:textColor="@color/toss_blue"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                app:backgroundTint="@color/white"
+                app:backgroundTint="?attr/colorSurfaceVariant"
                 app:cornerRadius="16dp"
                 app:strokeColor="@color/toss_blue"
                 app:strokeWidth="1dp"
