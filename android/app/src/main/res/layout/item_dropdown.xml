@@ -4,7 +4,7 @@
     android:layout_height="wrap_content"
     android:padding="16dp"
     android:textSize="16sp"
-    android:textColor="@color/text_primary"
+    android:textColor="@color/color_primary_text"
     android:background="@drawable/bg_dropdown_item_ripple"
     android:ellipsize="end"
     android:maxLines="1" />

@@ -3,8 +3,8 @@
     android:color="@color/divider_light">
     <item android:id="@android:id/mask">
         <shape>
-            <solid android:color="@color/white" />
-            <corners android:radius="16dp" />
+            <solid android:color="@color/color_background_3" />
+            <corners android:radius="24dp" />
         </shape>
     </item>
 </ripple>

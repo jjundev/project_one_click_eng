@@ -69,7 +69,7 @@
                 style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
                 android:layout_height="64dp"
-                app:boxBackgroundColor="@color/grey_100"
+                app:boxBackgroundColor="@color/color_dialog_card_bg"
                 app:boxCornerRadiusBottomEnd="@dimen/dialog_card_corner_radius"
                 app:boxCornerRadiusBottomStart="@dimen/dialog_card_corner_radius"
                 app:boxCornerRadiusTopEnd="@dimen/dialog_card_corner_radius"
@@ -83,6 +83,7 @@
                     style="@style/DialogTextBody"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
+                    android:popupBackground="@drawable/bg_dropdown_menu_rounded"
                     android:inputType="none"
                     android:padding="0dp"
                     android:text="Intermediate" />
@@ -117,7 +118,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="10줄"
-                    android:textColor="@color/primary_blue"
+                    android:textColor="@color/color_dialog_primary_button_bg"
                     android:textSize="@dimen/dialog_section_label_text_size"
                     android:textStyle="bold" />
             </LinearLayout>
