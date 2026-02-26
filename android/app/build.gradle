@@ -75,6 +75,7 @@ dependencies {
     implementation libs.activity
     implementation libs.constraintlayout
     implementation libs.preference
+    implementation 'androidx.dynamicanimation:dynamicanimation:1.0.0'
     
     // Gemini Live API 연동
     implementation libs.okhttp
