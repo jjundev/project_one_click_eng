@@ -141,6 +141,19 @@
     <string name="settings_learning_reset_success_count">%1$d개의 학습 데이터를 삭제했어요.</string>
     <string name="settings_learning_reset_failed">학습 데이터 삭제에 실패했어요. 잠시 후 다시 시도해 주세요.</string>
     <string name="settings_learning_reset_partial_failed">일부가 삭제됐어요 (%1$d개). 네트워크 상태를 확인하고 다시 시도해 주세요.</string>
+    <string name="settings_learning_metrics_reset_title">누적 기록 초기화</string>
+    <string name="settings_learning_metrics_reset_subtitle">누적 학습 기록이 모두 초기화돼요</string>
+    <string name="settings_learning_metrics_reset_section_title">초기화 항목</string>
+    <string name="settings_learning_metrics_reset_target_streak">연속 학습 일수</string>
+    <string name="settings_learning_metrics_reset_target_study_time">누적 학습 시간</string>
+    <string name="settings_learning_metrics_reset_target_xp">획득 포인트(XP)</string>
+    <string name="settings_learning_metrics_reset_warning">이 작업은 되돌릴 수 없어요.</string>
+    <string name="settings_learning_metrics_reset_cancel">취소</string>
+    <string name="settings_learning_metrics_reset_confirm">초기화</string>
+    <string name="settings_learning_metrics_reset_loading">누적 기록을 초기화하고 있어요...</string>
+    <string name="settings_learning_metrics_reset_login_required">로그인이 필요해요.</string>
+    <string name="settings_learning_metrics_reset_success">누적 기록을 초기화했어요.</string>
+    <string name="settings_learning_metrics_reset_failed">누적 기록 초기화에 실패했어요. 잠시 후 다시 시도해 주세요.</string>
 
     <string name="settings_section_tts">TTS 설정</string>
     <string name="settings_tts_provider_android">Provider: Android TTS (고정)</string>

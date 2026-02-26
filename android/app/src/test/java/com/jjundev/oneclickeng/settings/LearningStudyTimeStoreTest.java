@@ -139,6 +139,28 @@ public class LearningStudyTimeStoreTest {
     assertEquals(2, store.getTotalStreakDays());
   }
 
+  @Test
+  public void resetAllMetrics_clearsAllAccumulatedValues() {
+    long appEntry = createLocalDateTimeEpochMs(2026, 2, 24, 8, 0, 0, 0);
+    long studyStart = createLocalDateTimeEpochMs(2026, 2, 24, 10, 0, 0, 0);
+    long studyEnd = createLocalDateTimeEpochMs(2026, 2, 24, 10, 5, 0, 0);
+    store.recordAppEntry(appEntry);
+    store.recordVisibleInterval(studyStart, studyEnd);
+
+    store.resetAllMetrics();
+
+    assertEquals(0, store.getTodayStudyMinutes());
+    assertEquals(0L, store.getTotalStudyMillis());
+    assertEquals(0, store.getTotalStudyDays());
+    assertEquals(0, store.getTotalStreakDays());
+
+    LearningStudyTimeStore recreatedStore = new LearningStudyTimeStore(preferences, timeProvider);
+    assertEquals(0, recreatedStore.getTodayStudyMinutes());
+    assertEquals(0L, recreatedStore.getTotalStudyMillis());
+    assertEquals(0, recreatedStore.getTotalStudyDays());
+    assertEquals(0, recreatedStore.getTotalStreakDays());
+  }
+
   private static long createLocalDateTimeEpochMs(
       int year, int month, int day, int hour, int minute, int second, int millisecond) {
     Calendar calendar = Calendar.getInstance();

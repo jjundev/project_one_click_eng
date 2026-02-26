@@ -152,6 +152,35 @@ public final class LearningPointCloudRepository {
             });
   }
 
+  public void resetTotalPointsForCurrentUser(@Nullable CompletionCallback callback) {
+    FirebaseUser user = auth.getCurrentUser();
+    if (user == null) {
+      if (callback != null) {
+        callback.onComplete(false);
+      }
+      return;
+    }
+
+    Map<String, Object> updates = new HashMap<>();
+    updates.put(FIELD_TOTAL_POINTS, 0L);
+    updates.put(FIELD_UPDATED_AT_EPOCH_MS, timeProvider.currentTimeMillis());
+
+    resolvePointsDocument(user.getUid())
+        .set(updates, SetOptions.merge())
+        .addOnSuccessListener(
+            unused -> {
+              if (callback != null) {
+                callback.onComplete(true);
+              }
+            })
+        .addOnFailureListener(
+            error -> {
+              if (callback != null) {
+                callback.onComplete(false);
+              }
+            });
+  }
+
   public void fetchCurrentUserTotalPoints(@NonNull TotalPointsCallback callback) {
     FirebaseUser user = auth.getCurrentUser();
     if (user == null) {

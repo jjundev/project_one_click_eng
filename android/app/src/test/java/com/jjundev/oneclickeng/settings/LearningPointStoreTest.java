@@ -107,6 +107,25 @@ public class LearningPointStoreTest {
     assertEquals(45, store.getTotalPoints());
   }
 
+  @Test
+  public void resetAllPoints_clearsTotalAwardsAndPendingQueue() {
+    store.awardSessionIfNeeded(
+        "session-reset",
+        new LearningPointAwardSpec("dialogue_learning", "advanced", 50, 1_700_000_000_000L));
+
+    store.resetAllPoints();
+
+    assertEquals(0, store.getTotalPoints());
+    assertFalse(store.hasAwardedSession("session-reset"));
+    assertTrue(store.getPendingAwards().isEmpty());
+
+    LearningPointStore recreatedStore =
+        new LearningPointStore(preferences, new Gson(), pendingAwardListType);
+    assertEquals(0, recreatedStore.getTotalPoints());
+    assertFalse(recreatedStore.hasAwardedSession("session-reset"));
+    assertTrue(recreatedStore.getPendingAwards().isEmpty());
+  }
+
   private static final class InMemorySharedPreferences implements SharedPreferences {
     private final Map<String, Object> values = new HashMap<>();
 

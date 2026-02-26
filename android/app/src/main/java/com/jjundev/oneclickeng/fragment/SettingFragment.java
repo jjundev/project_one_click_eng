@@ -22,24 +22,38 @@ import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.activity.LoginActivity;
 import com.jjundev.oneclickeng.dialog.LearningDataResetDialog;
+import com.jjundev.oneclickeng.dialog.LearningMetricsResetDialog;
 import com.jjundev.oneclickeng.settings.AppSettingsStore;
 import com.jjundev.oneclickeng.settings.LearningDataRetentionPolicy;
+import com.jjundev.oneclickeng.settings.LearningPointCloudRepository;
+import com.jjundev.oneclickeng.settings.LearningPointStore;
+import com.jjundev.oneclickeng.settings.LearningStudyTimeCloudRepository;
+import com.jjundev.oneclickeng.settings.LearningStudyTimeStore;
 import java.util.ArrayList;
 import java.util.List;
 
 public class SettingFragment extends Fragment
-    implements LearningDataResetDialog.OnLearningDataResetListener {
+    implements
+        LearningDataResetDialog.OnLearningDataResetListener,
+        LearningMetricsResetDialog.OnLearningMetricsResetListener {
   private static final String TAG = "SettingFragment";
   private static final String TAG_LEARNING_DATA_RESET_DIALOG = "LearningDataResetDialog";
+  private static final String TAG_LEARNING_METRICS_RESET_DIALOG = "LearningMetricsResetDialog";
   private static final int FIRESTORE_BATCH_DELETE_LIMIT = 450;
 
   @Nullable private AppSettingsStore appSettingsStore;
+  @Nullable private LearningStudyTimeStore learningStudyTimeStore;
+  @Nullable private LearningStudyTimeCloudRepository learningStudyTimeCloudRepository;
+  @Nullable private LearningPointStore learningPointStore;
+  @Nullable private LearningPointCloudRepository learningPointCloudRepository;
 
   private boolean bindingState;
   private boolean isLearningDataResetInProgress;
+  private boolean isLearningMetricsResetInProgress;
 
   private LinearLayout layoutProfileNickname;
   private LinearLayout layoutInitLearningData;
+  private LinearLayout layoutInitLearningStreak;
   private TextView tvProfileNicknameValue;
 
   private TextView tvAppVersion;
@@ -57,7 +71,12 @@ public class SettingFragment extends Fragment
   @Override
   public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
     super.onViewCreated(view, savedInstanceState);
-    appSettingsStore = new AppSettingsStore(requireContext().getApplicationContext());
+    android.content.Context appContext = requireContext().getApplicationContext();
+    appSettingsStore = new AppSettingsStore(appContext);
+    learningStudyTimeStore = new LearningStudyTimeStore(appContext);
+    learningStudyTimeCloudRepository = new LearningStudyTimeCloudRepository(appContext);
+    learningPointStore = new LearningPointStore(appContext);
+    learningPointCloudRepository = new LearningPointCloudRepository(appContext, learningPointStore);
     bindViews(view);
     setupListeners();
     renderSettings();
@@ -66,6 +85,7 @@ public class SettingFragment extends Fragment
   private void bindViews(@NonNull View view) {
     layoutProfileNickname = view.findViewById(R.id.layout_profile_nickname);
     layoutInitLearningData = view.findViewById(R.id.layout_init_learning_data);
+    layoutInitLearningStreak = view.findViewById(R.id.layout_init_learning_streak);
     tvProfileNicknameValue = view.findViewById(R.id.tv_profile_nickname_value);
     tvAppVersion = view.findViewById(R.id.tv_app_version);
     tvLogout = view.findViewById(R.id.tv_logout);
@@ -82,6 +102,10 @@ public class SettingFragment extends Fragment
 
     if (layoutInitLearningData != null) {
       layoutInitLearningData.setOnClickListener(v -> showLearningDataResetDialog());
+    }
+
+    if (layoutInitLearningStreak != null) {
+      layoutInitLearningStreak.setOnClickListener(v -> showLearningMetricsResetDialog());
     }
 
     if (tvLogout != null) {
@@ -179,6 +203,87 @@ public class SettingFragment extends Fragment
     }
     LearningDataResetDialog dialog = new LearningDataResetDialog();
     dialog.show(getChildFragmentManager(), TAG_LEARNING_DATA_RESET_DIALOG);
+  }
+
+  private void showLearningMetricsResetDialog() {
+    if (isLearningMetricsResetInProgress) {
+      return;
+    }
+    if (getChildFragmentManager().findFragmentByTag(TAG_LEARNING_METRICS_RESET_DIALOG) != null) {
+      return;
+    }
+    LearningMetricsResetDialog dialog = new LearningMetricsResetDialog();
+    dialog.show(getChildFragmentManager(), TAG_LEARNING_METRICS_RESET_DIALOG);
+  }
+
+  @Override
+  public void onLearningMetricsResetRequested(@NonNull LearningMetricsResetDialog dialog) {
+    if (isLearningMetricsResetInProgress) {
+      dialog.showLoading(false);
+      return;
+    }
+
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+    if (user == null) {
+      dialog.showLoading(false);
+      showToastSafe(R.string.settings_learning_metrics_reset_login_required);
+      return;
+    }
+
+    LearningStudyTimeStore studyTimeStore = learningStudyTimeStore;
+    LearningPointStore pointStore = learningPointStore;
+    LearningStudyTimeCloudRepository studyTimeCloudRepository = learningStudyTimeCloudRepository;
+    LearningPointCloudRepository pointCloudRepository = learningPointCloudRepository;
+    if (studyTimeStore == null
+        || pointStore == null
+        || studyTimeCloudRepository == null
+        || pointCloudRepository == null) {
+      dialog.showLoading(false);
+      showToastSafe(R.string.settings_learning_metrics_reset_failed);
+      return;
+    }
+
+    setLearningMetricsResetInProgress(true);
+    boolean[] taskResults = new boolean[2];
+    int[] completedCount = new int[1];
+    studyTimeCloudRepository.resetMetricsForCurrentUser(
+        success ->
+            onLearningMetricsResetTaskCompleted(
+                dialog, 0, success, taskResults, completedCount, studyTimeStore, pointStore));
+    pointCloudRepository.resetTotalPointsForCurrentUser(
+        success ->
+            onLearningMetricsResetTaskCompleted(
+                dialog, 1, success, taskResults, completedCount, studyTimeStore, pointStore));
+  }
+
+  private void onLearningMetricsResetTaskCompleted(
+      @NonNull LearningMetricsResetDialog dialog,
+      int taskIndex,
+      boolean success,
+      @NonNull boolean[] taskResults,
+      @NonNull int[] completedCount,
+      @NonNull LearningStudyTimeStore studyTimeStore,
+      @NonNull LearningPointStore pointStore) {
+    taskResults[taskIndex] = success;
+    completedCount[0]++;
+    if (completedCount[0] < taskResults.length) {
+      return;
+    }
+
+    setLearningMetricsResetInProgress(false);
+    dialog.showLoading(false);
+
+    if (taskResults[0] && taskResults[1]) {
+      studyTimeStore.resetAllMetrics();
+      pointStore.resetAllPoints();
+      if (dialog.isAdded()) {
+        dialog.dismiss();
+      }
+      showToastSafe(R.string.settings_learning_metrics_reset_success);
+      return;
+    }
+
+    showToastSafe(R.string.settings_learning_metrics_reset_failed);
   }
 
   @Override
@@ -297,6 +402,14 @@ public class SettingFragment extends Fragment
     if (layoutInitLearningData != null) {
       layoutInitLearningData.setEnabled(!inProgress);
       layoutInitLearningData.setAlpha(inProgress ? 0.6f : 1f);
+    }
+  }
+
+  private void setLearningMetricsResetInProgress(boolean inProgress) {
+    isLearningMetricsResetInProgress = inProgress;
+    if (layoutInitLearningStreak != null) {
+      layoutInitLearningStreak.setEnabled(!inProgress);
+      layoutInitLearningStreak.setAlpha(inProgress ? 0.6f : 1f);
     }
   }
 

@@ -109,6 +109,48 @@ public final class LearningStudyTimeCloudRepository {
     flushPendingForCurrentUser();
   }
 
+  public void resetMetricsForCurrentUser(@Nullable CompletionCallback callback) {
+    FirebaseUser user = auth.getCurrentUser();
+    if (user == null) {
+      if (callback != null) {
+        callback.onComplete(false);
+      }
+      return;
+    }
+
+    long nowEpochMs = timeProvider.currentTimeMillis();
+    long dayStartEpochMs = resolveLocalDayStartEpochMs(nowEpochMs);
+    Map<String, Object> updates = new HashMap<>();
+    updates.put(FIELD_TOTAL_VISIBLE_MILLIS, 0L);
+    updates.put(FIELD_TODAY_VISIBLE_MILLIS, 0L);
+    updates.put(FIELD_TODAY_DAY_START_EPOCH_MS, dayStartEpochMs);
+    updates.put(FIELD_STUDY_DAY_KEYS, new ArrayList<>());
+    updates.put(FIELD_TOTAL_STUDY_DAYS, 0);
+    updates.put(FIELD_STREAK_DAY_KEYS, new ArrayList<>());
+    updates.put(FIELD_TOTAL_STREAK_DAYS, 0);
+    updates.put(FIELD_UPDATED_AT_EPOCH_MS, nowEpochMs);
+
+    firestore
+        .collection(COLLECTION_USERS)
+        .document(user.getUid())
+        .collection(COLLECTION_LEARNING_METRICS)
+        .document(DOCUMENT_STUDY_TIME)
+        .set(updates, SetOptions.merge())
+        .addOnSuccessListener(
+            unused -> {
+              clearPending();
+              if (callback != null) {
+                callback.onComplete(true);
+              }
+            })
+        .addOnFailureListener(
+            error -> {
+              if (callback != null) {
+                callback.onComplete(false);
+              }
+            });
+  }
+
   public void flushPendingForCurrentUser() {
     flushPendingForCurrentUser(null);
   }

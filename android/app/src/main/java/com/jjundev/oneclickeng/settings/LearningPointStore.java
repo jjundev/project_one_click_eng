@@ -93,6 +93,15 @@ public final class LearningPointStore {
     return merged;
   }
 
+  public synchronized void resetAllPoints() {
+    preferences
+        .edit()
+        .putLong(KEY_TOTAL_POINTS, 0L)
+        .remove(KEY_AWARDED_SESSION_IDS)
+        .remove(KEY_PENDING_AWARDS_JSON)
+        .apply();
+  }
+
   @NonNull
   public synchronized List<PendingPointAward> getPendingAwards() {
     return new ArrayList<>(readPendingAwardsInternal());

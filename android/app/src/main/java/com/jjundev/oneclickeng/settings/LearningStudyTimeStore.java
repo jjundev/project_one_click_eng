@@ -129,6 +129,19 @@ public final class LearningStudyTimeStore {
         .apply();
   }
 
+  public synchronized void resetAllMetrics() {
+    preferences
+        .edit()
+        .remove(KEY_DAY_START_EPOCH_MS)
+        .remove(KEY_TODAY_VISIBLE_MILLIS)
+        .remove(KEY_TOTAL_VISIBLE_MILLIS)
+        .remove(KEY_STUDY_DAY_KEYS)
+        .remove(KEY_TOTAL_STUDY_DAYS)
+        .remove(KEY_STREAK_DAY_KEYS)
+        .remove(KEY_TOTAL_STREAK_DAYS)
+        .apply();
+  }
+
   @NonNull
   public synchronized StudyTimeSnapshot getLocalSnapshot() {
     long todayStart = resolveLocalDayStartEpochMs(timeProvider.currentTimeMillis());
