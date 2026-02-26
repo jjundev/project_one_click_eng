@@ -19,7 +19,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/settings_header_title"
-            android:textColor="?attr/colorOnBackground"
+            android:textColor="@color/color_primary_text"
             android:textSize="28sp"
             android:textStyle="bold" />
 
@@ -28,7 +28,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="@string/settings_header_subtitle"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textColor="@color/color_sub_text"
             android:textSize="14sp" />
 
         <!-- ===== 프로필 설정 라벨 ===== -->
@@ -39,7 +39,7 @@
             android:layout_marginStart="4dp"
             android:letterSpacing="0.08"
             android:text="프로필 설정"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textColor="@color/color_sub_text"
             android:textSize="12sp"
             android:textStyle="bold" />
 
@@ -68,7 +68,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="닉네임"
-                    android:textColor="?attr/colorOnBackground"
+                    android:textColor="@color/color_primary_text"
                     android:textSize="16sp" />
 
                 <View
@@ -82,7 +82,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="8dp"
                     android:text="학습자"
-                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textColor="@color/color_sub_text"
                     android:textSize="15sp" />
 
                 <ImageView
@@ -102,7 +102,7 @@
             android:layout_marginStart="4dp"
             android:letterSpacing="0.08"
             android:text="학습 설정"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textColor="@color/color_sub_text"
             android:textSize="12sp"
             android:textStyle="bold" />
 
@@ -131,7 +131,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="학습 데이터 정리"
-                    android:textColor="?attr/colorOnBackground"
+                    android:textColor="@color/color_primary_text"
                     android:textSize="16sp" />
 
                 <View
@@ -173,7 +173,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="누적 기록 초기화"
-                    android:textColor="?attr/colorOnBackground"
+                    android:textColor="@color/color_primary_text"
                     android:textSize="16sp" />
 
                 <View
@@ -198,7 +198,7 @@
             android:layout_marginStart="4dp"
             android:letterSpacing="0.08"
             android:text="@string/settings_section_app_info"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textColor="@color/color_sub_text"
             android:textSize="12sp"
             android:textStyle="bold" />
 
@@ -224,14 +224,14 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/settings_app_version_label"
-                    android:textColor="?attr/colorOnBackground"
+                    android:textColor="@color/color_primary_text"
                     android:textSize="15sp" />
 
                 <TextView
                     android:id="@+id/tv_app_version"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textColor="@color/color_sub_text"
                     android:textSize="14sp" />
 
             </LinearLayout>
@@ -247,7 +247,7 @@
             android:background="?attr/selectableItemBackground"
             android:padding="8dp"
             android:text="로그아웃"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textColor="@color/color_sub_sub_text"
             android:textSize="12sp" />
 
     </LinearLayout>

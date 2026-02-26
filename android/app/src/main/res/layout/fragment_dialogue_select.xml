@@ -77,8 +77,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="어떤 상황에서\n대화해 볼까요?"
-                    android:textColor="?attr/colorOnBackground"
-                    android:textSize="26sp"
+                    android:textColor="@color/color_primary_text"
+                    android:textSize="24sp"
                     android:textStyle="bold"
                     android:lineSpacingExtra="8dp"
                     tools:fontFamily="@font/pretendard_extra_bold" />
@@ -95,9 +95,8 @@
                     android:id="@+id/tv_header_generate_script"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingBottom="16dp"
                     android:text="딸깍으로 대본 생성하기"
-                    android:textColor="?attr/colorOnBackground"
+                    android:textColor="@color/color_primary_text"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
@@ -108,6 +107,7 @@
                     android:text="직접 만든 대본으로 학습하면 효과가 2배!"
                     android:textSize="16sp"
                     android:textColor="?attr/colorOnSurfaceVariant"
+                    android:layout_marginTop="6dp"
                     android:layout_marginBottom="16dp" />
 
                 <!-- Moved Button right below EditText -->
@@ -125,7 +125,7 @@
                         android:background="@drawable/bg_rounded_button"
                         android:backgroundTint="@color/color_dialogue_generate_button_bg"
                         android:text="5초 만에 AI 대본 만들기"
-                        android:textColor="@color/white"
+                        android:textColor="@color/color_text_on_fixed_bg"
                         android:textSize="16sp"
                         android:textStyle="bold"
                         app:cornerRadius="20dp" />
@@ -156,7 +156,7 @@
                     android:layout_height="wrap_content"
                     android:paddingBottom="16dp"
                     android:text="추천 대본"
-                    android:textColor="?attr/colorOnBackground"
+                    android:textColor="@color/color_primary_text"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 

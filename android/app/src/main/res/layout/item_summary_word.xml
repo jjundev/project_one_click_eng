@@ -28,7 +28,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="persistent"
-                android:textColor="?attr/colorOnBackground"
+                android:textColor="@color/color_primary_text"
                 android:textSize="20sp"
                 android:textStyle="bold" />
 
@@ -91,7 +91,7 @@
                     android:layout_height="wrap_content"
                     android:lineSpacingMultiplier="1.4"
                     android:text="She was persistent in her search for the truth."
-                    android:textColor="?attr/colorOnBackground"
+                    android:textColor="@color/color_primary_text"
                     android:textSize="14sp" />
 
                 <TextView

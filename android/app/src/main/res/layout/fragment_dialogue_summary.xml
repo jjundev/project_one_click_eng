@@ -34,7 +34,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
                     android:text="오늘의 학습 성취도"
-                    android:textColor="?attr/colorOnBackground"
+                    android:textColor="@color/color_primary_text"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
@@ -86,7 +86,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:text="학습 하이라이트"
-                android:textColor="?attr/colorOnBackground"
+                android:textColor="@color/color_primary_text"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
@@ -103,7 +103,7 @@
                 android:layout_marginTop="24dp"
                 android:layout_marginBottom="16dp"
                 android:text="오늘 새롭게 발견한 표현들이에요"
-                android:textColor="?attr/colorOnBackground"
+                android:textColor="@color/color_primary_text"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
@@ -208,7 +208,7 @@
                     android:layout_marginTop="24dp"
                     android:layout_marginBottom="16dp"
                     android:text="오늘 새롭게 발견한 단어들이에요"
-                    android:textColor="?attr/colorOnBackground"
+                    android:textColor="@color/color_primary_text"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
@@ -343,7 +343,7 @@
                 android:layout_marginTop="24dp"
                 android:layout_marginBottom="16dp"
                 android:text="이 문장이 마음에 드셨나요?"
-                android:textColor="?attr/colorOnBackground"
+                android:textColor="@color/color_primary_text"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
@@ -399,7 +399,7 @@
                 android:layout_height="wrap_content"
                 android:lineSpacingMultiplier="1.4"
                 android:text="학습을 마칠까요?"
-                android:textColor="?attr/colorOnBackground"
+                android:textColor="@color/color_primary_text"
                 android:textSize="18sp"
                 android:textStyle="bold" />
 

@@ -16,7 +16,6 @@
     <dimen name="dialog_action_gap">12dp</dimen>
     <dimen name="dialog_button_height">56dp</dimen>
     <dimen name="dialog_button_text_size">16sp</dimen>
-    <dimen name="dialog_seek_horizontal_margin">5dp</dimen>
     <dimen name="dialog_loading_padding">40dp</dimen>
     <dimen name="dialog_loading_text_margin_top">20dp</dimen>
 </resources>

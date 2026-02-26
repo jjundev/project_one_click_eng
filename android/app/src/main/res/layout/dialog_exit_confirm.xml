@@ -52,11 +52,12 @@
 
                     <TextView
                         android:id="@+id/tv_message"
-                        style="@style/DialogTextBody"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:lineSpacingExtra="4dp"
-                        android:text="현재 학습 내역이 저장되지 않아요.\n정말 종료할까요?" />
+                        android:textColor="@color/color_sub_text"
+                        android:textSize="@dimen/dialog_subtitle_text_size"
+                        android:text="현재 학습 내역이 저장되지 않아요." />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

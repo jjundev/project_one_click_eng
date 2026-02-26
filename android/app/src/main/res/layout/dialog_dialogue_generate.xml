@@ -55,7 +55,7 @@
                     android:inputType="textCapSentences"
                     android:padding="@dimen/dialog_card_content_padding"
                     android:text="인사"
-                    android:textColorHint="@color/grey_400" />
+                    android:textColorHint="@color/color_sub_sub_text" />
             </com.google.android.material.card.MaterialCardView>
 
             <TextView
@@ -127,15 +127,14 @@
                 android:id="@+id/sb_length"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="@dimen/dialog_seek_horizontal_margin"
                 android:max="18"
-                android:paddingStart="0dp"
-                android:paddingEnd="0dp"
                 android:progress="0"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
                 android:progressBackgroundTint="@color/grey_300"
-                android:progressTint="@color/primary_blue"
+                android:progressTint="@color/color_dialog_primary_button_bg"
                 android:splitTrack="false"
-                android:thumbTint="@color/primary_blue" />
+                android:thumbTint="@color/color_dialog_primary_button_bg" />
 
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/btn_confirm_generate"

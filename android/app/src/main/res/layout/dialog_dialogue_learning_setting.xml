@@ -58,7 +58,7 @@
                         android:layout_height="wrap_content"
                         android:minHeight="40dp"
                         android:text="@string/settings_mute_all_playback"
-                        android:textColor="@color/grey_700"
+                        android:textColor="@color/color_sub_text"
                         android:textSize="14sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -85,7 +85,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="TTS 방식 선택"
-                        android:textColor="@color/grey_600"
+                        android:textColor="@color/color_sub_text"
                         android:textSize="@dimen/dialog_helper_text_size"
                         android:textStyle="bold" />
 
@@ -102,7 +102,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
                             android:text="Android TTS"
-                            android:textColor="@color/grey_700"
+                            android:textColor="@color/color_sub_text"
                             android:textSize="14sp" />
 
                         <RadioButton
@@ -110,16 +110,15 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Gemini API"
-                            android:textColor="@color/grey_700"
+                            android:textColor="@color/color_sub_text"
                             android:textSize="14sp" />
                     </RadioGroup>
 
                     <View
                         android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginTop="12dp"
-                        android:layout_marginBottom="12dp"
-                        android:background="@color/grey_200" />
+                        android:layout_height="0dp"
+                        android:layout_marginVertical="12dp"
+                        android:background="@color/color_sub_sub_text" />
 
                     <RelativeLayout
                         android:layout_width="match_parent"
@@ -130,7 +129,7 @@
                             android:layout_height="wrap_content"
                             android:layout_centerVertical="true"
                             android:text="@string/settings_tts_speed_label"
-                            android:textColor="@color/grey_600"
+                            android:textColor="@color/color_sub_text"
                             android:textSize="@dimen/dialog_helper_text_size"
                             android:textStyle="bold" />
 
@@ -142,7 +141,7 @@
                             android:background="?attr/selectableItemBackgroundBorderless"
                             android:padding="4dp"
                             android:text="초기화"
-                            android:textColor="@color/toss_blue"
+                            android:textColor="@color/color_dialog_primary_button_bg"
                             android:textSize="12sp"
                             android:textStyle="bold" />
                     </RelativeLayout>
@@ -150,12 +149,15 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
+                        android:layout_marginTop="@dimen/dialog_section_label_bottom_margin"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
                         <SeekBar
                             android:id="@+id/seek_tts_rate"
+                            android:thumbTint="@color/color_dialog_primary_button_bg"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1" />
@@ -166,7 +168,7 @@
                             android:layout_height="wrap_content"
                             android:gravity="end"
                             android:text="@string/settings_tts_rate_default"
-                            android:textColor="@color/grey_700"
+                            android:textColor="@color/color_sub_text"
                             android:textSize="@dimen/dialog_helper_text_size"
                             android:textStyle="bold" />
                     </LinearLayout>

@@ -65,7 +65,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="반가워요, 민수님!"
-                    android:textColor="?attr/colorOnBackground"
+                    android:textColor="@color/color_primary_text"
                     android:textSize="24sp"
                     android:textStyle="bold" />
 
@@ -129,7 +129,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="0분"
-                                android:textColor="?attr/colorOnBackground"
+                                android:textColor="@color/color_primary_text"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
                         </LinearLayout>
@@ -163,7 +163,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="0XP"
-                                android:textColor="?attr/colorOnBackground"
+                                android:textColor="@color/color_primary_text"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
                         </LinearLayout>
@@ -200,7 +200,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="대본으로 연습하기"
-                            android:textColor="@color/white"
+                            android:textColor="@color/color_text_on_fixed_bg"
                             android:textSize="18sp"
                             android:textStyle="bold" />
 
@@ -209,7 +209,7 @@
                             android:layout_height="wrap_content"
                             android:layout_gravity="bottom"
                             android:text="주어진 대본대로 실시간 영작!"
-                            android:textColor="@color/white_to_transparent_gradient"
+                            android:textColor="@color/color_sub_text_on_fixed_bg"
                             android:textSize="14sp" />
 
                         <TextView
@@ -217,7 +217,7 @@
                             android:layout_height="wrap_content"
                             android:layout_gravity="bottom|end"
                             android:text="지금 1,240명이 연습 중"
-                            android:textColor="@color/white_to_transparent_gradient"
+                            android:textColor="@color/color_sub_text_on_fixed_bg"
                             android:textSize="11sp" />
 
                         <TextView

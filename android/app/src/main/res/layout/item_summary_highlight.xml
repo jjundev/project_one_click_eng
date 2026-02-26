@@ -22,7 +22,7 @@
             android:layout_height="wrap_content"
             android:lineSpacingMultiplier="1.4"
             android:text="The English sentence you wrote."
-            android:textColor="?attr/colorOnBackground"
+            android:textColor="@color/color_primary_text"
             android:textSize="18sp"
             android:textStyle="bold" />
 

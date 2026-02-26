@@ -47,23 +47,20 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingStart="@dimen/dialog_card_content_padding"
-                    android:paddingTop="8dp"
-                    android:paddingEnd="@dimen/dialog_card_content_padding"
-                    android:paddingBottom="8dp">
+                    android:padding="@dimen/dialog_card_content_padding">
 
                     <EditText
                         android:id="@+id/et_nickname_input"
                         style="@style/DialogTextBody"
                         android:layout_width="match_parent"
-                        android:layout_height="@dimen/dialog_button_height"
+                        android:layout_height="wrap_content"
                         android:background="@null"
                         android:gravity="center_vertical"
                         android:hint="닉네임 (최대 10자)"
                         android:inputType="textPersonName"
                         android:maxLength="10"
                         android:singleLine="true"
-                        android:textColorHint="@color/grey_400" />
+                        android:textColorHint="@color/color_sub_sub_text" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

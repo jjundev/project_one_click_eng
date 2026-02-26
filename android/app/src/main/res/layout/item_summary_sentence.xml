@@ -51,7 +51,7 @@
             android:layout_marginTop="6dp"
             android:lineSpacingMultiplier="1.4"
             android:text="This is a sentence that I liked during the session."
-            android:textColor="?attr/colorOnBackground"
+            android:textColor="@color/color_primary_text"
             android:textSize="16sp"
             android:textStyle="bold" />
 

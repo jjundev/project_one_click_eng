@@ -19,6 +19,7 @@
     <color name="color_sub_text">#676B73</color>
     <color name="color_sub_sub_text">#8E9399</color>
     <color name="color_text_on_fixed_bg">#F2F3F5</color>
+    <color name="color_sub_text_on_fixed_bg">#CCFFFFFF</color>
     <color name="color_feedback_highlight_bg">#FFF3CD</color>
     <color name="color_feedback_highlight_text">#5D4300</color>
 

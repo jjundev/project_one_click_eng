@@ -33,7 +33,7 @@
             android:ellipsize="end"
             android:maxLines="2"
             android:text="카페에서 주문하기"
-            android:textColor="@color/text_primary"
+            android:textColor="@color/color_primary_text"
             android:textSize="17sp"
             android:textStyle="bold" />
 
@@ -43,7 +43,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="자연스러운 영어 회화"
-            android:textColor="@color/grey_600"
+            android:textColor="@color/color_sub_text"
             android:textSize="13sp" />
 
     </LinearLayout>
