@@ -23,6 +23,7 @@ import java.util.Set;
 /** Deterministic summary generator with optional LLM merge support. */
 public class SessionSummaryGenerator {
   private static final int HIGHLIGHT_MIN_SCORE = 90;
+  private static final int LEARNING_MATERIAL_EXCLUDE_MIN_SCORE = 90;
   private static final int MAX_HIGHLIGHTS = 1;
   private static final int MAX_FALLBACK_EXPRESSIONS = 10;
   private static final int MAX_WORDS = 12;
@@ -37,12 +38,15 @@ public class SessionSummaryGenerator {
 
     int totalScore = calculateAverageScore(safeFeedbacks);
     boolean hasHighlightEligibleScore = hasAnyScoreAtLeast(safeFeedbacks, HIGHLIGHT_MIN_SCORE);
+    List<SentenceFeedback> learningMaterialFeedbacks =
+        filterLearningMaterialFeedbacks(safeFeedbacks);
 
     List<RankedItem<SummaryData.HighlightItem>> highlightRanked =
         buildHighlightCandidates(safeFeedbacks);
     List<RankedItem<SummaryData.ExpressionItem>> expressionRanked =
-        buildExpressionCandidates(safeFeedbacks);
-    List<RankedItem<SummaryData.WordItem>> wordRanked = buildWordCandidates(safeFeedbacks);
+        buildExpressionCandidates(learningMaterialFeedbacks);
+    List<RankedItem<SummaryData.WordItem>> wordRanked =
+        buildWordCandidates(learningMaterialFeedbacks);
 
     List<SummaryData.HighlightItem> fallbackHighlights =
         hasHighlightEligibleScore ? topItems(highlightRanked, MAX_HIGHLIGHTS) : new ArrayList<>();
@@ -73,6 +77,24 @@ public class SessionSummaryGenerator {
     featureBundle.setUserOriginalSentences(userOriginalSentences);
 
     return new GenerationSeed(fallback, featureBundle);
+  }
+
+  private List<SentenceFeedback> filterLearningMaterialFeedbacks(List<SentenceFeedback> feedbacks) {
+    List<SentenceFeedback> result = new ArrayList<>();
+    if (feedbacks == null || feedbacks.isEmpty()) {
+      return result;
+    }
+
+    for (SentenceFeedback feedback : feedbacks) {
+      if (feedback == null) {
+        continue;
+      }
+      if (safeScore(feedback.getWritingScore()) >= LEARNING_MATERIAL_EXCLUDE_MIN_SCORE) {
+        continue;
+      }
+      result.add(feedback);
+    }
+    return result;
   }
 
   public SummaryData mergeWithLlm(
