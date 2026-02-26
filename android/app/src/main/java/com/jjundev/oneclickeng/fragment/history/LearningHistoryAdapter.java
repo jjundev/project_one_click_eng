@@ -205,8 +205,8 @@ public class LearningHistoryAdapter extends RecyclerView.Adapter<RecyclerView.Vi
       if (afterCard != null) {
         int bgColorRes =
             isPreciseType
-                ? R.color.expression_precise_after_bg
-                : R.color.expression_natural_after_bg;
+                ? R.color.summary_expression_precise_after_bg
+                : R.color.summary_expression_natural_after_bg;
         afterCard.setCardBackgroundColor(ContextCompat.getColor(itemView.getContext(), bgColorRes));
       }
       return isPreciseType;
@@ -272,10 +272,11 @@ public class LearningHistoryAdapter extends RecyclerView.Adapter<RecyclerView.Vi
     if (highlightPhrases.isEmpty()) return after;
 
     SpannableStringBuilder builder = new SpannableStringBuilder(after);
-    int accentRes =
-        isPreciseType ? R.color.expression_precise_accent : R.color.expression_natural_accent;
-    int accentColor = ContextCompat.getColor(itemView.getContext(), accentRes);
-    int highlightBgColor = (accentColor & 0x00FFFFFF) | 0x33000000;
+    int highlightBgRes =
+        isPreciseType
+            ? R.color.summary_expression_precise_highlight_bg
+            : R.color.summary_expression_natural_highlight_bg;
+    int highlightBgColor = ContextCompat.getColor(itemView.getContext(), highlightBgRes);
     for (String phrase : highlightPhrases) {
       applyPhraseHighlight(builder, after, phrase, highlightBgColor);
     }

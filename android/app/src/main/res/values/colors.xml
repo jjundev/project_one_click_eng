@@ -117,6 +117,11 @@
     <color name="expression_precise_after_bg">#FDEEEE</color>
     <color name="expression_precise_icon">#EF767A</color>
 
+    <color name="summary_expression_natural_after_bg">#E6F5F0</color>
+    <color name="summary_expression_precise_after_bg">#FDEEEE</color>
+    <color name="summary_expression_natural_highlight_bg">#B8E3D7</color>
+    <color name="summary_expression_precise_highlight_bg">#FAD6D7</color>
+
     <color name="shorts_surface_dark">#060910</color>
     <color name="shorts_scrim_top">#4D05080F</color>
     <color name="shorts_scrim_bottom_mid">#330A111D</color>

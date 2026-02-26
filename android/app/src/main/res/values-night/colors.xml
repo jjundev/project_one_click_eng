@@ -26,6 +26,11 @@
     <color name="expression_precise_after_bg">#FDEEEE</color>
     <color name="expression_precise_icon">#EF767A</color>
 
+    <color name="summary_expression_natural_after_bg">#0F2A22</color>
+    <color name="summary_expression_precise_after_bg">#321B21</color>
+    <color name="summary_expression_natural_highlight_bg">#1C4B3D</color>
+    <color name="summary_expression_precise_highlight_bg">#5A2D38</color>
+
 
 
 

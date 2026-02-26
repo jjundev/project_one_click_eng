@@ -145,7 +145,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:cardBackgroundColor="@color/expression_natural_after_bg"
+            app:cardBackgroundColor="@color/summary_expression_natural_after_bg"
             app:cardCornerRadius="12dp"
             app:cardElevation="0dp">
 
