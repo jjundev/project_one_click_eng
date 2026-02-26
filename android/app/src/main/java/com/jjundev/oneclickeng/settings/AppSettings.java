@@ -12,7 +12,7 @@ public final class AppSettings {
   public static final String TTS_PROVIDER_ANDROID = "android";
   public static final String TTS_PROVIDER_GOOGLE = "google";
   public static final String DEFAULT_TTS_PROVIDER = TTS_PROVIDER_ANDROID;
-  public static final float DEFAULT_TTS_SPEECH_RATE = 0.85f;
+  public static final float DEFAULT_TTS_SPEECH_RATE = 1.00f;
   public static final String DEFAULT_TTS_LOCALE_TAG = "en-US";
 
   private final boolean muteAllPlayback;

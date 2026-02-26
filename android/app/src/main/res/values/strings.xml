@@ -146,7 +146,7 @@
     <string name="settings_tts_provider_android">Provider: Android TTS (고정)</string>
     <string name="settings_tts_provider_api_soon">API 기반 TTS: 준비 중</string>
     <string name="settings_tts_speed_label">말하기 속도 설정</string>
-    <string name="settings_tts_rate_default">0.85x</string>
+    <string name="settings_tts_rate_default">1.00x</string>
     <string name="settings_tts_rate_format">%1$.2fx</string>
     <string name="settings_tts_locale_preset_label">로케일 프리셋</string>
     <string name="settings_tts_locale_custom_label">직접 입력 (BCP-47)</string>

@@ -15,7 +15,7 @@ import java.util.Locale;
 import java.util.Set;
 
 public final class DialoguePlaybackCoordinator {
-  private static final float DEFAULT_TTS_SPEECH_RATE = 0.85f;
+  private static final float DEFAULT_TTS_SPEECH_RATE = 1.00f;
   @NonNull private static final Locale DEFAULT_TTS_LOCALE = Locale.US;
 
   public interface LoggerDelegate {
