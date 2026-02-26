@@ -19,9 +19,14 @@ import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.settings.AppSettingsStore;
 import com.jjundev.oneclickeng.settings.LearningStudyTimeCloudRepository;
 import com.jjundev.oneclickeng.settings.LearningStudyTimeStore;
-import com.jjundev.oneclickeng.widget.SlotMachineTextView;
+import com.jjundev.oneclickeng.widget.SlotMachineTextGroupView;
 
 public class LearningModeSelectFragment extends Fragment {
+  private static final long STATUS_ANIMATION_DURATION_MS = 900L;
+  private static final long STATUS_ANIMATION_DELAY_STREAK_MS = 0L;
+  private static final long STATUS_ANIMATION_DELAY_STUDY_TIME_MS = 120L;
+  private static final long STATUS_ANIMATION_DELAY_POINTS_MS = 400L;
+
   @Nullable private LearningStudyTimeStore learningStudyTimeStore;
   @Nullable private LearningStudyTimeCloudRepository learningStudyTimeCloudRepository;
   @Nullable private LearningStudyTimeStore.StudyTimeSnapshot currentStudyTimeSnapshot;
@@ -69,6 +74,10 @@ public class LearningModeSelectFragment extends Fragment {
   @Override
   public void onDestroyView() {
     dismissStudyTimePopup();
+    View view = getView();
+    if (view != null) {
+      cancelStatusAnimations(view);
+    }
     currentStudyTimeSnapshot = null;
     super.onDestroyView();
   }
@@ -117,17 +126,31 @@ public class LearningModeSelectFragment extends Fragment {
   }
 
   private void startSlotMachineAnimations(View view) {
-    SlotMachineTextView tvStreak = view.findViewById(R.id.tv_streak_info);
-    SlotMachineTextView tvStudyTime = view.findViewById(R.id.tv_study_time);
-    SlotMachineTextView tvPoints = view.findViewById(R.id.tv_points);
+    SlotMachineTextGroupView tvStreak = view.findViewById(R.id.tv_streak_info);
+    SlotMachineTextGroupView tvStudyTime = view.findViewById(R.id.tv_study_time);
+    SlotMachineTextGroupView tvPoints = view.findViewById(R.id.tv_points);
     LearningStudyTimeStore.StudyTimeSnapshot snapshot = getLocalSnapshot();
     currentStudyTimeSnapshot = snapshot;
 
-    tvStreak.cancelAnimation();
-    tvStreak.setText(formatStreakInfo(snapshot.getTotalStreakDays()));
-    tvStudyTime.cancelAnimation();
-    tvStudyTime.setText(formatStudyDuration(snapshot.getTotalVisibleMillis()));
-    tvPoints.animateValue(150, "XP", 1000, 400);
+    if (tvStreak != null) {
+      tvStreak.cancelAnimation();
+      tvStreak.animateText(
+          formatStreakInfo(snapshot.getTotalStreakDays()),
+          STATUS_ANIMATION_DURATION_MS,
+          STATUS_ANIMATION_DELAY_STREAK_MS);
+    }
+    if (tvStudyTime != null) {
+      tvStudyTime.cancelAnimation();
+      tvStudyTime.animateText(
+          formatStudyDuration(snapshot.getTotalVisibleMillis()),
+          STATUS_ANIMATION_DURATION_MS,
+          STATUS_ANIMATION_DELAY_STUDY_TIME_MS);
+    }
+    if (tvPoints != null) {
+      tvPoints.cancelAnimation();
+      tvPoints.animateText(
+          "150XP", STATUS_ANIMATION_DURATION_MS, STATUS_ANIMATION_DELAY_POINTS_MS);
+    }
   }
 
   @NonNull
@@ -215,15 +238,19 @@ public class LearningModeSelectFragment extends Fragment {
       return;
     }
 
-    SlotMachineTextView tvStreak = view.findViewById(R.id.tv_streak_info);
-    SlotMachineTextView tvStudyTime = view.findViewById(R.id.tv_study_time);
+    SlotMachineTextGroupView tvStreak = view.findViewById(R.id.tv_streak_info);
+    SlotMachineTextGroupView tvStudyTime = view.findViewById(R.id.tv_study_time);
     if (tvStreak != null) {
-      tvStreak.cancelAnimation();
-      tvStreak.setText(formatStreakInfo(snapshot.getTotalStreakDays()));
+      tvStreak.animateText(
+          formatStreakInfo(snapshot.getTotalStreakDays()),
+          STATUS_ANIMATION_DURATION_MS,
+          STATUS_ANIMATION_DELAY_STREAK_MS);
     }
     if (tvStudyTime != null) {
-      tvStudyTime.cancelAnimation();
-      tvStudyTime.setText(formatStudyDuration(snapshot.getTotalVisibleMillis()));
+      tvStudyTime.animateText(
+          formatStudyDuration(snapshot.getTotalVisibleMillis()),
+          STATUS_ANIMATION_DURATION_MS,
+          STATUS_ANIMATION_DELAY_STUDY_TIME_MS);
     }
     updatePopupTextIfVisible();
   }
@@ -352,5 +379,20 @@ public class LearningModeSelectFragment extends Fragment {
               Navigation.findNavController(v)
                   .navigate(R.id.action_studyModeSelectFragment_to_scriptSelectFragment);
             });
+  }
+
+  private void cancelStatusAnimations(@NonNull View view) {
+    SlotMachineTextGroupView tvStreak = view.findViewById(R.id.tv_streak_info);
+    SlotMachineTextGroupView tvStudyTime = view.findViewById(R.id.tv_study_time);
+    SlotMachineTextGroupView tvPoints = view.findViewById(R.id.tv_points);
+    if (tvStreak != null) {
+      tvStreak.cancelAnimation();
+    }
+    if (tvStudyTime != null) {
+      tvStudyTime.cancelAnimation();
+    }
+    if (tvPoints != null) {
+      tvPoints.cancelAnimation();
+    }
   }
 }

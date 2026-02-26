@@ -41,7 +41,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/desc_save_sentence"
                 android:src="@drawable/ic_bookmark_border"
-                app:tint="?attr/colorOnSurfaceVariant" />
+                app:tint="@color/color_sub_text" />
         </LinearLayout>
 
         <TextView

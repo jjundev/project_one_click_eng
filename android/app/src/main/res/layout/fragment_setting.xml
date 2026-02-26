@@ -90,7 +90,7 @@
                     android:layout_height="16dp"
                     android:src="@drawable/ic_chevron_right"
                     android:contentDescription="변경하기"
-                    app:tint="?attr/colorOnSurfaceVariant" />
+                    app:tint="@color/color_sub_text" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -144,7 +144,7 @@
                     android:layout_height="16dp"
                     android:src="@drawable/ic_chevron_right"
                     android:contentDescription="변경하기"
-                    app:tint="?attr/colorOnSurfaceVariant" />
+                    app:tint="@color/color_sub_text" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -186,7 +186,7 @@
                     android:layout_height="16dp"
                     android:src="@drawable/ic_chevron_right"
                     android:contentDescription="변경하기"
-                    app:tint="?attr/colorOnSurfaceVariant" />
+                    app:tint="@color/color_sub_text" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

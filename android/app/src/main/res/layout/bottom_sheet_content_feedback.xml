@@ -528,7 +528,7 @@
                             android:layout_height="24dp"
                             android:src="@drawable/ic_speaker"
                             android:layout_marginStart="8dp"
-                            app:tint="?attr/colorOnSurfaceVariant"
+                            app:tint="@color/color_sub_text"
                             android:background="?attr/selectableItemBackgroundBorderless"
                             android:clickable="true"
                             android:focusable="true" />
@@ -871,7 +871,7 @@
                                 android:layout_height="24dp"
                                 android:src="@drawable/ic_speaker"
                                 android:layout_marginStart="8dp"
-                                app:tint="?attr/colorOnSurfaceVariant"
+                                app:tint="@color/color_sub_text"
                                 android:background="?attr/selectableItemBackgroundBorderless"
                                 android:clickable="true"
                                 android:focusable="true" />
@@ -1175,7 +1175,7 @@
                                 android:layout_height="24dp"
                                 android:src="@drawable/ic_speaker"
                                 android:layout_marginStart="8dp"
-                                app:tint="?attr/colorOnSurfaceVariant"
+                                app:tint="@color/color_sub_text"
                                 android:background="?attr/selectableItemBackgroundBorderless"
                                 android:clickable="true"
                                 android:focusable="true" />
@@ -1396,7 +1396,7 @@
                                     android:layout_height="24dp"
                                     android:src="@drawable/ic_speaker"
                                     android:layout_marginStart="8dp"
-                                    app:tint="?attr/colorOnSurfaceVariant"
+                                    app:tint="@color/color_sub_text"
                                     android:background="?attr/selectableItemBackgroundBorderless"
                                     android:clickable="true"
                                     android:focusable="true" />
@@ -1420,7 +1420,7 @@
                                     android:background="?attr/selectableItemBackgroundBorderless"
                                     android:contentDescription="@string/desc_save_paraphrasing"
                                     android:src="@drawable/ic_bookmark_border"
-                                    app:tint="?attr/colorOnSurfaceVariant" />
+                                    app:tint="@color/color_sub_text" />
 
                             </LinearLayout>
 
@@ -1488,7 +1488,7 @@
                                     android:layout_height="24dp"
                                     android:src="@drawable/ic_speaker"
                                     android:layout_marginStart="8dp"
-                                    app:tint="?attr/colorOnSurfaceVariant"
+                                    app:tint="@color/color_sub_text"
                                     android:background="?attr/selectableItemBackgroundBorderless"
                                     android:clickable="true"
                                     android:focusable="true" />
@@ -1512,7 +1512,7 @@
                                     android:background="?attr/selectableItemBackgroundBorderless"
                                     android:contentDescription="@string/desc_save_paraphrasing"
                                     android:src="@drawable/ic_bookmark_border"
-                                    app:tint="?attr/colorOnSurfaceVariant" />
+                                    app:tint="@color/color_sub_text" />
 
                             </LinearLayout>
 
@@ -1579,7 +1579,7 @@
                                     android:layout_height="24dp"
                                     android:src="@drawable/ic_speaker"
                                     android:layout_marginStart="8dp"
-                                    app:tint="?attr/colorOnSurfaceVariant"
+                                    app:tint="@color/color_sub_text"
                                     android:background="?attr/selectableItemBackgroundBorderless"
                                     android:clickable="true"
                                     android:focusable="true" />
@@ -1603,7 +1603,7 @@
                                     android:background="?attr/selectableItemBackgroundBorderless"
                                     android:contentDescription="@string/desc_save_paraphrasing"
                                     android:src="@drawable/ic_bookmark_border"
-                                    app:tint="?attr/colorOnSurfaceVariant" />
+                                    app:tint="@color/color_sub_text" />
 
                             </LinearLayout>
 
