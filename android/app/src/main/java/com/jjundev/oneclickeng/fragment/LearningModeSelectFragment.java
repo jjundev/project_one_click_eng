@@ -13,6 +13,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
+import com.jjundev.oneclickeng.dialog.NotificationInboxDialog;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.jjundev.oneclickeng.R;
@@ -371,6 +372,11 @@ public class LearningModeSelectFragment extends Fragment {
     View studyTimeCard = view.findViewById(R.id.card_study_time);
     if (studyTimeCard != null) {
       studyTimeCard.setOnClickListener(this::toggleStudyTimePopup);
+    }
+    View notificationsButton = view.findViewById(R.id.btn_notifications);
+    if (notificationsButton != null) {
+      notificationsButton.setOnClickListener(
+          v -> NotificationInboxDialog.show(getChildFragmentManager()));
     }
 
     view.findViewById(R.id.card_script_mode)

@@ -23,7 +23,7 @@
     <color name="color_feedback_highlight_bg">#FFF3CD</color>
     <color name="color_feedback_highlight_text">#5D4300</color>
 
-    <color name="color_toolbar_icon">#757575</color>
+    <color name="color_toolbar_icon">@color/color_sub_text</color>
     <color name="color_bottom_sheet_handle">#C9D1DB</color>
     <color name="color_progressbar">#39A0ED</color>
     <color name="color_quiz_finish">#009B72</color>

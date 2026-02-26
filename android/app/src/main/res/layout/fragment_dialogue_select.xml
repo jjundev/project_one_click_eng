@@ -32,7 +32,7 @@
                 android:contentDescription="Back"
                 android:scaleType="centerInside"
                 android:src="@drawable/ic_arrow_back"
-                app:tint="@color/color_sub_text"></ImageButton>
+                app:tint="@color/color_toolbar_icon"></ImageButton>
 
             <View
                 android:layout_width="0dp"
@@ -47,7 +47,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="설정"
                 android:src="@drawable/ic_settings"
-                app:tint="@color/color_sub_text"></ImageButton>
+                app:tint="@color/color_toolbar_icon"></ImageButton>
 
         </LinearLayout>
 

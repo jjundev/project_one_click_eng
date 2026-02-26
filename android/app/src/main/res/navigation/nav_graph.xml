@@ -33,15 +33,15 @@
 
     <fragment
         android:id="@+id/englishShortsEmptyFragment"
-        android:name="com.jjundev.oneclickeng.fragment.EnglishShortsEmptyFragment"
+        android:name="com.jjundev.oneclickeng.fragment.EnglishShortsFragment"
         android:label="EnglishShortsEmptyFragment"
-        tools:layout="@layout/fragment_english_shorts_empty" />
+        tools:layout="@layout/fragment_english_shorts" />
 
     <fragment
         android:id="@+id/gameModeEmptyFragment"
-        android:name="com.jjundev.oneclickeng.fragment.GameModeEmptyFragment"
+        android:name="com.jjundev.oneclickeng.fragment.GameModeSelectFragment"
         android:label="GameModeEmptyFragment"
-        tools:layout="@layout/fragment_game_mode_empty" />
+        tools:layout="@layout/fragment_game_mode_select" />
 
     <fragment
         android:id="@+id/learningHistoryFragment"

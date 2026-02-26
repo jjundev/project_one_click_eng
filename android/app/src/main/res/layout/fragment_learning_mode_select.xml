@@ -36,7 +36,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="알림"
                 android:src="@drawable/ic_notifications"
-                app:tint="@color/color_sub_text"></ImageButton>
+                app:tint="@color/color_toolbar_icon"></ImageButton>
 
         </LinearLayout>
 

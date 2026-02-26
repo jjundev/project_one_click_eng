@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class EnglishShortsEmptyFragment extends Fragment {
+public class EnglishShortsFragment extends Fragment {
   private static final String TAG = "EnglishShortsFragment";
 
   @NonNull private final List<View> progressBars = new ArrayList<>();
@@ -63,7 +63,7 @@ public class EnglishShortsEmptyFragment extends Fragment {
       @NonNull LayoutInflater inflater,
       @Nullable ViewGroup container,
       @Nullable Bundle savedInstanceState) {
-    return inflater.inflate(R.layout.fragment_english_shorts_empty, container, false);
+    return inflater.inflate(R.layout.fragment_english_shorts, container, false);
   }
 
   @Override

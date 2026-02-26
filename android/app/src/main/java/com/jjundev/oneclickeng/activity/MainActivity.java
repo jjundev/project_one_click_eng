@@ -1,11 +1,19 @@
 package com.jjundev.oneclickeng.activity;
 
+import android.Manifest;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
+import androidx.annotation.NonNull;
 import androidx.activity.EdgeToEdge;
 import androidx.activity.OnBackPressedCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
@@ -15,14 +23,22 @@ import com.jjundev.oneclickeng.R;
 
 public class MainActivity extends AppCompatActivity {
   private static final String TAG = "JOB_J-20260216-003";
+  private static final String PREF_NOTIFICATION_PERMISSION = "notification_permission_prefs";
+  private static final String KEY_PERMISSION_REQUESTED = "post_notifications_requested";
 
   private long backPressedTime = 0;
+  @NonNull
+  private final ActivityResultLauncher<String> notificationPermissionLauncher =
+      registerForActivityResult(
+          new ActivityResultContracts.RequestPermission(),
+          isGranted -> logDebug("POST_NOTIFICATIONS permission result: " + isGranted));
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     EdgeToEdge.enable(this);
     setContentView(R.layout.activity_main);
+    requestNotificationPermissionIfNeeded();
 
     BottomNavigationView bottomNavigation = findViewById(R.id.bottom_navigation);
     NavHostFragment navHostFragment =
@@ -104,6 +120,25 @@ public class MainActivity extends AppCompatActivity {
                 }
               }
             });
+  }
+
+  private void requestNotificationPermissionIfNeeded() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+      return;
+    }
+    if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+        == PackageManager.PERMISSION_GRANTED) {
+      return;
+    }
+
+    SharedPreferences preferences =
+        getSharedPreferences(PREF_NOTIFICATION_PERMISSION, MODE_PRIVATE);
+    if (preferences.getBoolean(KEY_PERMISSION_REQUESTED, false)) {
+      return;
+    }
+
+    preferences.edit().putBoolean(KEY_PERMISSION_REQUESTED, true).apply();
+    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
   }
 
   private void logDebug(String message) {
