@@ -18,6 +18,8 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.settings.AppSettingsStore;
+import com.jjundev.oneclickeng.settings.LearningPointCloudRepository;
+import com.jjundev.oneclickeng.settings.LearningPointStore;
 import com.jjundev.oneclickeng.settings.LearningStudyTimeCloudRepository;
 import com.jjundev.oneclickeng.settings.LearningStudyTimeStore;
 import com.jjundev.oneclickeng.widget.SlotMachineTextGroupView;
@@ -30,6 +32,8 @@ public class LearningModeSelectFragment extends Fragment {
 
   @Nullable private LearningStudyTimeStore learningStudyTimeStore;
   @Nullable private LearningStudyTimeCloudRepository learningStudyTimeCloudRepository;
+  @Nullable private LearningPointStore learningPointStore;
+  @Nullable private LearningPointCloudRepository learningPointCloudRepository;
   @Nullable private LearningStudyTimeStore.StudyTimeSnapshot currentStudyTimeSnapshot;
   @Nullable private PopupWindow studyTimePopup;
 
@@ -49,6 +53,9 @@ public class LearningModeSelectFragment extends Fragment {
       learningStudyTimeStore = new LearningStudyTimeStore(getContext().getApplicationContext());
       learningStudyTimeCloudRepository =
           new LearningStudyTimeCloudRepository(getContext().getApplicationContext());
+      learningPointStore = new LearningPointStore(getContext().getApplicationContext());
+      learningPointCloudRepository =
+          new LearningPointCloudRepository(getContext().getApplicationContext(), learningPointStore);
     }
     recordAppEntry();
 
@@ -57,6 +64,7 @@ public class LearningModeSelectFragment extends Fragment {
     startCardAnimations(view);
     setupGreeting(view);
     refreshStudyTimeData();
+    refreshPointData();
   }
 
   @Override
@@ -64,6 +72,7 @@ public class LearningModeSelectFragment extends Fragment {
     super.onResume();
     recordAppEntry();
     refreshStudyTimeData();
+    refreshPointData();
   }
 
   @Override
@@ -150,7 +159,9 @@ public class LearningModeSelectFragment extends Fragment {
     if (tvPoints != null) {
       tvPoints.cancelAnimation();
       tvPoints.animateText(
-          "150XP", STATUS_ANIMATION_DURATION_MS, STATUS_ANIMATION_DELAY_POINTS_MS);
+          formatPoints(getLocalTotalPoints()),
+          STATUS_ANIMATION_DURATION_MS,
+          STATUS_ANIMATION_DELAY_POINTS_MS);
     }
   }
 
@@ -181,6 +192,68 @@ public class LearningModeSelectFragment extends Fragment {
     if (learningStudyTimeCloudRepository != null) {
       learningStudyTimeCloudRepository.recordAppEntryForCurrentUser(now);
     }
+  }
+
+  private int getLocalTotalPoints() {
+    if (learningPointStore != null) {
+      return learningPointStore.getTotalPoints();
+    }
+    if (getContext() != null) {
+      learningPointStore = new LearningPointStore(getContext().getApplicationContext());
+      return learningPointStore.getTotalPoints();
+    }
+    return 0;
+  }
+
+  private void refreshPointData() {
+    int localTotalPoints = getLocalTotalPoints();
+    applyTotalPoints(localTotalPoints);
+
+    if (learningPointCloudRepository == null) {
+      return;
+    }
+    if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+      return;
+    }
+
+    learningPointCloudRepository.flushPendingForCurrentUser(
+        success -> fetchCloudPointsWithFallback(localTotalPoints));
+  }
+
+  private void fetchCloudPointsWithFallback(int fallbackPoints) {
+    if (learningPointCloudRepository == null) {
+      return;
+    }
+    learningPointCloudRepository.fetchCurrentUserTotalPoints(
+        new LearningPointCloudRepository.TotalPointsCallback() {
+          @Override
+          public void onSuccess(int totalPoints) {
+            if (!isAdded() || getView() == null) {
+              return;
+            }
+            int mergedPoints = totalPoints;
+            if (learningPointStore != null) {
+              mergedPoints = learningPointStore.mergeCloudTotalPoints(totalPoints);
+            }
+            applyTotalPoints(mergedPoints);
+          }
+
+          @Override
+          public void onFailure() {
+            if (!isAdded() || getView() == null) {
+              return;
+            }
+            applyTotalPoints(fallbackPoints);
+          }
+
+          @Override
+          public void onNoUser() {
+            if (!isAdded() || getView() == null) {
+              return;
+            }
+            applyTotalPoints(fallbackPoints);
+          }
+        });
   }
 
   private void refreshStudyTimeData() {
@@ -256,6 +329,19 @@ public class LearningModeSelectFragment extends Fragment {
     updatePopupTextIfVisible();
   }
 
+  private void applyTotalPoints(int totalPoints) {
+    View view = getView();
+    if (view == null) {
+      return;
+    }
+    SlotMachineTextGroupView tvPoints = view.findViewById(R.id.tv_points);
+    if (tvPoints == null) {
+      return;
+    }
+    tvPoints.animateText(
+        formatPoints(totalPoints), STATUS_ANIMATION_DURATION_MS, STATUS_ANIMATION_DELAY_POINTS_MS);
+  }
+
   @NonNull
   private String formatStudyDuration(long durationMillis) {
     long totalMinutes = Math.max(0L, durationMillis) / 60_000L;
@@ -270,6 +356,11 @@ public class LearningModeSelectFragment extends Fragment {
   @NonNull
   private String formatStreakInfo(int totalStreakDays) {
     return getString(R.string.streak_info_format, Math.max(0, totalStreakDays));
+  }
+
+  @NonNull
+  private String formatPoints(int points) {
+    return Math.max(0, points) + "XP";
   }
 
   @NonNull

@@ -193,7 +193,9 @@ public final class DialogueFeedbackCoordinator {
         currentBinder.hideAllSections();
         currentBinder.showAllSkeletons();
       }
-      startSentenceFeedbackWithText(safeSentence, safeTranslated);
+      if (shouldStartSentenceFeedback(currentFeedbackState)) {
+        startSentenceFeedbackWithText(safeSentence, safeTranslated);
+      }
     }
   }
 
@@ -483,6 +485,25 @@ public final class DialogueFeedbackCoordinator {
     }
 
     feedbackActionDelegate.startSentenceFeedback(safeOriginal, safeTranscript);
+  }
+
+  private boolean shouldStartSentenceFeedback(@Nullable FeedbackUiState currentFeedbackState) {
+    if (currentFeedbackState == null) {
+      return true;
+    }
+    if (currentFeedbackState.isLoading()) {
+      return false;
+    }
+    if (currentFeedbackState.getSectionKey() != null || currentFeedbackState.getPartialFeedback() != null) {
+      return false;
+    }
+    if (currentFeedbackState.getFullFeedback() != null) {
+      return false;
+    }
+    if (currentFeedbackState.isCompleted()) {
+      return false;
+    }
+    return isBlank(currentFeedbackState.getError());
   }
 
   private void saveFeedbackToAccumulatedList(@NonNull SentenceFeedback feedback) {

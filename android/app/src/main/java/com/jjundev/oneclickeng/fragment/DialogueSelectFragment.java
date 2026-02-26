@@ -99,7 +99,7 @@ public class DialogueSelectFragment extends Fragment
             templateList,
             template -> {
               String json = scriptGenerator.getPredefinedScript(template.getTitle());
-              startScriptStudy(json);
+              startScriptStudy(json, null);
             });
 
     rvScripts.setLayoutManager(new GridLayoutManager(getContext(), 2));
@@ -187,7 +187,7 @@ public class DialogueSelectFragment extends Fragment
               dialog.dismiss();
             }
 
-            startScriptStudy(jsonResult);
+            startScriptStudy(jsonResult, level);
           }
 
           @Override
@@ -202,11 +202,14 @@ public class DialogueSelectFragment extends Fragment
         });
   }
 
-  private void startScriptStudy(String scriptJson) {
+  private void startScriptStudy(@NonNull String scriptJson, @Nullable String level) {
     if (getActivity() == null) return;
 
     Intent intent = new Intent(getActivity(), DialogueLearningActivity.class);
     intent.putExtra("SCRIPT_DATA", scriptJson);
+    if (level != null && !level.trim().isEmpty()) {
+      intent.putExtra(DialogueLearningActivity.EXTRA_SCRIPT_LEVEL, level);
+    }
     startActivity(intent);
 
     hideKeyboard();

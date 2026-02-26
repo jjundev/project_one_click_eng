@@ -3,6 +3,7 @@ package com.jjundev.oneclickeng.learning.dialoguelearning.ui;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.util.Log;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -11,6 +12,7 @@ import com.jjundev.oneclickeng.learning.dialoguelearning.state.BottomSheetMode;
 
 public class LearningBottomSheetController {
 
+  private static final String TAG = "LearningBottomSheet";
   private static final float BOTTOM_SHEET_MAX_HEIGHT_RATIO = 0.8f;
   private static final float BOTTOM_SHEET_MIN_HEIGHT_RATIO = 0.2f;
 
@@ -76,12 +78,13 @@ public class LearningBottomSheetController {
                 int minHeight = (int) (fragmentHeight * BOTTOM_SHEET_MIN_HEIGHT_RATIO);
 
                 ViewGroup.LayoutParams params = bottomSheet.getLayoutParams();
-                if (bottomSheet.getHeight() > maxHeight) {
-                  params.height = maxHeight;
-                } else {
-                  params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-                }
+                params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
                 bottomSheet.setLayoutParams(params);
+                logTrace(
+                    "TRACE_BS_SETUP_HEIGHT wrap_content=true maxHeight="
+                        + maxHeight
+                        + " minHeight="
+                        + minHeight);
 
                 bottomSheetBehavior.setPeekHeight(minHeight);
                 bottomSheetBehavior.setMaxHeight(maxHeight);
@@ -164,21 +167,28 @@ public class LearningBottomSheetController {
   public void changeContent(@NonNull Runnable action, boolean skipStateAnimation) {
     if (bottomSheetBehavior == null) {
       action.run();
+      normalizeSheetHeightToWrapContent("changeContent_no_behavior");
       scheduleFooterSync(true, "changeContent_no_behavior");
       return;
     }
 
     if (skipStateAnimation) {
       action.run();
+      normalizeSheetHeightToWrapContent("changeContent_no_anim");
       scheduleFooterSync(true, "changeContent_no_anim");
       return;
     }
 
     if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
       action.run();
+      normalizeSheetHeightToWrapContent("changeContent_collapsed_immediate");
       bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
     } else {
-      onSlideCollapsedAction = action;
+      onSlideCollapsedAction =
+          () -> {
+            action.run();
+            normalizeSheetHeightToWrapContent("changeContent_collapsed_callback");
+          };
       bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
     }
   }
@@ -240,8 +250,29 @@ public class LearningBottomSheetController {
   public void bindFromSnapshot(@Nullable BottomSheetMode mode) {
     bottomSheetRenderer.bindFromSnapshot(mode);
     if (mode != null) {
+      normalizeSheetHeightToWrapContent("bind_snapshot");
       scheduleFooterSync(true, "bind_snapshot");
     }
+  }
+
+  private void normalizeSheetHeightToWrapContent(@NonNull String reason) {
+    View sheet = bottomSheet;
+    if (sheet == null) {
+      return;
+    }
+    ViewGroup.LayoutParams params = sheet.getLayoutParams();
+    if (params == null) {
+      return;
+    }
+
+    params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+    sheet.setLayoutParams(params);
+    sheet.requestLayout();
+    logTrace("TRACE_BS_HEIGHT_NORMALIZE reason=" + reason);
+  }
+
+  private void logTrace(@NonNull String message) {
+    Log.d(TAG, message);
   }
 
   private int calculateVisibleHeight(@NonNull View bottomSheet) {

@@ -10,9 +10,11 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Parcelable;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -86,6 +88,10 @@ import java.util.List;
 public class DialogueLearningFragment extends Fragment {
   // Constants
   private static final String STATE_BOOKMARKS_JSON = "state_bookmarks_json";
+  private static final String STATE_BOTTOM_SHEET_LAYOUT_RES_ID = "state_bottom_sheet_layout_res_id";
+  private static final String STATE_BOTTOM_SHEET_HIERARCHY = "state_bottom_sheet_hierarchy";
+  private static final String STATE_HAS_DEFAULT_INPUT_SCENE_SHOWN =
+      "state_has_default_input_scene_shown";
   private static final String TAG = "DialogueLearning";
   private static final String JOB_TAG = "JOB_J-20260216-005";
   private static final int MAX_RECORDING_SECONDS = 60;
@@ -151,6 +157,7 @@ public class DialogueLearningFragment extends Fragment {
   private ActivityResultLauncher<String> requestPermissionLauncher;
   private boolean isScriptLoaded = false;
   private boolean isTtsInitialized = false;
+  private boolean hasNotifiedLearningSessionFinished = false;
   private String topic = "영어 연습";
   private String opponentName = "English Coach";
   private String opponentGender = "female";
@@ -160,6 +167,8 @@ public class DialogueLearningFragment extends Fragment {
 
   // Feedback / pending scene state
   private @Nullable LinkedHashMap<String, BookmarkedParaphrase> pendingRestoredBookmarks;
+  private @Nullable SparseArray<Parcelable> pendingBottomSheetHierarchyState;
+  private @Nullable Integer pendingBottomSheetLayoutResId;
   private @Nullable LearningSessionSnapshot currentSessionSnapshot;
   private @Nullable LearningScene lastRenderedScene;
   private @Nullable String lastRenderedSentenceKey;
@@ -175,6 +184,7 @@ public class DialogueLearningFragment extends Fragment {
   private @Nullable Runnable pendingDefaultInputPresentation;
   private boolean hasDefaultInputSceneEverShown;
   private @Nullable Runnable pendingLearningFinishedPresentation;
+  private boolean hasPostLayoutSnapshotRebound;
 
   @Nullable
   @Override
@@ -197,6 +207,7 @@ public class DialogueLearningFragment extends Fragment {
     restorePendingBookmarksIfNeeded();
     initChatAdapterAndRecycler();
     bindBottomSheetAndTurnCoordinator(view);
+    schedulePostLayoutSnapshotRebind(view);
     loadInitialScriptFromArguments();
     logInitCompleted();
   }
@@ -226,6 +237,7 @@ public class DialogueLearningFragment extends Fragment {
     feedbackCoordinator = coordinatorBundle.feedbackCoordinator;
     micPermissionCoordinator = new MicPermissionCoordinator(buildMicPermissionCoordinatorHost());
     speakingSceneCoordinator = new SpeakingSceneCoordinator(buildSpeakingSceneCoordinatorHost());
+    restoreTransientUiState(savedInstanceState);
     restoreSummarySessionState(savedInstanceState);
     if (micPermissionCoordinator != null) {
       micPermissionCoordinator.restoreFrom(savedInstanceState);
@@ -312,7 +324,11 @@ public class DialogueLearningFragment extends Fragment {
   }
 
   private void initChatAdapterAndRecycler() {
-    messageList = new ArrayList<>();
+    if (viewModel != null) {
+      messageList = viewModel.getRetainedChatMessages();
+    } else {
+      messageList = new ArrayList<>();
+    }
     chatAdapter =
         new ChatAdapter(
             messageList,
@@ -349,7 +365,79 @@ public class DialogueLearningFragment extends Fragment {
     }
   }
 
+  private void schedulePostLayoutSnapshotRebind(@NonNull View root) {
+    if (hasPostLayoutSnapshotRebound) {
+      return;
+    }
+    root.post(this::rebindSnapshotAfterInitialLayoutIfNeeded);
+  }
+
+  private void rebindSnapshotAfterInitialLayoutIfNeeded() {
+    if (hasPostLayoutSnapshotRebound) {
+      logTrace("TRACE_POST_LAYOUT_REBIND skip reason=already_rebound");
+      return;
+    }
+    if (viewModel == null) {
+      logTrace("TRACE_POST_LAYOUT_REBIND skip reason=viewModel_null");
+      return;
+    }
+    if (!isAdded()) {
+      logTrace("TRACE_POST_LAYOUT_REBIND skip reason=host_not_added");
+      return;
+    }
+
+    LearningSessionSnapshot snapshot = viewModel.getSessionSnapshotState().getValue();
+    if (snapshot == null) {
+      logTrace("TRACE_POST_LAYOUT_REBIND skip reason=snapshot_null");
+      return;
+    }
+    if (!shouldRebindSnapshotAfterInitialLayout(snapshot)) {
+      logTrace("TRACE_POST_LAYOUT_REBIND skip reason=conditions_not_met");
+      return;
+    }
+
+    logTrace("TRACE_POST_LAYOUT_REBIND start");
+    forceRenderFromSnapshotAfterLayout(snapshot);
+    hasPostLayoutSnapshotRebound = true;
+    logTrace("TRACE_POST_LAYOUT_REBIND done");
+  }
+
+  private boolean shouldRebindSnapshotAfterInitialLayout(
+      @Nullable LearningSessionSnapshot snapshot) {
+    if (snapshot == null) {
+      return false;
+    }
+
+    ScriptUiState scriptState = snapshot.getScriptUiState();
+    boolean hasLoadedScript = scriptState != null && scriptState.getTotalSteps() > 0;
+    boolean hasPendingBottomSheetRestore = pendingBottomSheetLayoutResId != null;
+    return hasLoadedScript || hasPendingBottomSheetRestore;
+  }
+
+  private void forceRenderFromSnapshotAfterLayout(@NonNull LearningSessionSnapshot snapshot) {
+    logTrace("TRACE_POST_LAYOUT_FORCE_RENDER reset_dedupe=true");
+    resetRenderedSnapshotDedupeState();
+    renderFromSessionSnapshot(snapshot);
+    onBottomSheetModeChanged(snapshot.getBottomSheetMode());
+  }
+
+  private void resetRenderedSnapshotDedupeState() {
+    lastRenderedScene = null;
+    lastRenderedSentenceKey = null;
+    lastRenderedScriptStep = -1;
+    lastRenderedSpeakingRequestId = -1L;
+    lastRenderedFeedbackEmissionId = -1L;
+  }
+
   private void loadInitialScriptFromArguments() {
+    if (isScriptAlreadyLoadedInViewModel()) {
+      isScriptLoaded = true;
+      applyScriptMetadataFromState();
+      logTrace("TRACE_PARSE_SKIP reason=already_loaded");
+      tryStartTurnFlow();
+      return;
+    }
+
     if (getArguments() == null) {
       return;
     }
@@ -358,6 +446,14 @@ public class DialogueLearningFragment extends Fragment {
       return;
     }
     parseScriptData(scriptJson);
+  }
+
+  private boolean isScriptAlreadyLoadedInViewModel() {
+    if (viewModel == null) {
+      return false;
+    }
+    ScriptUiState state = viewModel.getScriptUiState().getValue();
+    return state != null && state.getTotalSteps() > 0;
   }
 
   private void logInitCompleted() {
@@ -1147,6 +1243,9 @@ public class DialogueLearningFragment extends Fragment {
     if (summaryCoordinator != null) {
       summaryCoordinator.saveState(outState, gson);
     }
+
+    outState.putBoolean(STATE_HAS_DEFAULT_INPUT_SCENE_SHOWN, hasDefaultInputSceneEverShown);
+    saveBottomSheetHierarchyState(outState);
   }
 
   @Override
@@ -1253,15 +1352,22 @@ public class DialogueLearningFragment extends Fragment {
   }
 
   private void clearViewModelRequestsIfNeeded() {
-    if (viewModel != null) {
+    if (viewModel != null && !isHostChangingConfigurations()) {
       viewModel.clearRequests();
     }
   }
 
+  private boolean isHostChangingConfigurations() {
+    return getActivity() != null && getActivity().isChangingConfigurations();
+  }
+
   private void clearTransientReferences() {
     hasDefaultInputSceneEverShown = false;
+    hasPostLayoutSnapshotRebound = false;
     pendingScriptTtsCompletion = null;
     pendingScriptTtsText = null;
+    pendingBottomSheetHierarchyState = null;
+    pendingBottomSheetLayoutResId = null;
     appSettingsStore = null;
   }
 
@@ -1269,7 +1375,25 @@ public class DialogueLearningFragment extends Fragment {
     if (turnCoordinator == null) {
       return;
     }
+    if (!shouldStartTurnFlow()) {
+      logTrace("TRACE_TRY_START_FLOW skip reason=restored_session");
+      return;
+    }
     turnCoordinator.tryStartTurnFlow(isScriptLoaded, isTtsInitialized);
+  }
+
+  private boolean shouldStartTurnFlow() {
+    if (!isScriptLoaded || !isTtsInitialized) {
+      return true;
+    }
+    if (viewModel == null) {
+      return true;
+    }
+    ScriptUiState state = viewModel.getScriptUiState().getValue();
+    if (state == null || state.getTotalSteps() <= 0) {
+      return true;
+    }
+    return !state.isFinished() && state.getCurrentStep() == 0 && state.getActiveTurn() == null;
   }
 
   private void observeViewModel() {
@@ -1410,7 +1534,7 @@ public class DialogueLearningFragment extends Fragment {
   private void applySceneDispatchAndMode(
       @NonNull LearningSessionSnapshot snapshot, @NonNull SceneRenderContext context) {
     if (context.forceRebind) {
-      dispatchSceneRender(context.scene, context.sentenceToRender, true);
+      dispatchSceneRender(snapshot, context.scene, context.sentenceToRender, true);
     }
     if (context.scene != lastRenderedScene || context.forceRebind) {
       onBottomSheetModeChanged(snapshot.getBottomSheetMode());
@@ -1423,12 +1547,16 @@ public class DialogueLearningFragment extends Fragment {
   }
 
   private void dispatchSceneRender(
+      @NonNull LearningSessionSnapshot snapshot,
       @NonNull LearningScene scene, @Nullable String sentenceToRender, boolean forceRebind) {
     if (scene == LearningScene.FEEDBACK) {
+      if (forceRebind || !isCurrentBottomSheetLayout(R.layout.bottom_sheet_content_feedback)) {
+        presentFeedbackSceneFromSnapshot(snapshot, sentenceToRender);
+      }
       return;
     }
 
-    if (scene == LearningScene.BEFORE_SPEAKING) {
+    if (scene == LearningScene.BEFORE_SPEAKING && isOpponentTurnSnapshot(snapshot)) {
       showEmptyBottomSheetForOpponentTurn();
       return;
     }
@@ -1439,6 +1567,13 @@ public class DialogueLearningFragment extends Fragment {
     }
 
     renderSceneContent(scene, sentenceToRender == null ? "" : sentenceToRender, forceRebind);
+  }
+
+  private boolean isOpponentTurnSnapshot(@NonNull LearningSessionSnapshot snapshot) {
+    ScriptUiState scriptState = snapshot.getScriptUiState();
+    return scriptState != null
+        && scriptState.getActiveTurn() != null
+        && scriptState.getActiveTurn().isOpponentTurn();
   }
 
   private void showEmptyBottomSheetForOpponentTurn() {
@@ -1487,6 +1622,46 @@ public class DialogueLearningFragment extends Fragment {
     }
   }
 
+  private void presentFeedbackSceneFromSnapshot(
+      @NonNull LearningSessionSnapshot snapshot, @Nullable String sceneSentence) {
+    SpeakingUiState speakingState = snapshot.getSpeakingUiState();
+    FeedbackUiState feedbackState = snapshot.getFeedbackUiState();
+    SentenceFeedback fullFeedback = feedbackState.getFullFeedback();
+
+    String sentenceToTranslate =
+        firstNonBlank(
+            speakingState.getOriginalSentence(),
+            fullFeedback == null ? null : fullFeedback.getOriginalSentence(),
+            sceneSentence,
+            resolveSentenceFromScriptState(snapshot.getScriptUiState()));
+
+    String translatedSentence =
+        firstNonBlank(
+            speakingState.getRecognizedText(),
+            fullFeedback == null ? null : fullFeedback.getUserSentence(),
+            resolveTranslatedSentenceFromCurrentBottomSheet());
+
+    FluencyFeedback result = speakingState.getFluencyResult();
+    presentFeedbackScene(
+        result,
+        sentenceToTranslate == null ? "" : sentenceToTranslate,
+        translatedSentence == null ? "" : translatedSentence,
+        result != null);
+  }
+
+  @Nullable
+  private String firstNonBlank(@Nullable String... candidates) {
+    if (candidates == null) {
+      return null;
+    }
+    for (String candidate : candidates) {
+      if (!isBlank(candidate)) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
   private boolean shouldForceSceneRebind(
       @NonNull LearningScene scene, @Nullable String sentenceToRender) {
     if (scene != lastRenderedScene) {
@@ -1524,6 +1699,14 @@ public class DialogueLearningFragment extends Fragment {
     bottomSheetController.bindFromSnapshot(mode);
   }
 
+  private void syncBottomSheetMode(@NonNull BottomSheetMode mode, @NonNull String source) {
+    if (viewModel == null) {
+      return;
+    }
+    logTrace("TRACE_MODE_SYNC target=" + mode + " source=" + source);
+    viewModel.setBottomSheetMode(mode);
+  }
+
   private void onScriptUiStateChanged(@Nullable ScriptUiState state) {
     if (state == null) {
       return;
@@ -1536,6 +1719,12 @@ public class DialogueLearningFragment extends Fragment {
     if (progressListener != null) {
       progressListener.onMetadataLoaded(topic, opponentName);
       progressListener.onProgressUpdate(state.getCurrentStep(), state.getTotalSteps());
+    }
+    if (state.isFinished() && !hasNotifiedLearningSessionFinished) {
+      hasNotifiedLearningSessionFinished = true;
+      if (progressListener != null) {
+        progressListener.onLearningSessionFinished();
+      }
     }
     if (chatAdapter != null) {
       chatAdapter.updateOpponentProfile(opponentName, opponentGender);
@@ -1761,6 +1950,42 @@ public class DialogueLearningFragment extends Fragment {
     }
   }
 
+  private void restoreTransientUiState(@Nullable Bundle savedInstanceState) {
+    if (savedInstanceState == null) {
+      return;
+    }
+    hasDefaultInputSceneEverShown =
+        savedInstanceState.getBoolean(
+            STATE_HAS_DEFAULT_INPUT_SCENE_SHOWN, hasDefaultInputSceneEverShown);
+
+    int savedLayoutResId = savedInstanceState.getInt(STATE_BOTTOM_SHEET_LAYOUT_RES_ID, 0);
+    pendingBottomSheetLayoutResId = savedLayoutResId == 0 ? null : savedLayoutResId;
+    pendingBottomSheetHierarchyState =
+        savedInstanceState.getSparseParcelableArray(STATE_BOTTOM_SHEET_HIERARCHY);
+  }
+
+  private void saveBottomSheetHierarchyState(@NonNull Bundle outState) {
+    View content = getBottomSheetContentHost();
+    if (content == null || !(content.getTag() instanceof Integer)) {
+      return;
+    }
+    SparseArray<Parcelable> hierarchyState = new SparseArray<>();
+    content.saveHierarchyState(hierarchyState);
+    outState.putInt(STATE_BOTTOM_SHEET_LAYOUT_RES_ID, (Integer) content.getTag());
+    outState.putSparseParcelableArray(STATE_BOTTOM_SHEET_HIERARCHY, hierarchyState);
+  }
+
+  private void restoreBottomSheetHierarchyIfNeeded(@LayoutRes int layoutResId, @NonNull View content) {
+    if (pendingBottomSheetLayoutResId == null
+        || pendingBottomSheetHierarchyState == null
+        || pendingBottomSheetLayoutResId != layoutResId) {
+      return;
+    }
+    content.restoreHierarchyState(pendingBottomSheetHierarchyState);
+    pendingBottomSheetLayoutResId = null;
+    pendingBottomSheetHierarchyState = null;
+  }
+
   @Nullable
   private View getBottomSheetContentHost() {
     return bottomSheetController == null ? null : bottomSheetController.getCurrentContent();
@@ -1790,10 +2015,13 @@ public class DialogueLearningFragment extends Fragment {
           View content =
               bottomSheetController.replaceOrReuseContent(
                   layoutResId, bottomSheetSceneRenderer, () -> {});
-          if (content == null || sheetBinder == null) {
+          if (content == null) {
             return;
           }
-          sheetBinder.bind(content);
+          if (sheetBinder != null) {
+            sheetBinder.bind(content);
+          }
+          restoreBottomSheetHierarchyIfNeeded(layoutResId, content);
         },
         skipStateAnimation);
   }
@@ -1810,6 +2038,7 @@ public class DialogueLearningFragment extends Fragment {
 
   private void presentDefaultInputScene(@NonNull String sentenceToTranslate) {
     logTrace("TRACE_SCENE_TRANSITION scene=DEFAULT_INPUT");
+    syncBottomSheetMode(BottomSheetMode.DEFAULT_INPUT, "presentDefaultInputScene");
     logUx("UX_SCENE_DEFAULT_INPUT", "sentenceLen=" + sentenceToTranslate.length());
     renderBottomSheetScene(
         R.layout.bottom_sheet_content_default,
@@ -1821,6 +2050,7 @@ public class DialogueLearningFragment extends Fragment {
 
   private void presentBeforeSpeakingScene(@NonNull String sentenceToTranslate) {
     logTrace("TRACE_SCENE_TRANSITION scene=BEFORE_SPEAKING");
+    syncBottomSheetMode(BottomSheetMode.BEFORE_SPEAKING, "presentBeforeSpeakingScene");
     renderBottomSheetScene(
         R.layout.bottom_sheet_content_before_speaking,
         content -> {
@@ -1893,6 +2123,19 @@ public class DialogueLearningFragment extends Fragment {
       return null;
     }
     return tvSentence.getText().toString();
+  }
+
+  @Nullable
+  private String resolveTranslatedSentenceFromCurrentBottomSheet() {
+    View content = getBottomSheetContentHost();
+    if (content == null) {
+      return null;
+    }
+    TextView tvTranslatedSentence = content.findViewById(R.id.tv_translated_sentence);
+    if (tvTranslatedSentence == null || isBlank(tvTranslatedSentence.getText().toString())) {
+      return null;
+    }
+    return tvTranslatedSentence.getText().toString();
   }
 
   private void transitionToCompleteState(
@@ -2206,6 +2449,7 @@ public class DialogueLearningFragment extends Fragment {
 
   private void onScriptLoadSuccess() {
     isScriptLoaded = true;
+    hasNotifiedLearningSessionFinished = false;
     logTrace("TRACE_PARSE_RESULT success=true isScriptLoaded=" + isScriptLoaded);
     logGate("M0_SCRIPT_LOADED");
     tryStartTurnFlow();
@@ -2254,6 +2498,8 @@ public class DialogueLearningFragment extends Fragment {
     void onProgressUpdate(int currentStep, int totalSteps);
 
     void onMetadataLoaded(String topic, String opponentName);
+
+    void onLearningSessionFinished();
   }
 
   private OnScriptProgressListener progressListener;

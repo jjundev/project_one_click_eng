@@ -24,6 +24,7 @@ import com.jjundev.oneclickeng.learning.dialoguelearning.state.ExtraQuestionUiSt
 import com.jjundev.oneclickeng.learning.dialoguelearning.state.FeedbackUiState;
 import com.jjundev.oneclickeng.learning.dialoguelearning.state.ScriptUiState;
 import com.jjundev.oneclickeng.learning.dialoguelearning.state.SpeakingUiState;
+import com.jjundev.oneclickeng.learning.dialoguelearning.ui.ChatMessage;
 import com.jjundev.oneclickeng.tool.AudioRecorder;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +54,7 @@ public class DialogueLearningViewModel extends ViewModel {
               SpeakingUiState.idle(),
               FeedbackUiState.idle(),
               BottomSheetMode.DEFAULT_INPUT));
+  @NonNull private final List<ChatMessage> retainedChatMessages = new ArrayList<>();
 
   private long speakingEmissionId = 0L;
   private long feedbackEmissionId = 0L;
@@ -117,6 +119,19 @@ public class DialogueLearningViewModel extends ViewModel {
 
   public LiveData<LearningSessionSnapshot> getSessionSnapshotState() {
     return sessionSnapshot;
+  }
+
+  public void setBottomSheetMode(@NonNull BottomSheetMode mode) {
+    BottomSheetMode currentMode = bottomSheetMode.getValue();
+    if (currentMode == mode) {
+      return;
+    }
+    applyStateAndPublish(() -> bottomSheetMode.setValue(mode));
+  }
+
+  @NonNull
+  public List<ChatMessage> getRetainedChatMessages() {
+    return retainedChatMessages;
   }
 
   public void emitScriptTtsEvent(@NonNull String scriptText) {
@@ -577,6 +592,7 @@ public class DialogueLearningViewModel extends ViewModel {
   @Override
   protected void onCleared() {
     clearRequests();
+    retainedChatMessages.clear();
     super.onCleared();
   }
 }

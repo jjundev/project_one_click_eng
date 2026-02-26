@@ -8,6 +8,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.activity.EdgeToEdge;
 import androidx.activity.OnBackPressedCallback;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -17,22 +19,30 @@ import com.jjundev.oneclickeng.dialog.DialogueLearningSettingDialog;
 import com.jjundev.oneclickeng.dialog.ExitConfirmDialog;
 import com.jjundev.oneclickeng.learning.dialoguelearning.DialogueLearningFragment;
 import com.jjundev.oneclickeng.learning.dialoguelearning.DialogueSummaryFragment;
+import com.jjundev.oneclickeng.settings.LearningDifficulty;
+import com.jjundev.oneclickeng.settings.LearningPointAwardSpec;
 import java.util.List;
 
 public class DialogueLearningActivity extends LearningActivity
     implements DialogueLearningFragment.OnScriptProgressListener,
         ExitConfirmDialog.OnExitConfirmListener {
+  public static final String EXTRA_SCRIPT_LEVEL = "extra_script_level";
+
   private static final String TAG = "JOB_J-20260216-004";
+  private static final String MODE_ID_DIALOGUE_LEARNING = "dialogue_learning";
   private static final String DIALOG_TAG_LEARNING_SETTINGS = "DialogueLearningSettingDialog";
   private static final String DIALOG_TAG_EXIT_CONFIRM = "ExitConfirmDialog";
 
   private ProgressBar progressBar;
   private TextView tvProgress;
   private TextView tvTitle;
+  @NonNull private String scriptLevel = LearningDifficulty.INTERMEDIATE.getKey();
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    scriptLevel =
+        LearningDifficulty.normalizeOrDefault(getIntent().getStringExtra(EXTRA_SCRIPT_LEVEL));
     EdgeToEdge.enable(this);
     setContentView(R.layout.activity_dialogue_learning);
 
@@ -119,6 +129,22 @@ public class DialogueLearningActivity extends LearningActivity
     if (tvTitle != null) {
       tvTitle.setText(topic);
     }
+  }
+
+  @Override
+  public void onLearningSessionFinished() {
+    notifyLearningSessionCompleted();
+  }
+
+  @Nullable
+  @Override
+  protected LearningPointAwardSpec buildPointAwardSpecOnSessionCompleted() {
+    LearningDifficulty difficulty = LearningDifficulty.fromRaw(scriptLevel);
+    return new LearningPointAwardSpec(
+        MODE_ID_DIALOGUE_LEARNING,
+        difficulty.getKey(),
+        difficulty.getBasePoints(),
+        System.currentTimeMillis());
   }
 
   @Override
