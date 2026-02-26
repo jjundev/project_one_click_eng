@@ -1,6 +1,7 @@
 package com.jjundev.oneclickeng.fragment;
 
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -23,23 +24,43 @@ import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.activity.LoginActivity;
 import com.jjundev.oneclickeng.dialog.LearningDataResetDialog;
 import com.jjundev.oneclickeng.dialog.LearningMetricsResetDialog;
+import com.jjundev.oneclickeng.dialog.LogoutConfirmDialog;
 import com.jjundev.oneclickeng.settings.AppSettingsStore;
 import com.jjundev.oneclickeng.settings.LearningDataRetentionPolicy;
+import com.jjundev.oneclickeng.settings.LearningPointAwardSpec;
 import com.jjundev.oneclickeng.settings.LearningPointCloudRepository;
 import com.jjundev.oneclickeng.settings.LearningPointStore;
 import com.jjundev.oneclickeng.settings.LearningStudyTimeCloudRepository;
 import com.jjundev.oneclickeng.settings.LearningStudyTimeStore;
+import com.jjundev.oneclickeng.settings.SharedPreferencesCleaner;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class SettingFragment extends Fragment
     implements
         LearningDataResetDialog.OnLearningDataResetListener,
-        LearningMetricsResetDialog.OnLearningMetricsResetListener {
+        LearningMetricsResetDialog.OnLearningMetricsResetListener,
+        LogoutConfirmDialog.OnLogoutConfirmListener {
   private static final String TAG = "SettingFragment";
   private static final String TAG_LEARNING_DATA_RESET_DIALOG = "LearningDataResetDialog";
   private static final String TAG_LEARNING_METRICS_RESET_DIALOG = "LearningMetricsResetDialog";
+  private static final String TAG_LOGOUT_CONFIRM_DIALOG = "LogoutConfirmDialog";
   private static final int FIRESTORE_BATCH_DELETE_LIMIT = 450;
+  private static final int CREATOR_BONUS_TAP_TARGET = 5;
+  private static final long CREATOR_BONUS_WINDOW_MS = 2_000L;
+  private static final long CREATOR_DEVELOPER_BONUS_STUDY_MILLIS = 600_000L;
+  private static final int CREATOR_DEVELOPER_BONUS_POINTS = 40;
+  private static final String CREATOR_DEVELOPER_BONUS_MODE_ID = "settings_creator_bonus";
+  private static final String CREATOR_DEVELOPER_BONUS_DIFFICULTY = "intermediate";
+  private static final String CREATOR_DEVELOPER_BONUS_SESSION_PREFIX = "creator_bonus_";
+  private static final long CREATOR_PLANNER_BONUS_STUDY_MILLIS = 1_200_000L;
+  private static final int CREATOR_PLANNER_BONUS_POINTS = 80;
+  private static final String CREATOR_PLANNER_BONUS_MODE_ID = "settings_planner_bonus";
+  private static final String CREATOR_PLANNER_BONUS_DIFFICULTY = "intermediate";
+  private static final String CREATOR_PLANNER_BONUS_SESSION_PREFIX = "planner_bonus_";
+  private static final String CREATOR_PLANNER_BONUS_DAY_KEY_PREFIX = "planner_bonus_day_";
+  private static final long TAP_WINDOW_UNSET = -1L;
 
   @Nullable private AppSettingsStore appSettingsStore;
   @Nullable private LearningStudyTimeStore learningStudyTimeStore;
@@ -54,10 +75,16 @@ public class SettingFragment extends Fragment
   private LinearLayout layoutProfileNickname;
   private LinearLayout layoutInitLearningData;
   private LinearLayout layoutInitLearningStreak;
+  private LinearLayout layoutCreatorPlanner;
+  private LinearLayout layoutCreatorDeveloper;
   private TextView tvProfileNicknameValue;
 
   private TextView tvAppVersion;
   private TextView tvLogout;
+  private int creatorPlannerTapCount;
+  private long creatorPlannerWindowStartElapsedMs = TAP_WINDOW_UNSET;
+  private int creatorDeveloperTapCount;
+  private long creatorDeveloperWindowStartElapsedMs = TAP_WINDOW_UNSET;
 
   @Nullable
   @Override
@@ -86,6 +113,8 @@ public class SettingFragment extends Fragment
     layoutProfileNickname = view.findViewById(R.id.layout_profile_nickname);
     layoutInitLearningData = view.findViewById(R.id.layout_init_learning_data);
     layoutInitLearningStreak = view.findViewById(R.id.layout_init_learning_streak);
+    layoutCreatorPlanner = view.findViewById(R.id.layout_creator_planner);
+    layoutCreatorDeveloper = view.findViewById(R.id.layout_creator_developer);
     tvProfileNicknameValue = view.findViewById(R.id.tv_profile_nickname_value);
     tvAppVersion = view.findViewById(R.id.tv_app_version);
     tvLogout = view.findViewById(R.id.tv_logout);
@@ -108,16 +137,183 @@ public class SettingFragment extends Fragment
       layoutInitLearningStreak.setOnClickListener(v -> showLearningMetricsResetDialog());
     }
 
-    if (tvLogout != null) {
-      tvLogout.setOnClickListener(v -> performLogout());
+    if (layoutCreatorPlanner != null) {
+      layoutCreatorPlanner.setOnClickListener(v -> onCreatorPlannerCardTapped());
+      logDebug("Bound planner card bonus listener");
+    } else {
+      logDebug("Planner card view not found; bonus listener not bound");
     }
+
+    if (layoutCreatorDeveloper != null) {
+      layoutCreatorDeveloper.setOnClickListener(v -> onCreatorDeveloperCardTapped());
+      logDebug("Bound developer card bonus listener");
+    } else {
+      logDebug("Developer card view not found; bonus listener not bound");
+    }
+
+    if (tvLogout != null) {
+      tvLogout.setOnClickListener(v -> showLogoutConfirmDialog());
+    }
+  }
+
+  private void onCreatorPlannerCardTapped() {
+    long nowElapsedMs = SystemClock.elapsedRealtime();
+    boolean startsNewWindow =
+        creatorPlannerWindowStartElapsedMs == TAP_WINDOW_UNSET
+            || nowElapsedMs < creatorPlannerWindowStartElapsedMs
+            || nowElapsedMs - creatorPlannerWindowStartElapsedMs > CREATOR_BONUS_WINDOW_MS;
+    if (startsNewWindow) {
+      creatorPlannerTapCount = 1;
+      creatorPlannerWindowStartElapsedMs = nowElapsedMs;
+      logDebug("Planner card tap window reset");
+    } else {
+      creatorPlannerTapCount++;
+    }
+    logDebug("Planner card tap progress=" + creatorPlannerTapCount + "/" + CREATOR_BONUS_TAP_TARGET);
+
+    if (creatorPlannerTapCount >= CREATOR_BONUS_TAP_TARGET) {
+      logDebug("Planner card bonus triggered");
+      resetCreatorPlannerTapState();
+      grantCreatorPlannerBonus();
+    }
+  }
+
+  private void resetCreatorPlannerTapState() {
+    creatorPlannerTapCount = 0;
+    creatorPlannerWindowStartElapsedMs = TAP_WINDOW_UNSET;
+  }
+
+  private void onCreatorDeveloperCardTapped() {
+    long nowElapsedMs = SystemClock.elapsedRealtime();
+    boolean startsNewWindow =
+        creatorDeveloperWindowStartElapsedMs == TAP_WINDOW_UNSET
+            || nowElapsedMs < creatorDeveloperWindowStartElapsedMs
+            || nowElapsedMs - creatorDeveloperWindowStartElapsedMs > CREATOR_BONUS_WINDOW_MS;
+    if (startsNewWindow) {
+      creatorDeveloperTapCount = 1;
+      creatorDeveloperWindowStartElapsedMs = nowElapsedMs;
+      logDebug("Developer card tap window reset");
+    } else {
+      creatorDeveloperTapCount++;
+    }
+    logDebug(
+        "Developer card tap progress="
+            + creatorDeveloperTapCount
+            + "/"
+            + CREATOR_BONUS_TAP_TARGET);
+
+    if (creatorDeveloperTapCount >= CREATOR_BONUS_TAP_TARGET) {
+      logDebug("Developer card bonus triggered");
+      resetCreatorDeveloperTapState();
+      grantCreatorDeveloperBonus();
+      return;
+    }
+  }
+
+  private void resetCreatorDeveloperTapState() {
+    creatorDeveloperTapCount = 0;
+    creatorDeveloperWindowStartElapsedMs = TAP_WINDOW_UNSET;
+  }
+
+  private void grantCreatorPlannerBonus() {
+    LearningStudyTimeStore studyTimeStore = learningStudyTimeStore;
+    LearningPointStore pointStore = learningPointStore;
+    if (studyTimeStore == null || pointStore == null) {
+      logDebug("Planner card bonus skipped due to null stores");
+      return;
+    }
+
+    long nowEpochMs = System.currentTimeMillis();
+    String bonusDayKey =
+        CREATOR_PLANNER_BONUS_DAY_KEY_PREFIX + nowEpochMs + "_" + UUID.randomUUID();
+    studyTimeStore.applyManualBonus(CREATOR_PLANNER_BONUS_STUDY_MILLIS, bonusDayKey);
+
+    LearningStudyTimeCloudRepository studyTimeCloudRepository = learningStudyTimeCloudRepository;
+    if (studyTimeCloudRepository != null) {
+      studyTimeCloudRepository.applyManualBonusForCurrentUser(
+          CREATOR_PLANNER_BONUS_STUDY_MILLIS, bonusDayKey);
+    }
+
+    pointStore.awardSessionIfNeeded(
+        CREATOR_PLANNER_BONUS_SESSION_PREFIX + UUID.randomUUID(),
+        new LearningPointAwardSpec(
+            CREATOR_PLANNER_BONUS_MODE_ID,
+            CREATOR_PLANNER_BONUS_DIFFICULTY,
+            CREATOR_PLANNER_BONUS_POINTS,
+            nowEpochMs));
+
+    LearningPointCloudRepository pointCloudRepository = learningPointCloudRepository;
+    if (pointCloudRepository != null) {
+      pointCloudRepository.flushPendingForCurrentUser();
+    }
+
+    logDebug(
+        "Planner card bonus granted: studyMillis="
+            + CREATOR_PLANNER_BONUS_STUDY_MILLIS
+            + ", points="
+            + CREATOR_PLANNER_BONUS_POINTS
+            + ", bonusDayKey="
+            + bonusDayKey);
+    showToastSafe(R.string.settings_creator_planner_bonus_toast);
+  }
+
+  private void grantCreatorDeveloperBonus() {
+    LearningStudyTimeStore studyTimeStore = learningStudyTimeStore;
+    LearningPointStore pointStore = learningPointStore;
+    if (studyTimeStore == null || pointStore == null) {
+      logDebug("Developer card bonus skipped due to null stores");
+      return;
+    }
+
+    long nowEpochMs = System.currentTimeMillis();
+    studyTimeStore.applyTimeBonus(CREATOR_DEVELOPER_BONUS_STUDY_MILLIS);
+
+    LearningStudyTimeCloudRepository studyTimeCloudRepository = learningStudyTimeCloudRepository;
+    if (studyTimeCloudRepository != null) {
+      studyTimeCloudRepository.applyTimeBonusForCurrentUser(CREATOR_DEVELOPER_BONUS_STUDY_MILLIS);
+    }
+
+    pointStore.awardSessionIfNeeded(
+        CREATOR_DEVELOPER_BONUS_SESSION_PREFIX + UUID.randomUUID(),
+        new LearningPointAwardSpec(
+            CREATOR_DEVELOPER_BONUS_MODE_ID,
+            CREATOR_DEVELOPER_BONUS_DIFFICULTY,
+            CREATOR_DEVELOPER_BONUS_POINTS,
+            nowEpochMs));
+
+    LearningPointCloudRepository pointCloudRepository = learningPointCloudRepository;
+    if (pointCloudRepository != null) {
+      pointCloudRepository.flushPendingForCurrentUser();
+    }
+
+    logDebug(
+        "Developer card bonus granted: studyMillis="
+            + CREATOR_DEVELOPER_BONUS_STUDY_MILLIS
+            + ", points="
+            + CREATOR_DEVELOPER_BONUS_POINTS);
+    showToastSafe(R.string.settings_creator_bonus_toast);
+  }
+
+  private void showLogoutConfirmDialog() {
+    if (!isAdded()) {
+      return;
+    }
+    if (getChildFragmentManager().findFragmentByTag(TAG_LOGOUT_CONFIRM_DIALOG) != null) {
+      return;
+    }
+    new LogoutConfirmDialog().show(getChildFragmentManager(), TAG_LOGOUT_CONFIRM_DIALOG);
+  }
+
+  @Override
+  public void onLogoutConfirmed() {
+    performLogout();
   }
 
   private void performLogout() {
     FirebaseAuth.getInstance().signOut();
-    if (appSettingsStore != null) {
-      appSettingsStore.setUserNickname("");
-    }
+    int clearedPreferenceCount =
+        SharedPreferencesCleaner.clearAll(requireContext().getApplicationContext());
+    logDebug("Cleared shared preferences files: " + clearedPreferenceCount);
     android.content.Intent intent =
         new android.content.Intent(requireContext(), LoginActivity.class);
     intent.setFlags(

@@ -129,6 +129,80 @@ public final class LearningStudyTimeStore {
         .apply();
   }
 
+  public synchronized void applyTimeBonus(long bonusVisibleMillis) {
+    long safeBonusVisibleMillis = Math.max(0L, bonusVisibleMillis);
+    if (safeBonusVisibleMillis <= 0L) {
+      return;
+    }
+
+    long todayStartEpochMs = resolveLocalDayStartEpochMs(timeProvider.currentTimeMillis());
+    long storedDayStart = preferences.getLong(KEY_DAY_START_EPOCH_MS, Long.MIN_VALUE);
+    long todayVisibleMillis = preferences.getLong(KEY_TODAY_VISIBLE_MILLIS, 0L);
+    long totalVisibleMillis = preferences.getLong(KEY_TOTAL_VISIBLE_MILLIS, 0L);
+
+    if (storedDayStart != todayStartEpochMs) {
+      todayVisibleMillis = 0L;
+      storedDayStart = todayStartEpochMs;
+    }
+    if (todayVisibleMillis < 0L) {
+      todayVisibleMillis = 0L;
+    }
+    if (totalVisibleMillis < 0L) {
+      totalVisibleMillis = 0L;
+    }
+
+    long updatedTodayVisibleMillis = safeAdd(todayVisibleMillis, safeBonusVisibleMillis);
+    long updatedTotalVisibleMillis = safeAdd(totalVisibleMillis, safeBonusVisibleMillis);
+    preferences
+        .edit()
+        .putLong(KEY_DAY_START_EPOCH_MS, storedDayStart)
+        .putLong(KEY_TODAY_VISIBLE_MILLIS, updatedTodayVisibleMillis)
+        .putLong(KEY_TOTAL_VISIBLE_MILLIS, updatedTotalVisibleMillis)
+        .apply();
+  }
+
+  public synchronized void applyManualBonus(long bonusVisibleMillis, @NonNull String bonusDayKey) {
+    long safeBonusVisibleMillis = Math.max(0L, bonusVisibleMillis);
+    String normalizedBonusDayKey = bonusDayKey.trim();
+    if (safeBonusVisibleMillis <= 0L || normalizedBonusDayKey.isEmpty()) {
+      return;
+    }
+
+    long todayStartEpochMs = resolveLocalDayStartEpochMs(timeProvider.currentTimeMillis());
+    long storedDayStart = preferences.getLong(KEY_DAY_START_EPOCH_MS, Long.MIN_VALUE);
+    long todayVisibleMillis = preferences.getLong(KEY_TODAY_VISIBLE_MILLIS, 0L);
+    long totalVisibleMillis = preferences.getLong(KEY_TOTAL_VISIBLE_MILLIS, 0L);
+    Set<String> studyDayKeys = readStringKeySet(KEY_STUDY_DAY_KEYS);
+    Set<String> streakDayKeys = readStringKeySet(KEY_STREAK_DAY_KEYS);
+
+    if (storedDayStart != todayStartEpochMs) {
+      todayVisibleMillis = 0L;
+      storedDayStart = todayStartEpochMs;
+    }
+    if (todayVisibleMillis < 0L) {
+      todayVisibleMillis = 0L;
+    }
+    if (totalVisibleMillis < 0L) {
+      totalVisibleMillis = 0L;
+    }
+
+    long updatedTodayVisibleMillis = safeAdd(todayVisibleMillis, safeBonusVisibleMillis);
+    long updatedTotalVisibleMillis = safeAdd(totalVisibleMillis, safeBonusVisibleMillis);
+    studyDayKeys.add(normalizedBonusDayKey);
+    streakDayKeys.add(normalizedBonusDayKey);
+
+    preferences
+        .edit()
+        .putLong(KEY_DAY_START_EPOCH_MS, storedDayStart)
+        .putLong(KEY_TODAY_VISIBLE_MILLIS, updatedTodayVisibleMillis)
+        .putLong(KEY_TOTAL_VISIBLE_MILLIS, updatedTotalVisibleMillis)
+        .putStringSet(KEY_STUDY_DAY_KEYS, new HashSet<>(studyDayKeys))
+        .putLong(KEY_TOTAL_STUDY_DAYS, studyDayKeys.size())
+        .putStringSet(KEY_STREAK_DAY_KEYS, new HashSet<>(streakDayKeys))
+        .putLong(KEY_TOTAL_STREAK_DAYS, streakDayKeys.size())
+        .apply();
+  }
+
   public synchronized void resetAllMetrics() {
     preferences
         .edit()

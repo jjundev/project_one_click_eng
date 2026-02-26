@@ -6,6 +6,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
@@ -107,6 +108,79 @@ public final class LearningStudyTimeCloudRepository {
     streakDayKeys.add(formatLocalDayKey(dayStart));
     appendPending(user.getUid(), new PendingDelta(0L, 0L, dayStart, new HashSet<>(), streakDayKeys));
     flushPendingForCurrentUser();
+  }
+
+  public void applyManualBonusForCurrentUser(long bonusVisibleMillis, @NonNull String bonusDayKey) {
+    FirebaseUser user = auth.getCurrentUser();
+    if (user == null) {
+      return;
+    }
+
+    long safeBonusVisibleMillis = Math.max(0L, bonusVisibleMillis);
+    String normalizedBonusDayKey = bonusDayKey.trim();
+    if (safeBonusVisibleMillis <= 0L || normalizedBonusDayKey.isEmpty()) {
+      return;
+    }
+
+    long dayStart = resolveLocalDayStartEpochMs(timeProvider.currentTimeMillis());
+    Set<String> bonusStudyDayKeys = new HashSet<>();
+    bonusStudyDayKeys.add(normalizedBonusDayKey);
+    Set<String> bonusStreakDayKeys = new HashSet<>();
+    bonusStreakDayKeys.add(normalizedBonusDayKey);
+
+    appendPending(
+        user.getUid(),
+        new PendingDelta(
+            safeBonusVisibleMillis,
+            safeBonusVisibleMillis,
+            dayStart,
+            bonusStudyDayKeys,
+            bonusStreakDayKeys));
+    flushPendingForCurrentUser();
+  }
+
+  public void applyTimeBonusForCurrentUser(long bonusVisibleMillis) {
+    FirebaseUser user = auth.getCurrentUser();
+    if (user == null) {
+      return;
+    }
+
+    long safeBonusVisibleMillis = Math.max(0L, bonusVisibleMillis);
+    if (safeBonusVisibleMillis <= 0L) {
+      return;
+    }
+
+    long nowEpochMs = timeProvider.currentTimeMillis();
+    long todayStartEpochMs = resolveLocalDayStartEpochMs(nowEpochMs);
+    DocumentReference studyTimeRef =
+        firestore
+            .collection(COLLECTION_USERS)
+            .document(user.getUid())
+            .collection(COLLECTION_LEARNING_METRICS)
+            .document(DOCUMENT_STUDY_TIME);
+
+    firestore
+        .runTransaction(
+            transaction -> {
+              DocumentSnapshot snapshot = transaction.get(studyTimeRef);
+              TimeBonusMergeResult merged =
+                  mergeTimeBonus(
+                      getLong(snapshot, FIELD_TOTAL_VISIBLE_MILLIS),
+                      getLong(snapshot, FIELD_TODAY_VISIBLE_MILLIS),
+                      getLong(snapshot, FIELD_TODAY_DAY_START_EPOCH_MS),
+                      safeBonusVisibleMillis,
+                      todayStartEpochMs);
+
+              Map<String, Object> updates = new HashMap<>();
+              updates.put(FIELD_TOTAL_VISIBLE_MILLIS, merged.totalVisibleMillis);
+              updates.put(FIELD_TODAY_VISIBLE_MILLIS, merged.todayVisibleMillis);
+              updates.put(FIELD_TODAY_DAY_START_EPOCH_MS, merged.dayStartEpochMs);
+              updates.put(FIELD_UPDATED_AT_EPOCH_MS, nowEpochMs);
+              transaction.set(studyTimeRef, updates, SetOptions.merge());
+              return null;
+            })
+        .addOnSuccessListener(unused -> {})
+        .addOnFailureListener(error -> {});
   }
 
   public void resetMetricsForCurrentUser(@Nullable CompletionCallback callback) {
@@ -339,6 +413,24 @@ public final class LearningStudyTimeCloudRepository {
         mergedStudyDayKeys,
         totalStreakDays,
         mergedStreakDayKeys);
+  }
+
+  static TimeBonusMergeResult mergeTimeBonus(
+      long remoteTotalMillis,
+      long remoteTodayMillis,
+      long remoteDayStartEpochMs,
+      long bonusVisibleMillis,
+      long bonusDayStartEpochMs) {
+    long safeRemoteTotal = Math.max(0L, remoteTotalMillis);
+    long safeRemoteToday = Math.max(0L, remoteTodayMillis);
+    long safeBonusVisibleMillis = Math.max(0L, bonusVisibleMillis);
+    long mergedTotalVisibleMillis = safeAdd(safeRemoteTotal, safeBonusVisibleMillis);
+    long mergedTodayVisibleMillis =
+        remoteDayStartEpochMs == bonusDayStartEpochMs
+            ? safeAdd(safeRemoteToday, safeBonusVisibleMillis)
+            : safeBonusVisibleMillis;
+    return new TimeBonusMergeResult(
+        mergedTotalVisibleMillis, mergedTodayVisibleMillis, bonusDayStartEpochMs);
   }
 
   private void appendPending(@NonNull String uid, @NonNull PendingDelta delta) {
@@ -588,6 +680,18 @@ public final class LearningStudyTimeCloudRepository {
       this.studyDayKeys = new HashSet<>(studyDayKeys);
       this.totalStreakDays = Math.max(0, totalStreakDays);
       this.streakDayKeys = new HashSet<>(streakDayKeys);
+    }
+  }
+
+  static final class TimeBonusMergeResult {
+    final long totalVisibleMillis;
+    final long todayVisibleMillis;
+    final long dayStartEpochMs;
+
+    TimeBonusMergeResult(long totalVisibleMillis, long todayVisibleMillis, long dayStartEpochMs) {
+      this.totalVisibleMillis = Math.max(0L, totalVisibleMillis);
+      this.todayVisibleMillis = Math.max(0L, todayVisibleMillis);
+      this.dayStartEpochMs = dayStartEpochMs;
     }
   }
 

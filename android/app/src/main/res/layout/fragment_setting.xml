@@ -272,6 +272,7 @@
             app:strokeWidth="0dp">
 
             <LinearLayout
+                android:id="@+id/layout_creator_planner"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="?attr/selectableItemBackground"
@@ -313,6 +314,7 @@
             app:strokeWidth="0dp">
 
             <LinearLayout
+                android:id="@+id/layout_creator_developer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="?attr/selectableItemBackground"
@@ -325,7 +327,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="만든 사람"
+                    android:text="개발한 사람"
                     android:textColor="@color/color_primary_text"
                     android:textSize="16sp" />
 

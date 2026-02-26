@@ -140,6 +140,48 @@ public class LearningStudyTimeStoreTest {
   }
 
   @Test
+  public void applyTimeBonus_once_increasesTimeOnly() {
+    store.applyTimeBonus(600_000L);
+
+    assertEquals(10, store.getTodayStudyMinutes());
+    assertEquals(600_000L, store.getTotalStudyMillis());
+    assertEquals(0, store.getTotalStudyDays());
+    assertEquals(0, store.getTotalStreakDays());
+  }
+
+  @Test
+  public void applyTimeBonus_twice_accumulatesTimeOnly() {
+    store.applyTimeBonus(600_000L);
+    store.applyTimeBonus(600_000L);
+
+    assertEquals(20, store.getTodayStudyMinutes());
+    assertEquals(1_200_000L, store.getTotalStudyMillis());
+    assertEquals(0, store.getTotalStudyDays());
+    assertEquals(0, store.getTotalStreakDays());
+  }
+
+  @Test
+  public void applyManualBonus_once_increasesTimeAndBothDayCounts() {
+    store.applyManualBonus(1_200_000L, "creator_bonus_day_1");
+
+    assertEquals(20, store.getTodayStudyMinutes());
+    assertEquals(1_200_000L, store.getTotalStudyMillis());
+    assertEquals(1, store.getTotalStudyDays());
+    assertEquals(1, store.getTotalStreakDays());
+  }
+
+  @Test
+  public void applyManualBonus_uniqueKeys_accumulatesTimeAndBothDayCounts() {
+    store.applyManualBonus(1_200_000L, "creator_bonus_day_1");
+    store.applyManualBonus(1_200_000L, "creator_bonus_day_2");
+
+    assertEquals(40, store.getTodayStudyMinutes());
+    assertEquals(2_400_000L, store.getTotalStudyMillis());
+    assertEquals(2, store.getTotalStudyDays());
+    assertEquals(2, store.getTotalStreakDays());
+  }
+
+  @Test
   public void resetAllMetrics_clearsAllAccumulatedValues() {
     long appEntry = createLocalDateTimeEpochMs(2026, 2, 24, 8, 0, 0, 0);
     long studyStart = createLocalDateTimeEpochMs(2026, 2, 24, 10, 0, 0, 0);

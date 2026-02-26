@@ -132,4 +132,62 @@ public class LearningStudyTimeCloudRepositoryLogicTest {
     assertTrue(merged.streakDayKeys.contains("2026-02-24"));
     assertTrue(merged.streakDayKeys.contains("2026-02-25"));
   }
+
+  @Test
+  public void mergeRemoteWithPending_manualBonusKey_mergesStudyAndStreakAndTime() {
+    long dayStart = 1_700_000_000_000L;
+    HashSet<String> remoteStudyKeys = new HashSet<>(Arrays.asList("2026-02-24"));
+    HashSet<String> remoteStreakKeys = new HashSet<>(Arrays.asList("2026-02-24"));
+    HashSet<String> pendingStudyKeys = new HashSet<>(Arrays.asList("creator_bonus_day_1"));
+    HashSet<String> pendingStreakKeys = new HashSet<>(Arrays.asList("creator_bonus_day_1"));
+
+    LearningStudyTimeCloudRepository.MergedMetrics merged =
+        LearningStudyTimeCloudRepository.mergeRemoteWithPending(
+            600_000L,
+            300_000L,
+            dayStart,
+            remoteStudyKeys,
+            remoteStreakKeys,
+            1_200_000L,
+            1_200_000L,
+            dayStart,
+            pendingStudyKeys,
+            pendingStreakKeys);
+
+    assertEquals(1_800_000L, merged.totalVisibleMillis);
+    assertEquals(1_500_000L, merged.todayVisibleMillis);
+    assertEquals(2, merged.totalStudyDays);
+    assertEquals(2, merged.totalStreakDays);
+    assertTrue(merged.studyDayKeys.contains("2026-02-24"));
+    assertTrue(merged.studyDayKeys.contains("creator_bonus_day_1"));
+    assertTrue(merged.streakDayKeys.contains("2026-02-24"));
+    assertTrue(merged.streakDayKeys.contains("creator_bonus_day_1"));
+  }
+
+  @Test
+  public void mergeTimeBonus_sameDay_addsTotalAndTodayOnly() {
+    long dayStart = 1_700_000_000_000L;
+
+    LearningStudyTimeCloudRepository.TimeBonusMergeResult merged =
+        LearningStudyTimeCloudRepository.mergeTimeBonus(
+            3_600_000L, 900_000L, dayStart, 600_000L, dayStart);
+
+    assertEquals(4_200_000L, merged.totalVisibleMillis);
+    assertEquals(1_500_000L, merged.todayVisibleMillis);
+    assertEquals(dayStart, merged.dayStartEpochMs);
+  }
+
+  @Test
+  public void mergeTimeBonus_dayChanged_resetsTodayToBonusAndAddsTotal() {
+    long remoteDayStart = 1_700_000_000_000L;
+    long bonusDayStart = 1_700_086_400_000L;
+
+    LearningStudyTimeCloudRepository.TimeBonusMergeResult merged =
+        LearningStudyTimeCloudRepository.mergeTimeBonus(
+            3_600_000L, 900_000L, remoteDayStart, 600_000L, bonusDayStart);
+
+    assertEquals(4_200_000L, merged.totalVisibleMillis);
+    assertEquals(600_000L, merged.todayVisibleMillis);
+    assertEquals(bonusDayStart, merged.dayStartEpochMs);
+  }
 }
