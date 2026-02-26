@@ -43,7 +43,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:text="자연스러운 표현"
-                android:textColor="?attr/colorOnBackground"
+                android:textColor="@color/color_primary_text"
                 android:fontFamily="@font/pretendard_black"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -79,7 +79,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="영작할 문장:"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textColor="@color/color_sub_text"
             android:textSize="12sp"
             android:textStyle="bold" />
 
@@ -98,7 +98,7 @@
                 android:lineSpacingMultiplier="1.4"
                 android:padding="12dp"
                 android:text="Express this in English: 'He appears suddenly.'"
-                android:textColor="?attr/colorOnBackground"
+                android:textColor="@color/color_primary_text"
                 android:textSize="14sp" />
         </com.google.android.material.card.MaterialCardView>
 
@@ -107,7 +107,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="Before:"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textColor="@color/color_sub_text"
             android:textSize="12sp"
             android:textStyle="bold" />
 
@@ -126,7 +126,7 @@
                 android:lineSpacingMultiplier="1.4"
                 android:padding="12dp"
                 android:text="He appeared."
-                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textColor="@color/color_sub_text"
                 android:textSize="14sp" />
         </com.google.android.material.card.MaterialCardView>
 
@@ -156,7 +156,7 @@
                 android:lineSpacingMultiplier="1.4"
                 android:padding="12dp"
                 android:text="He showed up."
-                android:textColor="?attr/colorOnBackground"
+                android:textColor="@color/color_primary_text"
                 android:textSize="16sp"
                 android:textStyle="bold" />
         </com.google.android.material.card.MaterialCardView>
@@ -167,7 +167,7 @@
             android:layout_height="wrap_content"
             android:lineSpacingMultiplier="1.4"
             android:text="In casual conversation, 'showed up' sounds more natural than 'appeared'."
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textColor="@color/color_sub_text"
             android:textSize="14sp" />
 
     </LinearLayout>

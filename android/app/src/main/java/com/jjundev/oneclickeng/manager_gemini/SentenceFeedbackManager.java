@@ -326,6 +326,7 @@ public class SentenceFeedbackManager
                   StringBuilder fullResponse = new StringBuilder();
                   SentenceFeedback accumulatedFeedback = new SentenceFeedback();
                   accumulatedFeedback.setUserSentence(trimToNull(userSentence));
+                  accumulatedFeedback.setOriginalSentence(trimToNull(originalSentence));
                   IncrementalJsonSectionParser sectionParser = new IncrementalJsonSectionParser();
 
                   while (!source.exhausted()) {

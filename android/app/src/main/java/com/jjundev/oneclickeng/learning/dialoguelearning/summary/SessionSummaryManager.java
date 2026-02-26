@@ -634,9 +634,10 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
         + "8) Map input types grammar/word_choice/sentence_structure to \"정확한 표현\".\n"
         + "9) Map input types naturalness/idiom/collocation to \"자연스러운 표현\".\n"
         + "10) If type is unknown, empty, or non-standard, default to \"자연스러운 표현\".\n"
-        + "11) Keep Korean fields natural and concise.\n"
-        + "12) Do not include markdown code fences.\n"
-        + "13) Do not invent facts outside input.";
+        + "11) expressions.koreanPrompt must exactly reuse input koreanPrompt (original Korean sentence).\n"
+        + "12) Keep other Korean fields natural and concise.\n"
+        + "13) Do not include markdown code fences.\n"
+        + "14) Do not invent facts outside input.";
   }
 
   private String buildExpressionFilterUserPrompt(SummaryFeatureBundle bundle) {

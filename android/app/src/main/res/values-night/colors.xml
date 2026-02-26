@@ -18,7 +18,13 @@
 
     <color name="color_background_translated_sentence_card">#39A0ED</color>
 
+    <color name="expression_natural_accent">#009B72</color>
+    <color name="expression_natural_after_bg">#E6F5F0</color>
+    <color name="expression_natural_icon">#009B72</color>
 
+    <color name="expression_precise_accent">#EF767A</color>
+    <color name="expression_precise_after_bg">#FDEEEE</color>
+    <color name="expression_precise_icon">#EF767A</color>
 
 
 

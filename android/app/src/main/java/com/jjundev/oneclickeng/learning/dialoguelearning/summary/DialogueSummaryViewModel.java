@@ -10,8 +10,10 @@ import com.google.gson.Gson;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISessionSummaryLlmManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.SummaryData;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class DialogueSummaryViewModel extends ViewModel {
@@ -33,6 +35,8 @@ public class DialogueSummaryViewModel extends ViewModel {
       new MutableLiveData<>(WordLoadState.loading());
 
   @Nullable private SummaryFeatureBundle featureBundle;
+  @NonNull private final Map<String, String> expressionPromptByTypeAndBefore = new HashMap<>();
+  @NonNull private final Map<String, String> expressionPromptByBefore = new HashMap<>();
   private int requestToken = 0;
   private boolean hasInitialized = false;
   private boolean hasWordExtractionStarted = false;
@@ -73,6 +77,7 @@ public class DialogueSummaryViewModel extends ViewModel {
     if (!hasInitialized) {
       hasInitialized = true;
       featureBundle = resolveFeatureBundle(featureBundleJson);
+      rebuildExpressionPromptIndex(featureBundle);
       restoreWordLoadState(savedInstanceState);
       restoreExpressionLoadState(savedInstanceState);
     }
@@ -176,11 +181,14 @@ public class DialogueSummaryViewModel extends ViewModel {
       return null;
     }
     String type = trimToNull(f.getType());
-    String prompt = trimToNull(f.getKoreanPrompt());
     String before = trimToNull(f.getBefore());
     String after = trimToNull(f.getAfter());
     String explanation = trimToNull(f.getExplanation());
-    if (type == null || prompt == null || before == null || after == null || explanation == null) {
+    if (type == null || before == null || after == null || explanation == null) {
+      return null;
+    }
+    String prompt = resolveSourceExpressionPrompt(type, before);
+    if (prompt == null) {
       return null;
     }
     return new SummaryData.ExpressionItem(type, prompt, before, after, explanation);
@@ -330,6 +338,62 @@ public class DialogueSummaryViewModel extends ViewModel {
     } catch (Exception ignored) {
       return null;
     }
+  }
+
+  private void rebuildExpressionPromptIndex(@Nullable SummaryFeatureBundle bundle) {
+    expressionPromptByTypeAndBefore.clear();
+    expressionPromptByBefore.clear();
+    if (bundle == null || bundle.getExpressionCandidates() == null) {
+      return;
+    }
+
+    for (SummaryFeatureBundle.ExpressionCandidate candidate : bundle.getExpressionCandidates()) {
+      if (candidate == null) {
+        continue;
+      }
+
+      String type = trimToNull(candidate.getType());
+      String before = trimToNull(candidate.getBefore());
+      String prompt = trimToNull(candidate.getKoreanPrompt());
+      if (before == null || prompt == null) {
+        continue;
+      }
+
+      if (type != null) {
+        String typedKey = buildExpressionPromptKey(type, before);
+        if (!expressionPromptByTypeAndBefore.containsKey(typedKey)) {
+          expressionPromptByTypeAndBefore.put(typedKey, prompt);
+        }
+      }
+
+      String beforeKey = normalize(before);
+      if (!expressionPromptByBefore.containsKey(beforeKey)) {
+        expressionPromptByBefore.put(beforeKey, prompt);
+      }
+    }
+  }
+
+  @Nullable
+  private String resolveSourceExpressionPrompt(@Nullable String type, @Nullable String before) {
+    String safeBefore = trimToNull(before);
+    if (safeBefore == null) {
+      return null;
+    }
+
+    String safeType = trimToNull(type);
+    if (safeType != null) {
+      String typedPrompt =
+          expressionPromptByTypeAndBefore.get(buildExpressionPromptKey(safeType, safeBefore));
+      if (typedPrompt != null) {
+        return typedPrompt;
+      }
+    }
+    return expressionPromptByBefore.get(normalize(safeBefore));
+  }
+
+  @NonNull
+  private String buildExpressionPromptKey(@Nullable String type, @Nullable String before) {
+    return normalize(type) + "||" + normalize(before);
   }
 
   private void startWordExtractionIfPossible() {

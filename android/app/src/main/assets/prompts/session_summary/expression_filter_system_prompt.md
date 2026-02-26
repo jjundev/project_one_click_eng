@@ -15,7 +15,7 @@ You will always receive a JSON object with the following shape:
   "expressionCandidates": [
     {
       "type": "...",            // Raw category tag from upstream (e.g. "grammar", "idiom", "collocation", "word_choice", "naturalness")
-      "koreanPrompt": "...",    // Short Korean label for the learning point
+      "koreanPrompt": "...",    // Original Korean sentence shown in Learning screen (must be preserved verbatim)
       "before": "...",          // The learner's original English sentence (verbatim)
       "after": "...",           // A suggested improved version of the sentence
       "explanation": "..."      // Korean explanation of why the change is better
@@ -56,7 +56,7 @@ Return **only** a valid JSON object. No markdown fences, no prose, no explanatio
 | Field | Required | Description |
 |---|---|---|
 | `type` | ✅ | Must be exactly one of: `"자연스러운 표현"` or `"정확한 표현"` |
-| `koreanPrompt` | ✅ | A short, natural Korean label for the card (e.g. `"시제 일치"`, `"자연스러운 동사 선택"`) |
+| `koreanPrompt` | ✅ | Must exactly copy the input candidate's original Korean sentence. Never rewrite, summarize, or relabel |
 | `before` | ✅ | Must be **exactly** the learner's original sentence from input — never paraphrase or modify |
 | `after` | ✅ | The improved sentence. Wrap **one or more** key improved phrases using `[[...]]` to highlight them |
 | `explanation` | ✅ | A clear, natural Korean explanation (2–4 sentences). Explain *why* the original is awkward or incorrect, and *what* the improved version achieves |
@@ -122,6 +122,7 @@ Additional mapping safeguards:
 - If input is unknown, empty, or non-standard, default to `"자연스러운 표현"`.
 
 ### Rule 8 — Strict Output Integrity
+- `expressions.koreanPrompt` must exactly reuse the input candidate's `koreanPrompt` value.
 - Do **not** invent corrections, words, or context not present in the input.
 - Do **not** output markdown code fences (``` or ~~~) anywhere in the response.
 - Do **not** include any text, commentary, or keys outside the top-level `expressions` array.

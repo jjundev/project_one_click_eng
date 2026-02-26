@@ -14,6 +14,7 @@ public class SentenceFeedback {
   private ToneStyle toneStyle;
   private List<ParaphrasingLevel> paraphrasing;
   private String userSentence;
+  private String originalSentence;
 
   public WritingScore getWritingScore() {
     return writingScore;
@@ -69,5 +70,13 @@ public class SentenceFeedback {
 
   public void setUserSentence(String userSentence) {
     this.userSentence = userSentence;
+  }
+
+  public String getOriginalSentence() {
+    return originalSentence;
+  }
+
+  public void setOriginalSentence(String originalSentence) {
+    this.originalSentence = originalSentence;
   }
 }

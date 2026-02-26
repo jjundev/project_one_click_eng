@@ -293,6 +293,7 @@ public class SessionSummaryGenerator {
 
       String prompt =
           firstNonBlank(
+              trimToNull(feedback.getOriginalSentence()),
               conceptualBridge != null ? conceptualBridge.getLiteralTranslation() : null,
               "\uC601\uC791\uD560 \uBB38\uC7A5");
 

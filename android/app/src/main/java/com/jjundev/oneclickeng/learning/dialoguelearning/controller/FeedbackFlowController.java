@@ -87,6 +87,9 @@ public class FeedbackFlowController {
             if (partialFeedback != null && partialFeedback.getUserSentence() == null) {
               partialFeedback.setUserSentence(userTranscript);
             }
+            if (partialFeedback != null && partialFeedback.getOriginalSentence() == null) {
+              partialFeedback.setOriginalSentence(originalSentence);
+            }
             if (partialFeedback != null) {
               callback.onSectionReady(requestId, sectionKey, partialFeedback);
             }
@@ -99,6 +102,9 @@ public class FeedbackFlowController {
             }
             if (fullFeedback != null && fullFeedback.getUserSentence() == null) {
               fullFeedback.setUserSentence(userTranscript);
+            }
+            if (fullFeedback != null && fullFeedback.getOriginalSentence() == null) {
+              fullFeedback.setOriginalSentence(originalSentence);
             }
             callback.onComplete(requestId, fullFeedback);
           }
