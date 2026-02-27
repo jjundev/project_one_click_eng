@@ -14,6 +14,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatButton;
 import androidx.fragment.app.Fragment;
+import com.google.firebase.auth.AuthCredential;
+import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -39,9 +41,9 @@ import java.util.UUID;
 
 public class SettingFragment extends Fragment
     implements
-        LearningDataResetDialog.OnLearningDataResetListener,
-        LearningMetricsResetDialog.OnLearningMetricsResetListener,
-        LogoutConfirmDialog.OnLogoutConfirmListener {
+    LearningDataResetDialog.OnLearningDataResetListener,
+    LearningMetricsResetDialog.OnLearningMetricsResetListener,
+    LogoutConfirmDialog.OnLogoutConfirmListener {
   private static final String TAG = "SettingFragment";
   private static final String TAG_LEARNING_DATA_RESET_DIALOG = "LearningDataResetDialog";
   private static final String TAG_LEARNING_METRICS_RESET_DIALOG = "LearningMetricsResetDialog";
@@ -62,11 +64,16 @@ public class SettingFragment extends Fragment
   private static final String CREATOR_PLANNER_BONUS_DAY_KEY_PREFIX = "planner_bonus_day_";
   private static final long TAP_WINDOW_UNSET = -1L;
 
-  @Nullable private AppSettingsStore appSettingsStore;
-  @Nullable private LearningStudyTimeStore learningStudyTimeStore;
-  @Nullable private LearningStudyTimeCloudRepository learningStudyTimeCloudRepository;
-  @Nullable private LearningPointStore learningPointStore;
-  @Nullable private LearningPointCloudRepository learningPointCloudRepository;
+  @Nullable
+  private AppSettingsStore appSettingsStore;
+  @Nullable
+  private LearningStudyTimeStore learningStudyTimeStore;
+  @Nullable
+  private LearningStudyTimeCloudRepository learningStudyTimeCloudRepository;
+  @Nullable
+  private LearningPointStore learningPointStore;
+  @Nullable
+  private LearningPointCloudRepository learningPointCloudRepository;
 
   private boolean bindingState;
   private boolean isLearningDataResetInProgress;
@@ -74,6 +81,8 @@ public class SettingFragment extends Fragment
 
   private LinearLayout layoutProfileNickname;
   private View cardProfileEmail;
+  private View cardChangePassword;
+  private LinearLayout layoutChangePassword;
   private LinearLayout layoutInitLearningData;
   private LinearLayout layoutInitLearningStreak;
   private LinearLayout layoutCreatorPlanner;
@@ -120,6 +129,8 @@ public class SettingFragment extends Fragment
   private void bindViews(@NonNull View view) {
     layoutProfileNickname = view.findViewById(R.id.layout_profile_nickname);
     cardProfileEmail = view.findViewById(R.id.card_profile_email);
+    cardChangePassword = view.findViewById(R.id.card_change_password);
+    layoutChangePassword = view.findViewById(R.id.layout_change_password);
     layoutInitLearningData = view.findViewById(R.id.layout_init_learning_data);
     layoutInitLearningStreak = view.findViewById(R.id.layout_init_learning_streak);
     layoutCreatorPlanner = view.findViewById(R.id.layout_creator_planner);
@@ -137,6 +148,10 @@ public class SettingFragment extends Fragment
   private void setupListeners() {
     if (layoutProfileNickname != null) {
       layoutProfileNickname.setOnClickListener(v -> showNicknameEditDialog());
+    }
+
+    if (layoutChangePassword != null) {
+      layoutChangePassword.setOnClickListener(v -> showChangePasswordDialog());
     }
 
     if (layoutInitLearningData != null) {
@@ -168,10 +183,9 @@ public class SettingFragment extends Fragment
 
   private void onCreatorPlannerCardTapped() {
     long nowElapsedMs = SystemClock.elapsedRealtime();
-    boolean startsNewWindow =
-        creatorPlannerWindowStartElapsedMs == TAP_WINDOW_UNSET
-            || nowElapsedMs < creatorPlannerWindowStartElapsedMs
-            || nowElapsedMs - creatorPlannerWindowStartElapsedMs > CREATOR_BONUS_WINDOW_MS;
+    boolean startsNewWindow = creatorPlannerWindowStartElapsedMs == TAP_WINDOW_UNSET
+        || nowElapsedMs < creatorPlannerWindowStartElapsedMs
+        || nowElapsedMs - creatorPlannerWindowStartElapsedMs > CREATOR_BONUS_WINDOW_MS;
     if (startsNewWindow) {
       creatorPlannerTapCount = 1;
       creatorPlannerWindowStartElapsedMs = nowElapsedMs;
@@ -195,10 +209,9 @@ public class SettingFragment extends Fragment
 
   private void onCreatorDeveloperCardTapped() {
     long nowElapsedMs = SystemClock.elapsedRealtime();
-    boolean startsNewWindow =
-        creatorDeveloperWindowStartElapsedMs == TAP_WINDOW_UNSET
-            || nowElapsedMs < creatorDeveloperWindowStartElapsedMs
-            || nowElapsedMs - creatorDeveloperWindowStartElapsedMs > CREATOR_BONUS_WINDOW_MS;
+    boolean startsNewWindow = creatorDeveloperWindowStartElapsedMs == TAP_WINDOW_UNSET
+        || nowElapsedMs < creatorDeveloperWindowStartElapsedMs
+        || nowElapsedMs - creatorDeveloperWindowStartElapsedMs > CREATOR_BONUS_WINDOW_MS;
     if (startsNewWindow) {
       creatorDeveloperTapCount = 1;
       creatorDeveloperWindowStartElapsedMs = nowElapsedMs;
@@ -234,8 +247,7 @@ public class SettingFragment extends Fragment
     }
 
     long nowEpochMs = System.currentTimeMillis();
-    String bonusDayKey =
-        CREATOR_PLANNER_BONUS_DAY_KEY_PREFIX + nowEpochMs + "_" + UUID.randomUUID();
+    String bonusDayKey = CREATOR_PLANNER_BONUS_DAY_KEY_PREFIX + nowEpochMs + "_" + UUID.randomUUID();
     studyTimeStore.applyManualBonus(CREATOR_PLANNER_BONUS_STUDY_MILLIS, bonusDayKey);
 
     LearningStudyTimeCloudRepository studyTimeCloudRepository = learningStudyTimeCloudRepository;
@@ -321,11 +333,9 @@ public class SettingFragment extends Fragment
 
   private void performLogout() {
     FirebaseAuth.getInstance().signOut();
-    int clearedPreferenceCount =
-        SharedPreferencesCleaner.clearAll(requireContext().getApplicationContext());
+    int clearedPreferenceCount = SharedPreferencesCleaner.clearAll(requireContext().getApplicationContext());
     logDebug("Cleared shared preferences files: " + clearedPreferenceCount);
-    android.content.Intent intent =
-        new android.content.Intent(requireContext(), LoginActivity.class);
+    android.content.Intent intent = new android.content.Intent(requireContext(), LoginActivity.class);
     intent.setFlags(
         android.content.Intent.FLAG_ACTIVITY_NEW_TASK
             | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -369,16 +379,161 @@ public class SettingFragment extends Fragment
     String userEmail = getCurrentUserEmailOrNull();
     if (userEmail == null) {
       cardProfileEmail.setVisibility(View.GONE);
+      if (cardChangePassword != null)
+        cardChangePassword.setVisibility(View.GONE);
       tvProfileEmailValue.setText("");
       return;
     }
+
+    boolean isEmailProvider = false;
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+    if (user != null) {
+      for (com.google.firebase.auth.UserInfo userInfo : user.getProviderData()) {
+        if ("password".equals(userInfo.getProviderId())) {
+          isEmailProvider = true;
+          break;
+        }
+      }
+    }
+
     cardProfileEmail.setVisibility(View.VISIBLE);
     tvProfileEmailValue.setText(userEmail);
+
+    if (cardChangePassword != null) {
+      cardChangePassword.setVisibility(isEmailProvider ? View.VISIBLE : View.GONE);
+    }
+  }
+
+  private void showChangePasswordDialog() {
+    String userEmail = getCurrentUserEmailOrNull();
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+    if (userEmail == null || user == null) {
+      showToastSafe("이메일로 로그인된 사용자 정보를 찾을 수 없습니다.");
+      return;
+    }
+
+    View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_change_password, null);
+
+    EditText etCurrentPassword = dialogView.findViewById(R.id.et_current_password);
+    View cardCurrentPassword = dialogView.findViewById(R.id.card_current_password);
+    View cardConfirmedPassword = dialogView.findViewById(R.id.card_confirmed_password);
+    TextView tvConfirmedPassword = dialogView.findViewById(R.id.tv_confirmed_password);
+    EditText etNewPassword = dialogView.findViewById(R.id.et_new_password);
+    EditText etConfirmPassword = dialogView.findViewById(R.id.et_confirm_password);
+    View layoutNewPasswordContainer = dialogView.findViewById(R.id.layout_new_password_container);
+    TextView tvError = dialogView.findViewById(R.id.tv_password_error);
+    AppCompatButton btnCancel = dialogView.findViewById(R.id.btn_change_password_cancel);
+    AppCompatButton btnSave = dialogView.findViewById(R.id.btn_change_password_save);
+
+    android.app.Dialog dialog = new android.app.Dialog(requireContext());
+    dialog.setContentView(dialogView);
+    if (dialog.getWindow() != null) {
+      dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0));
+      android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+      int width = (int) (metrics.widthPixels * 0.9f);
+      dialog.getWindow().setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT);
+    }
+
+    btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+    btnSave.setOnClickListener(v -> {
+      // 키보드 숨기기
+      android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) requireContext()
+          .getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+      if (imm != null) {
+        imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+      }
+
+      tvError.setVisibility(View.GONE);
+
+      boolean isCurrentPasswordVerified = layoutNewPasswordContainer.getVisibility() == View.VISIBLE;
+
+      if (!isCurrentPasswordVerified) {
+        // Step 1: 현재 비밀번호 확인
+        String currentPassword = etCurrentPassword.getText().toString();
+        if (currentPassword.isEmpty()) {
+          tvError.setText("현재 비밀번호를 입력해주세요.");
+          tvError.setVisibility(View.VISIBLE);
+          return;
+        }
+
+        btnSave.setEnabled(false);
+        btnSave.setText("확인중...");
+
+        AuthCredential credential = EmailAuthProvider.getCredential(userEmail, currentPassword);
+        user.reauthenticate(credential).addOnCompleteListener(reauthTask -> {
+          if (reauthTask.isSuccessful()) {
+            // 확인 완료: 현재 비밀번호 입력창 숨기고 일반 텍스트로 표시, 새 비밀번호 입력창 표시
+            cardCurrentPassword.setVisibility(View.GONE);
+            tvConfirmedPassword.setText(currentPassword);
+            cardConfirmedPassword.setVisibility(View.VISIBLE);
+
+            layoutNewPasswordContainer.setVisibility(View.VISIBLE);
+            btnSave.setText("변경");
+            btnSave.setEnabled(true);
+            tvError.setVisibility(View.GONE);
+          } else {
+            btnSave.setEnabled(true);
+            btnSave.setText("확인");
+            tvError.setText("현재 비밀번호가 틀렸습니다.");
+            tvError.setVisibility(View.VISIBLE);
+          }
+        });
+
+      } else {
+        // Step 2: 새 비밀번호 변경
+        String newPassword = etNewPassword.getText().toString();
+        String confirmPassword = etConfirmPassword.getText().toString();
+        String currentPasswordText = tvConfirmedPassword.getText().toString();
+
+        if (newPassword.isEmpty() || confirmPassword.isEmpty()) {
+          tvError.setText("새 비밀번호를 모두 입력해주세요.");
+          tvError.setVisibility(View.VISIBLE);
+          return;
+        }
+
+        if (newPassword.equals(currentPasswordText)) {
+          tvError.setText("이전 비밀번호와 동일한 비밀번호에요.");
+          tvError.setVisibility(View.VISIBLE);
+          return;
+        }
+
+        if (newPassword.length() < 6) {
+          tvError.setText("새 비밀번호는 6자 이상이어야 합니다.");
+          tvError.setVisibility(View.VISIBLE);
+          return;
+        }
+
+        if (!newPassword.equals(confirmPassword)) {
+          tvError.setText("새 비밀번호가 일치하지 않습니다.");
+          tvError.setVisibility(View.VISIBLE);
+          return;
+        }
+
+        btnSave.setEnabled(false);
+        btnSave.setText("처리중...");
+
+        user.updatePassword(newPassword).addOnCompleteListener(updateTask -> {
+          if (updateTask.isSuccessful()) {
+            showToastSafe("비밀번호가 성공적으로 변경되었습니다.");
+            dialog.dismiss();
+          } else {
+            btnSave.setEnabled(true);
+            btnSave.setText("변경");
+            String errorMsg = updateTask.getException() != null ? updateTask.getException().getMessage()
+                : "알 수 없는 오류";
+            tvError.setText("비밀번호 변경 실패: " + errorMsg);
+            tvError.setVisibility(View.VISIBLE);
+          }
+        });
+      }
+    });
+
+    dialog.show();
   }
 
   private void showNicknameEditDialog() {
-    View dialogView =
-        LayoutInflater.from(getContext()).inflate(R.layout.dialog_profile_nickname, null);
+    View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_profile_nickname, null);
 
     EditText etNicknameInput = dialogView.findViewById(R.id.et_nickname_input);
     AppCompatButton btnCancel = dialogView.findViewById(R.id.btn_nickname_cancel);
@@ -485,13 +640,11 @@ public class SettingFragment extends Fragment
     boolean[] taskResults = new boolean[2];
     int[] completedCount = new int[1];
     studyTimeCloudRepository.resetMetricsForCurrentUser(
-        success ->
-            onLearningMetricsResetTaskCompleted(
-                dialog, 0, success, taskResults, completedCount, studyTimeStore, pointStore));
+        success -> onLearningMetricsResetTaskCompleted(
+            dialog, 0, success, taskResults, completedCount, studyTimeStore, pointStore));
     pointCloudRepository.resetTotalPointsForCurrentUser(
-        success ->
-            onLearningMetricsResetTaskCompleted(
-                dialog, 1, success, taskResults, completedCount, studyTimeStore, pointStore));
+        success -> onLearningMetricsResetTaskCompleted(
+            dialog, 1, success, taskResults, completedCount, studyTimeStore, pointStore));
   }
 
   private void onLearningMetricsResetTaskCompleted(

@@ -136,6 +136,51 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- ===== 비밀번호 변경 카드 ===== -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_change_password"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="?attr/colorSurfaceVariant"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp">
+
+            <LinearLayout
+                android:id="@+id/layout_change_password"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="비밀번호 변경"
+                    android:textColor="@color/color_primary_text"
+                    android:textSize="16sp" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:contentDescription="변경하기"
+                    android:src="@drawable/ic_chevron_right"
+                    app:tint="@color/color_sub_text" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+
         <!-- ===== 학습 설정 라벨 ===== -->
         <TextView
             android:layout_width="wrap_content"
