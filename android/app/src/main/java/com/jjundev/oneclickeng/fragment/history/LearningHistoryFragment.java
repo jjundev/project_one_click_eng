@@ -107,7 +107,7 @@ public class LearningHistoryFragment extends Fragment {
                           viewModel.removeCard(itemToSwipe);
                           android.widget.Toast.makeText(
                                   requireContext(),
-                                  "카드가 삭제되었습니다.",
+                                  "카드를 삭제했어요",
                                   android.widget.Toast.LENGTH_SHORT)
                               .show();
                         }

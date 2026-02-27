@@ -9,15 +9,19 @@ import androidx.media3.database.StandaloneDatabaseProvider;
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor;
 import androidx.media3.datasource.cache.SimpleCache;
 import java.io.File;
+import com.google.android.gms.ads.MobileAds;
 
 @UnstableApi
 public class OneClickEngApplication extends Application {
 
-  @Nullable private static SimpleCache simpleCache;
+  @Nullable
+  private static SimpleCache simpleCache;
 
   @Override
   public void onCreate() {
     super.onCreate();
+    MobileAds.initialize(this, initializationStatus -> {
+    });
   }
 
   @NonNull

@@ -197,7 +197,7 @@ public class DialogueSelectFragment extends Fragment
             if (dialog != null) {
               dialog.showLoading(false);
             }
-            Toast.makeText(getContext(), "대본 생성 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "대본 생성 중 오류가 발생했어요", Toast.LENGTH_SHORT).show();
           }
         });
   }

@@ -88,6 +88,9 @@ dependencies {
     implementation libs.lifecycle.runtime
     implementation libs.firebase.firestore
 
+    // AdMob
+    implementation 'com.google.android.gms:play-services-ads:23.0.0'
+
     // ExoPlayer (Media3) — English Shorts 비디오 재생
     implementation 'androidx.media3:media3-exoplayer:1.6.1'
     implementation 'androidx.media3:media3-ui:1.6.1'

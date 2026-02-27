@@ -247,7 +247,7 @@ public class LoginActivity extends AppCompatActivity {
                   showStep(layoutPasswordStep, layoutEmailStep, false);
                 }
               } else {
-                Toast.makeText(this, "이메일 확인 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "이메일 확인 중 오류가 발생했어요", Toast.LENGTH_SHORT).show();
               }
             });
   }
@@ -336,7 +336,7 @@ public class LoginActivity extends AppCompatActivity {
       String email = tvDisplaySignupEmail != null ? tvDisplaySignupEmail.getText().toString() : "";
 
       if (email.isEmpty() || password.isEmpty()) {
-        Toast.makeText(this, "이메일 또는 비밀번호가 유효하지 않습니다.", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "이메일 또는 비밀번호가 유효하지 않아요", Toast.LENGTH_SHORT).show();
         return;
       }
 

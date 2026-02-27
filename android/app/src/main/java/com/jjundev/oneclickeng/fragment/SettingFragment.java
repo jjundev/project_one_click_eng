@@ -39,6 +39,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.google.android.gms.ads.AdError;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.FullScreenContentCallback;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.rewarded.RewardedAd;
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
+
 public class SettingFragment extends Fragment
     implements
     LearningDataResetDialog.OnLearningDataResetListener,
@@ -100,6 +107,13 @@ public class SettingFragment extends Fragment
   private TextView tvCreditRemainingValue;
   private LinearLayout layoutChargeCredit;
 
+  private RewardedAd rewardedAd;
+  private boolean isRewardEarned = false;
+  private boolean isWaitingForAd = false;
+  private android.app.Dialog chargeCreditDialog; // 기존 다이얼로그를 멤버 변수로 참조
+  private int adRetryAttempt = 0;
+  private final android.os.Handler adRetryHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+
   @Nullable
   @Override
   public View onCreateView(
@@ -121,6 +135,7 @@ public class SettingFragment extends Fragment
     bindViews(view);
     setupListeners();
     renderSettings();
+    loadRewardedAd();
   }
 
   @Override
@@ -418,7 +433,7 @@ public class SettingFragment extends Fragment
     String userEmail = getCurrentUserEmailOrNull();
     FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
     if (userEmail == null || user == null) {
-      showToastSafe("이메일로 로그인된 사용자 정보를 찾을 수 없습니다.");
+      showToastSafe("이메일로 로그인된 사용자 정보를 찾을 수 없어요");
       return;
     }
 
@@ -485,7 +500,7 @@ public class SettingFragment extends Fragment
           } else {
             btnSave.setEnabled(true);
             btnSave.setText("확인");
-            tvError.setText("현재 비밀번호가 틀렸습니다.");
+            tvError.setText("현재 비밀번호가 틀렸어요.");
             tvError.setVisibility(View.VISIBLE);
           }
         });
@@ -515,7 +530,7 @@ public class SettingFragment extends Fragment
         }
 
         if (!newPassword.equals(confirmPassword)) {
-          tvError.setText("새 비밀번호가 일치하지 않습니다.");
+          tvError.setText("새 비밀번호가 일치하지 않아요.");
           tvError.setVisibility(View.VISIBLE);
           return;
         }
@@ -525,7 +540,7 @@ public class SettingFragment extends Fragment
 
         user.updatePassword(newPassword).addOnCompleteListener(updateTask -> {
           if (updateTask.isSuccessful()) {
-            showToastSafe("비밀번호가 성공적으로 변경되었습니다.");
+            showToastSafe("비밀번호가 성공적으로 변경되었어요");
             dialog.dismiss();
           } else {
             btnSave.setEnabled(true);
@@ -545,25 +560,157 @@ public class SettingFragment extends Fragment
   private void showChargeCreditDialog() {
     View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_charge_credit, null);
 
+    View layoutContent = dialogView.findViewById(R.id.layout_content);
+    View layoutLoading = dialogView.findViewById(R.id.layout_loading);
     AppCompatButton btnCancel = dialogView.findViewById(R.id.btn_charge_cancel);
     AppCompatButton btnAd = dialogView.findViewById(R.id.btn_charge_ad);
 
-    android.app.Dialog dialog = new android.app.Dialog(requireContext());
-    dialog.setContentView(dialogView);
-    if (dialog.getWindow() != null) {
-      dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0));
+    chargeCreditDialog = new android.app.Dialog(requireContext());
+    chargeCreditDialog.setContentView(dialogView);
+    if (chargeCreditDialog.getWindow() != null) {
+      chargeCreditDialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0));
       android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
       int width = (int) (metrics.widthPixels * 0.9f);
-      dialog.getWindow().setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT);
+      chargeCreditDialog.getWindow().setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT);
     }
 
-    btnCancel.setOnClickListener(v -> dialog.dismiss());
-    btnAd.setOnClickListener(v -> {
-      showToastSafe("광고보고 1크레딧 충전 기능은 준비 중입니다.");
-      dialog.dismiss();
+    // 다이얼로그 닫힐 때 상태 리셋
+    chargeCreditDialog.setOnDismissListener(d -> {
+      isWaitingForAd = false;
+      chargeCreditDialog = null;
     });
 
-    dialog.show();
+    btnCancel.setOnClickListener(v -> chargeCreditDialog.dismiss());
+    btnAd.setOnClickListener(v -> {
+      if (rewardedAd != null && isAdded()) {
+        chargeCreditDialog.dismiss();
+        isRewardEarned = false; // 보상을 받기 전 초기화
+        rewardedAd.show(requireActivity(), rewardItem -> {
+          // 보상 콜백
+          isRewardEarned = true;
+          increaseCredit();
+        });
+      } else {
+        // 광고 준비 안 됨: 기존 다이얼로그 내부에서 UI 전환 (로딩 표시)
+        isWaitingForAd = true;
+        layoutContent.setVisibility(View.GONE);
+        layoutLoading.setVisibility(View.VISIBLE);
+        chargeCreditDialog.setCancelable(false); // 로딩 중에는 백버튼 등으로 안 닫히게 처리
+
+        if (adRetryAttempt == 0) { // 재시도 중이 아니라면 새로 로드 요청
+          loadRewardedAd();
+        }
+      }
+    });
+
+    chargeCreditDialog.show();
+  }
+
+  private void loadRewardedAd() {
+    AdRequest adRequest = new AdRequest.Builder().build();
+    RewardedAd.load(requireContext(), "ca-app-pub-3940256099942544/5224354917",
+        adRequest, new RewardedAdLoadCallback() {
+          @Override
+          public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+            logDebug("Failed to load rewarded ad: " + loadAdError.getMessage());
+            rewardedAd = null;
+
+            // Exponential Backoff 재시도 로직
+            adRetryAttempt++;
+            long retryDelayMillis = (long) Math.pow(2, Math.min(6, adRetryAttempt)) * 1000L;
+            if (adRetryAttempt <= 5) {
+              if (isWaitingForAd) {
+                // 대기 중인 상태면 재시도 사실을 로그나 토스트로 알릴 필요는 없고 그냥 백오프로 로드
+                logDebug("Retrying ad load in " + retryDelayMillis + "ms (Attempt " + adRetryAttempt + ")");
+              }
+              adRetryHandler.postDelayed(() -> loadRewardedAd(), retryDelayMillis);
+            } else {
+              // 5번 이상 재시도 실패 시 완전히 포기
+              if (isWaitingForAd) {
+                isWaitingForAd = false;
+                if (chargeCreditDialog != null && chargeCreditDialog.isShowing()) {
+                  chargeCreditDialog.dismiss();
+                }
+                if (isAdded()) {
+                  showToastSafe("광고를 불러오는 데 실패했어요. 나중에 다시 시도해주세요.");
+                }
+              }
+            }
+          }
+
+          @Override
+          public void onAdLoaded(@NonNull RewardedAd ad) {
+            logDebug("Rewarded ad loaded.");
+            rewardedAd = ad;
+            adRetryAttempt = 0; // 성공 시 재시도 횟수 초기화
+            setFullScreenContentCallback();
+
+            // 만약 사용자가 로딩 다이얼로그를 띄운 채 대기 중이었다면
+            if (isWaitingForAd && isAdded()) {
+              isWaitingForAd = false;
+              if (chargeCreditDialog != null && chargeCreditDialog.isShowing()) {
+                chargeCreditDialog.dismiss();
+              }
+
+              isRewardEarned = false;
+              rewardedAd.show(requireActivity(), rewardItem -> {
+                isRewardEarned = true;
+                increaseCredit();
+              });
+            }
+          }
+        });
+  }
+
+  private void setFullScreenContentCallback() {
+    if (rewardedAd == null)
+      return;
+    rewardedAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+      @Override
+      public void onAdShowedFullScreenContent() {
+        rewardedAd = null; // 표시 직후 초기화 (재사용 불가)
+      }
+
+      @Override
+      public void onAdFailedToShowFullScreenContent(@NonNull AdError adError) {
+        logDebug("Ad failed to show: " + adError.getMessage());
+      }
+
+      @Override
+      public void onAdDismissedFullScreenContent() {
+        logDebug("Ad dismissed");
+        if (!isRewardEarned && isAdded()) {
+          // 사용자가 중간에 광고를 닫아 보상을 받지 못했을 때 안내
+          showToastSafe("광고 시청을 완료하지 않아 크레딧이 지급되지 않았어요");
+        }
+        loadRewardedAd(); // 다음 번을 대비하여 재생성
+      }
+    });
+  }
+
+  private void increaseCredit() {
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+    if (user == null) {
+      showToastSafe("로그인 정보를 확인할 수 없어요");
+      return;
+    }
+
+    FirebaseFirestore.getInstance()
+        .collection("users")
+        .document(user.getUid())
+        .update("credit", com.google.firebase.firestore.FieldValue.increment(1))
+        .addOnSuccessListener(aVoid -> {
+          if (isAdded()) {
+            showToastSafe("1 크레딧이 충전되었어요");
+            fetchUserCredit(); // UI 업데이트
+          }
+        })
+        .addOnFailureListener(e -> {
+          logDebug("Failed to add credit: " + e.getMessage());
+          if (isAdded()) {
+            showToastSafe("크레딧 충전에 실패했어요");
+          }
+        });
   }
 
   private void showNicknameEditDialog() {
@@ -599,7 +746,7 @@ public class SettingFragment extends Fragment
           if (tvProfileNicknameValue != null) {
             tvProfileNicknameValue.setText(getEffectiveNickname());
           }
-          Toast.makeText(getContext(), "닉네임이 저장되었습니다.", Toast.LENGTH_SHORT).show();
+          Toast.makeText(getContext(), "닉네임이 저장되었어요", Toast.LENGTH_SHORT).show();
           dialog.dismiss();
         });
 
