@@ -94,6 +94,7 @@
 
     <string name="settings_header_title">설정</string>
     <string name="settings_header_subtitle">앱 환경을 설정해 보세요</string>
+    <string name="settings_profile_email_label">이메일</string>
     <string name="settings_section_gemini_api">GEMINI API</string>
     <string name="settings_api_key_title">API Key</string>
     <string name="settings_api_key_description">직접 API Key를 입력하면 기본 Key 대신 사용해요</string>

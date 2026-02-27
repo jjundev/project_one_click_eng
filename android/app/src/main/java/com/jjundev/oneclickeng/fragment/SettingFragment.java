@@ -73,11 +73,13 @@ public class SettingFragment extends Fragment
   private boolean isLearningMetricsResetInProgress;
 
   private LinearLayout layoutProfileNickname;
+  private View cardProfileEmail;
   private LinearLayout layoutInitLearningData;
   private LinearLayout layoutInitLearningStreak;
   private LinearLayout layoutCreatorPlanner;
   private LinearLayout layoutCreatorDeveloper;
   private TextView tvProfileNicknameValue;
+  private TextView tvProfileEmailValue;
 
   private TextView tvAppVersion;
   private TextView tvLogout;
@@ -109,13 +111,21 @@ public class SettingFragment extends Fragment
     renderSettings();
   }
 
+  @Override
+  public void onResume() {
+    super.onResume();
+    renderSettings();
+  }
+
   private void bindViews(@NonNull View view) {
     layoutProfileNickname = view.findViewById(R.id.layout_profile_nickname);
+    cardProfileEmail = view.findViewById(R.id.card_profile_email);
     layoutInitLearningData = view.findViewById(R.id.layout_init_learning_data);
     layoutInitLearningStreak = view.findViewById(R.id.layout_init_learning_streak);
     layoutCreatorPlanner = view.findViewById(R.id.layout_creator_planner);
     layoutCreatorDeveloper = view.findViewById(R.id.layout_creator_developer);
     tvProfileNicknameValue = view.findViewById(R.id.tv_profile_nickname_value);
+    tvProfileEmailValue = view.findViewById(R.id.tv_profile_email_value);
     tvAppVersion = view.findViewById(R.id.tv_app_version);
     tvLogout = view.findViewById(R.id.tv_logout);
 
@@ -335,6 +345,37 @@ public class SettingFragment extends Fragment
     return "학습자";
   }
 
+  @Nullable
+  private String getCurrentUserEmailOrNull() {
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+    if (user == null) {
+      return null;
+    }
+    String email = user.getEmail();
+    if (email == null) {
+      return null;
+    }
+    String trimmedEmail = email.trim();
+    if (trimmedEmail.isEmpty()) {
+      return null;
+    }
+    return trimmedEmail;
+  }
+
+  private void renderProfileEmail() {
+    if (cardProfileEmail == null || tvProfileEmailValue == null) {
+      return;
+    }
+    String userEmail = getCurrentUserEmailOrNull();
+    if (userEmail == null) {
+      cardProfileEmail.setVisibility(View.GONE);
+      tvProfileEmailValue.setText("");
+      return;
+    }
+    cardProfileEmail.setVisibility(View.VISIBLE);
+    tvProfileEmailValue.setText(userEmail);
+  }
+
   private void showNicknameEditDialog() {
     View dialogView =
         LayoutInflater.from(getContext()).inflate(R.layout.dialog_profile_nickname, null);
@@ -386,6 +427,7 @@ public class SettingFragment extends Fragment
     if (tvProfileNicknameValue != null) {
       tvProfileNicknameValue.setText(getEffectiveNickname());
     }
+    renderProfileEmail();
 
     bindingState = false;
   }

@@ -1,12 +1,20 @@
 package com.jjundev.oneclickeng.activity;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
+import android.util.Patterns;
 import android.view.View;
+import android.view.animation.AnimationUtils;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.VideoView;
 import androidx.appcompat.app.AppCompatActivity;
@@ -20,6 +28,8 @@ import androidx.credentials.exceptions.GetCredentialException;
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.GoogleAuthProvider;
@@ -30,6 +40,13 @@ public class LoginActivity extends AppCompatActivity {
   private VideoView videoViewBackground;
   private BottomSheetBehavior<LinearLayout> bottomSheetBehavior;
   private static final String TAG = "LoginActivity";
+
+  private View layoutLoginContent;
+  private View layoutEmailStep;
+  private View layoutPasswordStep;
+  private View layoutSignupStep;
+  private View layoutLoginLoading;
+  private View currentStepLayout;
 
   @Override
   protected void onStart() {
@@ -109,19 +126,33 @@ public class LoginActivity extends AppCompatActivity {
           }
         });
 
+    layoutLoginContent = findViewById(R.id.layoutLoginContent);
+    layoutEmailStep = findViewById(R.id.layoutEmailStep);
+    layoutPasswordStep = findViewById(R.id.layoutPasswordStep);
+    layoutSignupStep = findViewById(R.id.layoutSignupStep);
+    layoutLoginLoading = findViewById(R.id.layoutLoginLoading);
+
+    currentStepLayout = layoutLoginContent;
+
     findViewById(R.id.btnEmailLogin)
         .setOnClickListener(
             v -> {
-              Toast.makeText(this, "이메일 로그인 클릭", Toast.LENGTH_SHORT).show();
-              navigateToMain();
+              showStep(layoutEmailStep, layoutLoginContent, false);
             });
 
-    findViewById(R.id.btnGoogleLogin)
-        .setOnClickListener(
-            v -> {
-              setLoadingState(true);
-              signInWithGoogle();
-            });
+    setupEmailStep();
+    setupPasswordStep();
+    setupSignupStep();
+
+    View.OnClickListener googleLoginListener = v -> {
+      setLoadingState(true);
+      signInWithGoogle();
+    };
+
+    findViewById(R.id.btnGoogleLogin).setOnClickListener(googleLoginListener);
+    findViewById(R.id.btnGoogleLoginFromEmail).setOnClickListener(googleLoginListener);
+    findViewById(R.id.btnGoogleLoginFromPassword).setOnClickListener(googleLoginListener);
+    findViewById(R.id.btnGoogleLoginFromSignup).setOnClickListener(googleLoginListener);
   }
 
   // Login mockup - goes to MainActivity
@@ -132,28 +163,149 @@ public class LoginActivity extends AppCompatActivity {
   }
 
   private void setLoadingState(boolean isLoading) {
-    View layoutLoginContent = findViewById(R.id.layoutLoginContent);
-    View layoutLoginLoading = findViewById(R.id.layoutLoginLoading);
-
     if (isLoading) {
-      if (layoutLoginContent != null) layoutLoginContent.setVisibility(View.GONE);
-      if (layoutLoginLoading != null) layoutLoginLoading.setVisibility(View.VISIBLE);
+      if (currentStepLayout != null)
+        currentStepLayout.setVisibility(View.GONE);
+      if (layoutLoginLoading != null)
+        layoutLoginLoading.setVisibility(View.VISIBLE);
     } else {
-      if (layoutLoginContent != null) layoutLoginContent.setVisibility(View.VISIBLE);
-      if (layoutLoginLoading != null) layoutLoginLoading.setVisibility(View.GONE);
+      if (currentStepLayout != null)
+        currentStepLayout.setVisibility(View.VISIBLE);
+      if (layoutLoginLoading != null)
+        layoutLoginLoading.setVisibility(View.GONE);
     }
   }
 
-  private void signInWithGoogle() {
-    GetGoogleIdOption googleIdOption =
-        new GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(false)
-            .setServerClientId(getString(R.string.default_web_client_id))
-            .setAutoSelectEnabled(true)
-            .build();
+  private void showStep(View nextView, View currentView, boolean isBack) {
+    if (currentView != null) {
+      currentView.setVisibility(View.GONE);
+      if (isBack) {
+        currentView.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_out_right));
+      } else {
+        currentView.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_out_left));
+      }
+    }
+    if (nextView != null) {
+      nextView.setVisibility(View.VISIBLE);
+      currentStepLayout = nextView;
+      if (isBack) {
+        nextView.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_in_left));
+      } else {
+        nextView.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_in_right));
+      }
+    }
+  }
 
-    GetCredentialRequest request =
-        new GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build();
+  private void setupEmailStep() {
+    findViewById(R.id.btnBackFromEmail).setOnClickListener(v -> showStep(layoutLoginContent, layoutEmailStep, true));
+    TextInputEditText etEmail = findViewById(R.id.etEmail);
+    MaterialButton btnEmailContinue = findViewById(R.id.btnEmailContinue);
+
+    etEmail.addTextChangedListener(new TextWatcher() {
+      @Override
+      public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+      }
+
+      @Override
+      public void onTextChanged(CharSequence s, int start, int before, int count) {
+        String email = s.toString().trim();
+        btnEmailContinue.setEnabled(Patterns.EMAIL_ADDRESS.matcher(email).matches());
+      }
+
+      @Override
+      public void afterTextChanged(Editable s) {
+      }
+    });
+
+    btnEmailContinue.setOnClickListener(v -> {
+      String email = etEmail.getText().toString().trim();
+      checkEmailExists(email);
+    });
+  }
+
+  private void checkEmailExists(String email) {
+    setLoadingState(true);
+    new Handler(Looper.getMainLooper()).postDelayed(() -> {
+      setLoadingState(false);
+      // 이메일 보유 여부 분기 (test가 포함되어 있으면 기존 회원으로 간주)
+      if (email.contains("test")) {
+        TextView tvDisplayEmail = findViewById(R.id.tvDisplayEmail);
+        if (tvDisplayEmail != null)
+          tvDisplayEmail.setText(email);
+        showStep(layoutPasswordStep, layoutEmailStep, false);
+      } else {
+        showStep(layoutSignupStep, layoutEmailStep, false);
+      }
+    }, 1500);
+  }
+
+  private void setupPasswordStep() {
+    findViewById(R.id.btnBackFromPassword).setOnClickListener(v -> showStep(layoutEmailStep, layoutPasswordStep, true));
+    findViewById(R.id.btnLogin).setOnClickListener(v -> {
+      Toast.makeText(this, "로그인 성공!", Toast.LENGTH_SHORT).show();
+      navigateToMain();
+    });
+  }
+
+  private void setupSignupStep() {
+    findViewById(R.id.btnBackFromSignup).setOnClickListener(v -> showStep(layoutEmailStep, layoutSignupStep, true));
+    TextInputEditText etSignupPassword = findViewById(R.id.etSignupPassword);
+    TextInputEditText etSignupPasswordConfirm = findViewById(R.id.etSignupPasswordConfirm);
+    MaterialButton btnSignup = findViewById(R.id.btnSignup);
+    TextView tvPasswordStrength = findViewById(R.id.tvPasswordStrength);
+
+    TextWatcher signupWatcher = new TextWatcher() {
+      @Override
+      public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+      }
+
+      @Override
+      public void onTextChanged(CharSequence s, int start, int before, int count) {
+        String p1 = etSignupPassword.getText().toString();
+        String p2 = etSignupPasswordConfirm.getText().toString();
+
+        if (p1.length() == 0) {
+          tvPasswordStrength.setText("비밀번호 강도: -");
+          btnSignup.setEnabled(false);
+          return;
+        }
+
+        if (p1.length() >= 8 && p1.matches(".*[a-zA-Z]+.*") && p1.matches(".*[0-9]+.*")) {
+          tvPasswordStrength.setText("비밀번호 강도: 강함");
+          tvPasswordStrength.setTextColor(Color.parseColor("#4DD9AC"));
+        } else if (p1.length() >= 6) {
+          tvPasswordStrength.setText("비밀번호 강도: 보통");
+          tvPasswordStrength.setTextColor(ContextCompat.getColor(LoginActivity.this, R.color.color_sub_text));
+        } else {
+          tvPasswordStrength.setText("비밀번호 강도: 약함 (6자 이상)");
+          tvPasswordStrength.setTextColor(Color.parseColor("#E53935"));
+        }
+
+        btnSignup.setEnabled(p1.length() >= 6 && p1.equals(p2));
+      }
+
+      @Override
+      public void afterTextChanged(Editable s) {
+      }
+    };
+
+    etSignupPassword.addTextChangedListener(signupWatcher);
+    etSignupPasswordConfirm.addTextChangedListener(signupWatcher);
+
+    btnSignup.setOnClickListener(v -> {
+      Toast.makeText(this, "회원가입 및 로그인 완료!", Toast.LENGTH_SHORT).show();
+      navigateToMain();
+    });
+  }
+
+  private void signInWithGoogle() {
+    GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
+        .setFilterByAuthorizedAccounts(false)
+        .setServerClientId(getString(R.string.default_web_client_id))
+        .setAutoSelectEnabled(true)
+        .build();
+
+    GetCredentialRequest request = new GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build();
 
     CredentialManager credentialManager = CredentialManager.create(this);
     credentialManager.getCredentialAsync(
@@ -170,8 +322,8 @@ public class LoginActivity extends AppCompatActivity {
                 if (credential
                     .getType()
                     .equals(GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL)) {
-                  GoogleIdTokenCredential googleIdTokenCredential =
-                      GoogleIdTokenCredential.createFrom(credential.getData());
+                  GoogleIdTokenCredential googleIdTokenCredential = GoogleIdTokenCredential
+                      .createFrom(credential.getData());
                   String idToken = googleIdTokenCredential.getIdToken();
                   firebaseAuthWithGoogle(idToken);
                 }
@@ -207,9 +359,9 @@ public class LoginActivity extends AppCompatActivity {
               } else {
                 Log.w(TAG, "signInWithCredential:failure", task.getException());
                 Toast.makeText(
-                        LoginActivity.this,
-                        "Firebase 인증 실패: " + task.getException().getMessage(),
-                        Toast.LENGTH_SHORT)
+                    LoginActivity.this,
+                    "Firebase 인증 실패: " + task.getException().getMessage(),
+                    Toast.LENGTH_SHORT)
                     .show();
                 setLoadingState(false);
               }
@@ -217,8 +369,7 @@ public class LoginActivity extends AppCompatActivity {
   }
 
   private void setupBackgroundVideo() {
-    Uri videoUri =
-        Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.video_login_activity);
+    Uri videoUri = Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.video_login_activity);
     videoViewBackground.setVideoURI(videoUri);
 
     videoViewBackground.setOnPreparedListener(
