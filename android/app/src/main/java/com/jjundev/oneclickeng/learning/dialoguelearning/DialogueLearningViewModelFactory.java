@@ -12,6 +12,7 @@ import com.jjundev.oneclickeng.learning.dialoguelearning.di.LearningManagerIniti
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IExtraQuestionManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISentenceFeedbackManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISpeakingFeedbackManager;
+import com.jjundev.oneclickeng.learning.dialoguelearning.session.DialogueScriptStreamingSessionStore;
 import com.jjundev.oneclickeng.learning.dialoguelearning.orchestrator.AsyncRequestTracker;
 import com.jjundev.oneclickeng.learning.dialoguelearning.parser.DialogueScriptParser;
 import com.jjundev.oneclickeng.tool.AudioRecorder;
@@ -80,6 +81,8 @@ public class DialogueLearningViewModelFactory implements ViewModelProvider.Facto
             new ExtraQuestionFlowController.ManagerExtraQuestionService(extraQuestionManager),
             requestTracker,
             AsyncRequestTracker.CHANNEL_EXTRA);
+    DialogueScriptStreamingSessionStore scriptStreamingSessionStore =
+        LearningDependencyProvider.provideDialogueScriptStreamingSessionStore();
 
     return (T)
         new DialogueLearningViewModel(
@@ -87,6 +90,7 @@ public class DialogueLearningViewModelFactory implements ViewModelProvider.Facto
             speakingFlowController,
             feedbackFlowController,
             extraQuestionFlowController,
-            audioRecorder);
+            audioRecorder,
+            scriptStreamingSessionStore);
   }
 }

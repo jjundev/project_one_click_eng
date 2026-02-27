@@ -27,6 +27,9 @@ public class DialogueLearningActivity extends LearningActivity
     implements DialogueLearningFragment.OnScriptProgressListener,
         ExitConfirmDialog.OnExitConfirmListener {
   public static final String EXTRA_SCRIPT_LEVEL = "extra_script_level";
+  public static final String EXTRA_SCRIPT_STREAM_SESSION_ID = "extra_script_stream_session_id";
+  public static final String EXTRA_REQUESTED_SCRIPT_LENGTH = "extra_requested_script_length";
+  public static final String EXTRA_SCRIPT_TOPIC = "extra_script_topic";
 
   private static final String TAG = "JOB_J-20260216-004";
   private static final String MODE_ID_DIALOGUE_LEARNING = "dialogue_learning";
@@ -50,6 +53,10 @@ public class DialogueLearningActivity extends LearningActivity
     progressBar = findViewById(R.id.progress_bar);
     tvProgress = findViewById(R.id.tv_progress);
     tvTitle = findViewById(R.id.tv_title);
+    String initialTopic = getIntent().getStringExtra(EXTRA_SCRIPT_TOPIC);
+    if (tvTitle != null && initialTopic != null && !initialTopic.trim().isEmpty()) {
+      tvTitle.setText(initialTopic);
+    }
 
     // 키보드(IME) 인셋 처리 - 키보드가 올라오면 화면이 위로 밀리도록
     View rootView = findViewById(android.R.id.content);
@@ -89,11 +96,28 @@ public class DialogueLearningActivity extends LearningActivity
     // ScriptChatFragment를 FragmentContainerView에 로드
     if (savedInstanceState == null) {
       String scriptData = getIntent().getStringExtra("SCRIPT_DATA");
+      String streamSessionId = getIntent().getStringExtra(EXTRA_SCRIPT_STREAM_SESSION_ID);
+      int requestedScriptLength = getIntent().getIntExtra(EXTRA_REQUESTED_SCRIPT_LENGTH, 0);
+      String requestedTopic = getIntent().getStringExtra(EXTRA_SCRIPT_TOPIC);
 
       DialogueLearningFragment fragment = new DialogueLearningFragment();
-      if (scriptData != null) {
+      if (scriptData != null
+          || (streamSessionId != null && !streamSessionId.trim().isEmpty())
+          || requestedScriptLength > 0
+          || (requestedTopic != null && !requestedTopic.trim().isEmpty())) {
         Bundle args = new Bundle();
-        args.putString("SCRIPT_DATA", scriptData);
+        if (scriptData != null) {
+          args.putString("SCRIPT_DATA", scriptData);
+        }
+        if (streamSessionId != null && !streamSessionId.trim().isEmpty()) {
+          args.putString(EXTRA_SCRIPT_STREAM_SESSION_ID, streamSessionId);
+        }
+        if (requestedScriptLength > 0) {
+          args.putInt(EXTRA_REQUESTED_SCRIPT_LENGTH, requestedScriptLength);
+        }
+        if (requestedTopic != null && !requestedTopic.trim().isEmpty()) {
+          args.putString(EXTRA_SCRIPT_TOPIC, requestedTopic);
+        }
         fragment.setArguments(args);
       }
 

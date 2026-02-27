@@ -89,6 +89,12 @@ public class LearningSessionOrchestrator {
       return lastTurnDecision;
     }
 
+    if (nextTurnResult.getType() == ScriptFlowController.NextTurnResult.Type.WAITING) {
+      lastTurnDecision =
+          new TurnDecision(nextTurnResult, BottomSheetMode.DEFAULT_INPUT, false, false, null);
+      return lastTurnDecision;
+    }
+
     if (nextTurnResult.getType() == ScriptFlowController.NextTurnResult.Type.FINISHED) {
       lastTurnDecision =
           new TurnDecision(nextTurnResult, BottomSheetMode.FINISHED, false, true, null);

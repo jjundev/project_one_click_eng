@@ -6,10 +6,10 @@ import java.util.Collections;
 import java.util.List;
 
 public class DialogueScript {
-  @NonNull private final String topic;
-  @NonNull private final String opponentName;
-  @NonNull private final String opponentRole;
-  @NonNull private final String opponentGender;
+  @NonNull private String topic;
+  @NonNull private String opponentName;
+  @NonNull private String opponentRole;
+  @NonNull private String opponentGender;
   @NonNull private final List<ScriptTurn> turns;
 
   public DialogueScript(
@@ -23,6 +23,21 @@ public class DialogueScript {
     this.opponentRole = opponentRole;
     this.opponentGender = opponentGender;
     this.turns = new ArrayList<>(turns);
+  }
+
+  public void updateMetadata(
+      @NonNull String topic,
+      @NonNull String opponentName,
+      @NonNull String opponentRole,
+      @NonNull String opponentGender) {
+    this.topic = topic;
+    this.opponentName = opponentName;
+    this.opponentRole = opponentRole;
+    this.opponentGender = opponentGender;
+  }
+
+  public void appendTurn(@NonNull ScriptTurn turn) {
+    turns.add(turn);
   }
 
   @NonNull

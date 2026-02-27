@@ -1,6 +1,7 @@
 package com.jjundev.oneclickeng.learning.dialoguelearning.state;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 public abstract class DialogueUiEvent {
 
@@ -46,4 +47,19 @@ public abstract class DialogueUiEvent {
   }
 
   public static final class OpenSummary extends DialogueUiEvent {}
+
+  public static final class AdvanceTurn extends DialogueUiEvent {}
+
+  public static final class AbortLearning extends DialogueUiEvent {
+    @Nullable private final String message;
+
+    public AbortLearning(@Nullable String message) {
+      this.message = message;
+    }
+
+    @Nullable
+    public String getMessage() {
+      return message;
+    }
+  }
 }

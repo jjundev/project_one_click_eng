@@ -2,21 +2,25 @@ package com.jjundev.oneclickeng.learning.dialoguelearning;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
+import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.learning.dialoguelearning.controller.ExtraQuestionFlowController;
 import com.jjundev.oneclickeng.learning.dialoguelearning.controller.FeedbackFlowController;
 import com.jjundev.oneclickeng.learning.dialoguelearning.controller.ScriptFlowController;
 import com.jjundev.oneclickeng.learning.dialoguelearning.controller.SpeakingFlowController;
+import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IDialogueGenerateManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.DialogueScript;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.ScriptTurn;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.SentenceFeedback;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.SpeakingAnalysisResult;
 import com.jjundev.oneclickeng.learning.dialoguelearning.orchestrator.LearningSessionOrchestrator;
 import com.jjundev.oneclickeng.learning.dialoguelearning.orchestrator.LearningSessionSnapshot;
+import com.jjundev.oneclickeng.learning.dialoguelearning.session.DialogueScriptStreamingSessionStore;
 import com.jjundev.oneclickeng.learning.dialoguelearning.state.BottomSheetMode;
 import com.jjundev.oneclickeng.learning.dialoguelearning.state.ConsumableEvent;
 import com.jjundev.oneclickeng.learning.dialoguelearning.state.DialogueUiEvent;
@@ -30,6 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DialogueLearningViewModel extends ViewModel {
+  private static final String TAG = "DialogueLearningViewModel";
 
   private final ScriptFlowController scriptFlowController;
   private final SpeakingFlowController speakingFlowController;
@@ -37,6 +42,8 @@ public class DialogueLearningViewModel extends ViewModel {
   private final ExtraQuestionFlowController extraQuestionFlowController;
   private final LearningSessionOrchestrator sessionOrchestrator;
   @Nullable private final AudioRecorder audioRecorder;
+  @Nullable
+  private final DialogueScriptStreamingSessionStore scriptStreamingSessionStore;
 
   private final MutableLiveData<BottomSheetMode> bottomSheetMode =
       new MutableLiveData<>(BottomSheetMode.DEFAULT_INPUT);
@@ -61,6 +68,16 @@ public class DialogueLearningViewModel extends ViewModel {
   private long extraEmissionId = 0L;
   private final StringBuilder extraResponseBuilder = new StringBuilder();
   private final Handler mainHandler = new Handler(Looper.getMainLooper());
+  @Nullable private String attachedScriptSessionId;
+  @Nullable private DialogueScriptStreamingSessionStore.Listener scriptSessionListener;
+  private boolean waitingForStreamTurn = false;
+  private boolean abortEventDispatched = false;
+  private int requestedScriptLength = 0;
+
+  private static final String DEFAULT_TOPIC = "영어 연습";
+  private static final String DEFAULT_OPPONENT_NAME = "AI Coach";
+  private static final String DEFAULT_OPPONENT_ROLE = "Partner";
+  private static final String DEFAULT_OPPONENT_GENDER = "female";
 
   public DialogueLearningViewModel(
       @NonNull ScriptFlowController scriptFlowController,
@@ -74,11 +91,7 @@ public class DialogueLearningViewModel extends ViewModel {
         feedbackFlowController,
         extraQuestionFlowController,
         audioRecorder,
-        new LearningSessionOrchestrator(
-            scriptFlowController,
-            speakingFlowController,
-            feedbackFlowController,
-            extraQuestionFlowController));
+        null);
   }
 
   public DialogueLearningViewModel(
@@ -87,13 +100,36 @@ public class DialogueLearningViewModel extends ViewModel {
       @NonNull FeedbackFlowController feedbackFlowController,
       @NonNull ExtraQuestionFlowController extraQuestionFlowController,
       @Nullable AudioRecorder audioRecorder,
-      @NonNull LearningSessionOrchestrator sessionOrchestrator) {
+      @Nullable DialogueScriptStreamingSessionStore scriptStreamingSessionStore) {
+    this(
+        scriptFlowController,
+        speakingFlowController,
+        feedbackFlowController,
+        extraQuestionFlowController,
+        audioRecorder,
+        new LearningSessionOrchestrator(
+            scriptFlowController,
+            speakingFlowController,
+            feedbackFlowController,
+            extraQuestionFlowController),
+        scriptStreamingSessionStore);
+  }
+
+  public DialogueLearningViewModel(
+      @NonNull ScriptFlowController scriptFlowController,
+      @NonNull SpeakingFlowController speakingFlowController,
+      @NonNull FeedbackFlowController feedbackFlowController,
+      @NonNull ExtraQuestionFlowController extraQuestionFlowController,
+      @Nullable AudioRecorder audioRecorder,
+      @NonNull LearningSessionOrchestrator sessionOrchestrator,
+      @Nullable DialogueScriptStreamingSessionStore scriptStreamingSessionStore) {
     this.scriptFlowController = scriptFlowController;
     this.speakingFlowController = speakingFlowController;
     this.feedbackFlowController = feedbackFlowController;
     this.extraQuestionFlowController = extraQuestionFlowController;
     this.sessionOrchestrator = sessionOrchestrator;
     this.audioRecorder = audioRecorder;
+    this.scriptStreamingSessionStore = scriptStreamingSessionStore;
     publishSessionSnapshot();
   }
 
@@ -196,6 +232,10 @@ public class DialogueLearningViewModel extends ViewModel {
   }
 
   public boolean loadScriptData(@NonNull String scriptJson) {
+    detachScriptStreamingSession(true);
+    waitingForStreamTurn = false;
+    abortEventDispatched = false;
+    requestedScriptLength = 0;
     try {
       sessionOrchestrator.loadScript(scriptJson);
       DialogueScript script = scriptFlowController.getScript();
@@ -222,6 +262,198 @@ public class DialogueLearningViewModel extends ViewModel {
     }
   }
 
+  public boolean attachScriptStreamingSession(
+      @Nullable String sessionId, int requestedLength, @Nullable String requestedTopic) {
+    DialogueScriptStreamingSessionStore store = scriptStreamingSessionStore;
+    logStream(
+        "attach request: sessionId="
+            + shortSession(sessionId)
+            + ", requestedLength="
+            + Math.max(1, requestedLength)
+            + ", requestedTopic="
+            + safeText(requestedTopic));
+    if (store == null || isBlank(sessionId)) {
+      logStream("attach rejected: store or sessionId invalid");
+      return false;
+    }
+
+    detachScriptStreamingSession(true);
+    waitingForStreamTurn = false;
+    abortEventDispatched = false;
+    requestedScriptLength = Math.max(1, requestedLength);
+
+    scriptFlowController.startStreaming(
+        firstNonBlank(trimToNull(requestedTopic), DEFAULT_TOPIC),
+        DEFAULT_OPPONENT_NAME,
+        DEFAULT_OPPONENT_ROLE,
+        DEFAULT_OPPONENT_GENDER);
+    applyStateAndPublish(() -> applyScriptStateFromController(false, null));
+
+    DialogueScriptStreamingSessionStore.Listener listener =
+        new DialogueScriptStreamingSessionStore.Listener() {
+          @Override
+      public void onMetadata(@NonNull DialogueScriptStreamingSessionStore.ScriptMetadata metadata) {
+        logStream(
+            "metadata: sessionId="
+                + shortSession(attachedScriptSessionId)
+                + ", topic="
+                + safeText(metadata.getTopic())
+                + ", opponent="
+                + safeText(metadata.getOpponentName()));
+        applyStateAndPublish(
+            () -> {
+              scriptFlowController.updateStreamMetadata(
+                      firstNonBlank(trimToNull(metadata.getTopic()), DEFAULT_TOPIC),
+                      firstNonBlank(trimToNull(metadata.getOpponentName()), DEFAULT_OPPONENT_NAME),
+                      DEFAULT_OPPONENT_ROLE,
+                      firstNonBlank(
+                          trimToNull(metadata.getOpponentGender()), DEFAULT_OPPONENT_GENDER));
+                  applyScriptStateFromController(false, null);
+                });
+          }
+
+          @Override
+      public void onTurn(@NonNull IDialogueGenerateManager.ScriptTurnChunk turn) {
+        String korean = trimToNull(turn.getKorean());
+        String english = trimToNull(turn.getEnglish());
+        if (korean == null || english == null) {
+          logStream("turn ignored: invalid text payload");
+          return;
+        }
+        applyStateAndPublish(
+            () -> {
+              scriptFlowController.appendStreamTurn(
+                  new ScriptTurn(korean, english, resolveRole(turn.getRole())));
+              applyScriptStateFromController(false, null);
+              DialogueScript script = scriptFlowController.getScript();
+              int total = script == null ? 0 : script.size();
+              logStream(
+                  "turn appended: sessionId="
+                      + shortSession(attachedScriptSessionId)
+                      + ", totalTurns="
+                      + total
+                      + ", role="
+                      + safeText(turn.getRole()));
+            });
+        if (waitingForStreamTurn) {
+          waitingForStreamTurn = false;
+          logStream("waiting resolved: emit AdvanceTurn");
+          emitUiEvent(new DialogueUiEvent.AdvanceTurn());
+        }
+      }
+
+      @Override
+      public void onComplete(@Nullable String warningMessage) {
+        logStream(
+            "stream complete: sessionId="
+                + shortSession(attachedScriptSessionId)
+                + ", warning="
+                + safeText(warningMessage));
+        applyStateAndPublish(
+            () -> {
+              scriptFlowController.markStreamCompleted();
+                  applyScriptStateFromController(false, null);
+        });
+        if (waitingForStreamTurn) {
+          waitingForStreamTurn = false;
+          logStream("waiting resolved by complete: emit AdvanceTurn");
+          emitUiEvent(new DialogueUiEvent.AdvanceTurn());
+        }
+      }
+
+      @Override
+      public void onFailure(@NonNull String error) {
+        if (abortEventDispatched) {
+          logStream("failure ignored: abort already dispatched");
+          return;
+        }
+        abortEventDispatched = true;
+        waitingForStreamTurn = false;
+        logStream(
+            "stream failure: sessionId="
+                + shortSession(attachedScriptSessionId)
+                + ", error="
+                + safeText(error));
+        detachScriptStreamingSession(true);
+        emitUiEvent(
+            new DialogueUiEvent.AbortLearning(
+                    firstNonBlank(trimToNull(error), "대본 생성 중 오류가 발생했어요")));
+          }
+        };
+
+    DialogueScriptStreamingSessionStore.Snapshot snapshot = store.attach(sessionId, listener);
+    if (snapshot == null) {
+      logStream("attach failed: session not found, sessionId=" + shortSession(sessionId));
+      return false;
+    }
+
+    attachedScriptSessionId = sessionId;
+    scriptSessionListener = listener;
+    logStream(
+        "attach success: sessionId="
+            + shortSession(sessionId)
+            + ", bufferedTurns="
+            + snapshot.getBufferedTurns().size()
+            + ", completed="
+            + snapshot.isCompleted()
+            + ", failure="
+            + (trimToNull(snapshot.getFailureMessage()) != null));
+    applyScriptStreamingSnapshot(snapshot);
+    return true;
+  }
+
+  private void applyScriptStreamingSnapshot(
+      @NonNull DialogueScriptStreamingSessionStore.Snapshot snapshot) {
+    requestedScriptLength = Math.max(1, snapshot.getRequestedLength());
+    logStream(
+        "snapshot apply: sessionId="
+            + shortSession(attachedScriptSessionId)
+            + ", requestedLength="
+            + requestedScriptLength
+            + ", bufferedTurns="
+            + snapshot.getBufferedTurns().size()
+            + ", completed="
+            + snapshot.isCompleted());
+    DialogueScriptStreamingSessionStore.ScriptMetadata metadata = snapshot.getMetadata();
+    if (metadata != null) {
+      logStream(
+          "snapshot metadata: topic="
+              + safeText(metadata.getTopic())
+              + ", opponent="
+              + safeText(metadata.getOpponentName()));
+      scriptFlowController.updateStreamMetadata(
+          firstNonBlank(trimToNull(metadata.getTopic()), DEFAULT_TOPIC),
+          firstNonBlank(trimToNull(metadata.getOpponentName()), DEFAULT_OPPONENT_NAME),
+          DEFAULT_OPPONENT_ROLE,
+          firstNonBlank(trimToNull(metadata.getOpponentGender()), DEFAULT_OPPONENT_GENDER));
+    }
+
+    for (IDialogueGenerateManager.ScriptTurnChunk turn : snapshot.getBufferedTurns()) {
+      String korean = trimToNull(turn.getKorean());
+      String english = trimToNull(turn.getEnglish());
+      if (korean == null || english == null) {
+        continue;
+      }
+      scriptFlowController.appendStreamTurn(
+          new ScriptTurn(korean, english, resolveRole(turn.getRole())));
+    }
+    if (snapshot.isCompleted()) {
+      scriptFlowController.markStreamCompleted();
+    }
+
+    String failureMessage = trimToNull(snapshot.getFailureMessage());
+    if (failureMessage != null) {
+      if (!abortEventDispatched) {
+        abortEventDispatched = true;
+        logStream("snapshot failure: " + safeText(failureMessage));
+        detachScriptStreamingSession(true);
+        emitUiEvent(new DialogueUiEvent.AbortLearning(failureMessage));
+      }
+      return;
+    }
+    applyStateAndPublish(() -> applyScriptStateFromController(false, null));
+  }
+
   @NonNull
   public List<ScriptTurn> getScriptTurnsSnapshot() {
     DialogueScript script = scriptFlowController.getScript();
@@ -238,17 +470,20 @@ public class DialogueLearningViewModel extends ViewModel {
     ScriptFlowController.NextTurnResult result = turnDecision.getNextTurnResult();
 
     ScriptUiState prev = scriptUiState.getValue();
-    String topic = prev == null ? "" : prev.getTopic();
-    String opponentName = prev == null ? "" : prev.getOpponentName();
-    String opponentGender = prev == null ? "female" : prev.getOpponentGender();
+    String topic = prev == null ? DEFAULT_TOPIC : prev.getTopic();
+    String opponentName = prev == null ? DEFAULT_OPPONENT_NAME : prev.getOpponentName();
+    String opponentGender = prev == null ? DEFAULT_OPPONENT_GENDER : prev.getOpponentGender();
+    int visibleTotal = resolveVisibleTotalSteps(result.getTotalSteps());
 
     if (result.getType() == ScriptFlowController.NextTurnResult.Type.FINISHED) {
+      waitingForStreamTurn = false;
+      logStream("nextTurn: FINISHED");
       applyStateAndPublish(
           () -> {
             scriptUiState.setValue(
                 new ScriptUiState(
                     result.getCurrentStep(),
-                    result.getTotalSteps(),
+                    visibleTotal,
                     topic,
                     opponentName,
                     opponentGender,
@@ -256,17 +491,26 @@ public class DialogueLearningViewModel extends ViewModel {
                     null));
             bottomSheetMode.setValue(BottomSheetMode.FINISHED);
           });
+      detachScriptStreamingSession(true);
       return turnDecision;
     }
 
     if (result.getType() == ScriptFlowController.NextTurnResult.Type.TURN) {
+      waitingForStreamTurn = false;
       ScriptTurn turn = result.getTurn();
+      logStream(
+          "nextTurn: TURN, step="
+              + result.getCurrentStep()
+              + "/"
+              + visibleTotal
+              + ", role="
+              + safeText(turn == null ? null : turn.getRole()));
       applyStateAndPublish(
           () -> {
             scriptUiState.setValue(
                 new ScriptUiState(
                     result.getCurrentStep(),
-                    result.getTotalSteps(),
+                    visibleTotal,
                     topic,
                     opponentName,
                     opponentGender,
@@ -281,6 +525,29 @@ public class DialogueLearningViewModel extends ViewModel {
               bottomSheetMode.setValue(BottomSheetMode.BEFORE_SPEAKING);
             }
           });
+      return turnDecision;
+    }
+
+    if (result.getType() == ScriptFlowController.NextTurnResult.Type.WAITING) {
+      waitingForStreamTurn = true;
+      logStream(
+          "nextTurn: WAITING, step="
+              + result.getCurrentStep()
+              + "/"
+              + visibleTotal
+              + ", streamCompleted="
+              + scriptFlowController.isStreamCompleted());
+      applyStateAndPublish(
+          () ->
+              scriptUiState.setValue(
+                  new ScriptUiState(
+                      result.getCurrentStep(),
+                      visibleTotal,
+                      topic,
+                      opponentName,
+                      opponentGender,
+                      false,
+                      prev == null ? null : prev.getActiveTurn())));
     }
 
     return turnDecision;
@@ -561,6 +828,79 @@ public class DialogueLearningViewModel extends ViewModel {
     return audioRecorder;
   }
 
+  private void applyScriptStateFromController(boolean finished, @Nullable ScriptTurn activeTurn) {
+    DialogueScript script = scriptFlowController.getScript();
+    if (script == null) {
+      return;
+    }
+    int currentStep = finished ? script.size() : Math.max(0, scriptFlowController.getCurrentIndex() + 1);
+    scriptUiState.setValue(
+        new ScriptUiState(
+            currentStep,
+            resolveVisibleTotalSteps(script.size()),
+            script.getTopic(),
+            script.getOpponentName(),
+            script.getOpponentGender(),
+            finished,
+            activeTurn));
+  }
+
+  private int resolveVisibleTotalSteps(int fallback) {
+    if (requestedScriptLength > 0) {
+      return requestedScriptLength;
+    }
+    return Math.max(1, fallback);
+  }
+
+  private void detachScriptStreamingSession(boolean release) {
+    DialogueScriptStreamingSessionStore store = scriptStreamingSessionStore;
+    String sessionId = attachedScriptSessionId;
+    DialogueScriptStreamingSessionStore.Listener listener = scriptSessionListener;
+    attachedScriptSessionId = null;
+    scriptSessionListener = null;
+
+    if (store == null || sessionId == null || listener == null) {
+      return;
+    }
+    store.detach(sessionId, listener);
+    if (release) {
+      store.release(sessionId);
+    }
+    logStream(
+        "detach: sessionId="
+            + shortSession(sessionId)
+            + ", release="
+            + release);
+  }
+
+  @NonNull
+  private static String resolveRole(@Nullable String rawRole) {
+    String role = trimToNull(rawRole);
+    if (role == null) {
+      return "user";
+    }
+    return role;
+  }
+
+  @Nullable
+  private static String trimToNull(@Nullable String value) {
+    if (value == null) {
+      return null;
+    }
+    String trimmed = value.trim();
+    return trimmed.isEmpty() ? null : trimmed;
+  }
+
+  private static boolean isBlank(@Nullable String value) {
+    return trimToNull(value) == null;
+  }
+
+  @NonNull
+  private static String firstNonBlank(@Nullable String first, @NonNull String fallback) {
+    String value = trimToNull(first);
+    return value == null ? fallback : value;
+  }
+
   private boolean shouldShowNextButton(@Nullable SentenceFeedback feedback) {
     if (feedback == null || feedback.getWritingScore() == null) {
       return false;
@@ -592,7 +932,39 @@ public class DialogueLearningViewModel extends ViewModel {
   @Override
   protected void onCleared() {
     clearRequests();
+    detachScriptStreamingSession(true);
     retainedChatMessages.clear();
+    logStream("onCleared");
     super.onCleared();
+  }
+
+  private void logStream(@NonNull String message) {
+    if (BuildConfig.DEBUG) {
+      Log.d(TAG, "[DL_STREAM] " + message);
+    }
+  }
+
+  @NonNull
+  private static String shortSession(@Nullable String sessionId) {
+    String value = trimToNull(sessionId);
+    if (value == null) {
+      return "-";
+    }
+    if (value.length() <= 8) {
+      return value;
+    }
+    return value.substring(0, 8);
+  }
+
+  @NonNull
+  private static String safeText(@Nullable String value) {
+    String text = trimToNull(value);
+    if (text == null) {
+      return "-";
+    }
+    if (text.length() <= 32) {
+      return text;
+    }
+    return text.substring(0, 32) + "...";
   }
 }

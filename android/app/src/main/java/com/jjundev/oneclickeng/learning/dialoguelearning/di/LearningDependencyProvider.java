@@ -9,6 +9,8 @@ import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IQuiz
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISentenceFeedbackManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISessionSummaryLlmManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISpeakingFeedbackManager;
+import com.jjundev.oneclickeng.learning.dialoguelearning.session.DialogueScriptStreamingSessionStore;
+import com.jjundev.oneclickeng.learning.dialoguelearning.session.InMemoryDialogueScriptStreamingSessionStore;
 import com.jjundev.oneclickeng.learning.dialoguelearning.summary.SessionSummaryManager;
 import com.jjundev.oneclickeng.learning.quiz.session.InMemoryQuizStreamingSessionStore;
 import com.jjundev.oneclickeng.learning.quiz.session.QuizStreamingSessionStore;
@@ -22,6 +24,8 @@ import com.jjundev.oneclickeng.tool.AudioRecorder;
 public final class LearningDependencyProvider {
 
   @Nullable private static volatile QuizStreamingSessionStore quizStreamingSessionStore;
+  @Nullable
+  private static volatile DialogueScriptStreamingSessionStore dialogueScriptStreamingSessionStore;
 
   private LearningDependencyProvider() {}
 
@@ -79,6 +83,20 @@ public final class LearningDependencyProvider {
         quizStreamingSessionStore = new InMemoryQuizStreamingSessionStore();
       }
       return quizStreamingSessionStore;
+    }
+  }
+
+  @NonNull
+  public static DialogueScriptStreamingSessionStore provideDialogueScriptStreamingSessionStore() {
+    DialogueScriptStreamingSessionStore existing = dialogueScriptStreamingSessionStore;
+    if (existing != null) {
+      return existing;
+    }
+    synchronized (LearningDependencyProvider.class) {
+      if (dialogueScriptStreamingSessionStore == null) {
+        dialogueScriptStreamingSessionStore = new InMemoryDialogueScriptStreamingSessionStore();
+      }
+      return dialogueScriptStreamingSessionStore;
     }
   }
 

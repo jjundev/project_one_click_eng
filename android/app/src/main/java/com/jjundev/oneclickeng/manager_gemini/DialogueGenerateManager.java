@@ -5,15 +5,19 @@ import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.annotations.SerializedName;
+import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IDialogueGenerateManager;
+import com.jjundev.oneclickeng.tool.IncrementalDialogueScriptParser;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import okhttp3.MediaType;
@@ -21,6 +25,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okio.BufferedSource;
 
 public class DialogueGenerateManager implements IDialogueGenerateManager {
   private static final String TAG = "DialogueGenerateManager";
@@ -33,6 +38,13 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
   private static final String KEY_CACHE_CREATED = "gemini_script_cache_created_at";
   private static final String KEY_CACHE_TTL = "gemini_script_cache_ttl_seconds";
   private static final int MIN_REMAINING_TTL_SECONDS = 300; // 5 minutes
+
+  private static final OkHttpClient streamingClient =
+      new OkHttpClient.Builder()
+          .connectTimeout(30, TimeUnit.SECONDS)
+          .readTimeout(0, TimeUnit.SECONDS)
+          .writeTimeout(30, TimeUnit.SECONDS)
+          .build();
 
   private final Gson gson;
   private final OkHttpClient client;
@@ -342,6 +354,84 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
     }
   }
 
+  @Override
+  public void generateScriptStreamingAsync(
+      @NonNull String level,
+      @NonNull String topic,
+      @NonNull String format,
+      int length,
+      @NonNull IDialogueGenerateManager.ScriptStreamingCallback callback) {
+    logStream(
+        "request start: level="
+            + level
+            + ", topic="
+            + trimForLog(topic)
+            + ", format="
+            + format
+            + ", requestedLength="
+            + Math.max(1, length)
+            + ", cacheReady="
+            + cacheReady);
+    if (cacheReady && cachedContentName != null) {
+      generateScriptStreamingWithCache(level, topic, format, length, callback);
+    } else {
+      Log.w(TAG, "Cache not ready, fallback to non-cached streaming generation");
+      generateScriptStreamingWithoutCache(level, topic, format, length, callback);
+    }
+  }
+
+  private void generateScriptStreamingWithCache(
+      @NonNull String level,
+      @NonNull String topic,
+      @NonNull String format,
+      int length,
+      @NonNull IDialogueGenerateManager.ScriptStreamingCallback callback) {
+    logStream(
+        "request path: cached, cacheName=" + trimForLog(cachedContentName) + ", length=" + Math.max(1, length));
+    new Thread(
+            () -> {
+              try {
+                JsonObject requestBody = new JsonObject();
+                requestBody.addProperty("cachedContent", cachedContentName);
+                appendScriptStreamingPayload(requestBody, level, topic, format, length);
+                streamAndParseRequest(requestBody, true, length, callback);
+              } catch (Exception e) {
+                Log.e(TAG, "Cached streaming generation error", e);
+                postStreamingFailure(callback, "Streaming error: " + safeMessage(e));
+              }
+            })
+        .start();
+  }
+
+  private void generateScriptStreamingWithoutCache(
+      @NonNull String level,
+      @NonNull String topic,
+      @NonNull String format,
+      int length,
+      @NonNull IDialogueGenerateManager.ScriptStreamingCallback callback) {
+    logStream("request path: non-cached, length=" + Math.max(1, length));
+    new Thread(
+            () -> {
+              try {
+                JsonObject requestBody = new JsonObject();
+                JsonObject sysInstruction = new JsonObject();
+                JsonArray sysParts = new JsonArray();
+                JsonObject sysPart = new JsonObject();
+                sysPart.addProperty("text", getSystemPrompt());
+                sysParts.add(sysPart);
+                sysInstruction.add("parts", sysParts);
+                requestBody.add("systemInstruction", sysInstruction);
+
+                appendScriptStreamingPayload(requestBody, level, topic, format, length);
+                streamAndParseRequest(requestBody, false, length, callback);
+              } catch (Exception e) {
+                Log.e(TAG, "Non-cached streaming generation error", e);
+                postStreamingFailure(callback, "Streaming error: " + safeMessage(e));
+              }
+            })
+        .start();
+  }
+
   private void generateScriptWithCache(
       String level,
       String topic,
@@ -432,6 +522,227 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
           }
         })
         .start();
+  }
+
+  private void appendScriptStreamingPayload(
+      @NonNull JsonObject requestBody,
+      @NonNull String level,
+      @NonNull String topic,
+      @NonNull String format,
+      int length) {
+    JsonArray contents = new JsonArray();
+    JsonObject userContent = new JsonObject();
+    userContent.addProperty("role", "user");
+    JsonArray parts = new JsonArray();
+    JsonObject part = new JsonObject();
+    String userPrompt =
+        String.format(
+            "Generate a script with these parameters:\n- level: %s\n- topic: %s\n- format: %s\n- length: %d",
+            level, topic, format, length);
+    part.addProperty("text", userPrompt);
+    parts.add(part);
+    userContent.add("parts", parts);
+    contents.add(userContent);
+    requestBody.add("contents", contents);
+
+    JsonObject generationConfig = new JsonObject();
+    generationConfig.addProperty("responseMimeType", "application/json");
+    requestBody.add("generationConfig", generationConfig);
+  }
+
+  private void streamAndParseRequest(
+      @NonNull JsonObject requestBody,
+      boolean usedCache,
+      int requestedLength,
+      @NonNull IDialogueGenerateManager.ScriptStreamingCallback callback) {
+    int safeRequestedLength = Math.max(1, requestedLength);
+    long streamStartedAt = System.currentTimeMillis();
+    int emittedTurns = 0;
+    logStream("sse open: usedCache=" + usedCache + ", requestedLength=" + safeRequestedLength);
+    try {
+      Request request =
+          new Request.Builder()
+              .url(
+                  BASE_URL
+                      + "/models/"
+                      + modelName
+                      + ":streamGenerateContent?alt=sse&key="
+                      + apiKey)
+              .post(
+                  RequestBody.create(gson.toJson(requestBody), MediaType.parse("application/json")))
+              .build();
+
+      IncrementalDialogueScriptParser parser = new IncrementalDialogueScriptParser();
+      try (Response response = streamingClient.newCall(request).execute()) {
+        if (!response.isSuccessful()) {
+          String body = response.body() != null ? response.body().string() : "";
+          Log.e(TAG, "Streaming request failed: " + response.code() + " - " + body);
+          logStream("sse failed: code=" + response.code() + ", bodyLength=" + body.length());
+          if (usedCache && (response.code() == 400 || response.code() == 404)) {
+            cacheReady = false;
+            cachedContentName = null;
+          }
+          postStreamingFailure(callback, "Request failed: " + response.code());
+          return;
+        }
+        logStream("sse connected: code=" + response.code());
+        if (response.body() == null) {
+          logStream("sse failed: empty body");
+          postStreamingFailure(callback, "Streaming response body is empty");
+          return;
+        }
+
+        BufferedSource source = response.body().source();
+        while (!source.exhausted() && emittedTurns < safeRequestedLength) {
+          String line = source.readUtf8Line();
+          if (line == null || !line.startsWith("data: ")) {
+            continue;
+          }
+          String data = line.substring(6).trim();
+          if (data.isEmpty() || "[DONE]".equals(data)) {
+            continue;
+          }
+
+          try {
+            JsonObject root = JsonParser.parseString(data).getAsJsonObject();
+            JsonArray candidates = root.getAsJsonArray("candidates");
+            if (candidates == null || candidates.size() == 0) {
+              continue;
+            }
+            JsonObject content = candidates.get(0).getAsJsonObject().getAsJsonObject("content");
+            if (content == null) {
+              continue;
+            }
+            JsonArray responseParts = content.getAsJsonArray("parts");
+            if (responseParts == null || responseParts.size() == 0) {
+              continue;
+            }
+
+            for (JsonElement responsePart : responseParts) {
+              if (responsePart == null || !responsePart.isJsonObject()) {
+                continue;
+              }
+              JsonObject responsePartObject = responsePart.getAsJsonObject();
+              if (!responsePartObject.has("text")) {
+                continue;
+              }
+
+              IncrementalDialogueScriptParser.ParseUpdate update =
+                  parser.addChunk(responsePartObject.get("text").getAsString());
+              IncrementalDialogueScriptParser.Metadata metadata = update.getMetadata();
+              if (metadata != null) {
+                logStream(
+                    "metadata received: topic="
+                        + trimForLog(metadata.getTopic())
+                        + ", opponent="
+                        + trimForLog(metadata.getOpponentName())
+                        + ", gender="
+                        + trimForLog(metadata.getOpponentGender()));
+                postStreamingMetadata(
+                    callback,
+                    metadata.getTopic(),
+                    metadata.getOpponentName(),
+                    metadata.getOpponentGender());
+              }
+
+              for (String turnObject : update.getCompletedTurnObjects()) {
+                if (emittedTurns >= safeRequestedLength) {
+                  break;
+                }
+                IDialogueGenerateManager.ScriptTurnChunk turn =
+                    parseTurnObjectForStreaming(turnObject, emittedTurns);
+                if (turn == null) {
+                  continue;
+                }
+                emittedTurns++;
+                logStream(
+                    "turn received: "
+                        + emittedTurns
+                        + "/"
+                        + safeRequestedLength
+                        + ", role="
+                        + trimForLog(turn.getRole())
+                        + ", ko="
+                        + previewText(turn.getKorean())
+                        + ", en="
+                        + previewText(turn.getEnglish()));
+                postStreamingTurn(callback, turn);
+              }
+            }
+          } catch (Exception ignored) {
+            // Ignore malformed chunk and continue streaming.
+          }
+        }
+      }
+
+      if (emittedTurns <= 0) {
+        logStream("stream finished without valid turns");
+        postStreamingFailure(callback, "Failed to parse script turns");
+        return;
+      }
+      logStream(
+          "stream complete: emittedTurns="
+              + emittedTurns
+              + ", elapsedMs="
+              + (System.currentTimeMillis() - streamStartedAt));
+      postStreamingComplete(callback, null);
+    } catch (Exception e) {
+      logStream(
+          "stream exception: emittedTurns="
+              + emittedTurns
+              + ", message="
+              + trimForLog(safeMessage(e)));
+      postStreamingFailure(callback, "Streaming error: " + safeMessage(e));
+    }
+  }
+
+  @Nullable
+  private IDialogueGenerateManager.ScriptTurnChunk parseTurnObjectForStreaming(
+      @Nullable String turnObject, int turnIndex) {
+    if (turnObject == null || turnObject.trim().isEmpty()) {
+      return null;
+    }
+    try {
+      JsonObject item = JsonParser.parseString(turnObject).getAsJsonObject();
+      String korean = trimToNull(readAsString(item, "ko"));
+      String english = trimToNull(readAsString(item, "en"));
+      if (korean == null || english == null) {
+        return null;
+      }
+      String role = trimToNull(readAsString(item, "role"));
+      if (role == null) {
+        role = turnIndex % 2 == 0 ? "model" : "user";
+      }
+      return new IDialogueGenerateManager.ScriptTurnChunk(korean, english, role);
+    } catch (Exception ignored) {
+      return null;
+    }
+  }
+
+  private void postStreamingMetadata(
+      @NonNull IDialogueGenerateManager.ScriptStreamingCallback callback,
+      @NonNull String topic,
+      @NonNull String opponentName,
+      @NonNull String opponentGender) {
+    mainHandler.post(() -> callback.onMetadata(topic, opponentName, opponentGender));
+  }
+
+  private void postStreamingTurn(
+      @NonNull IDialogueGenerateManager.ScriptStreamingCallback callback,
+      @NonNull IDialogueGenerateManager.ScriptTurnChunk turn) {
+    mainHandler.post(() -> callback.onTurn(turn));
+  }
+
+  private void postStreamingComplete(
+      @NonNull IDialogueGenerateManager.ScriptStreamingCallback callback,
+      @Nullable String warningMessage) {
+    mainHandler.post(() -> callback.onComplete(warningMessage));
+  }
+
+  private void postStreamingFailure(
+      @NonNull IDialogueGenerateManager.ScriptStreamingCallback callback,
+      @NonNull String error) {
+    mainHandler.post(() -> callback.onFailure(error));
   }
 
   private void sendAndParseRequest(
@@ -646,6 +957,60 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
         + "- The FIRST line of the script (index 0) MUST be spoken by the **Opponent** (the person talking to the user).\n"
         + "- For example, if the topic is \"Ordering Coffee\", the first line should be the Barista saying \"Hello, what can I get for you?\".\n"
         + "- Ensure the roles alternate naturally from there: Opponent -> User -> Opponent -> User...";
+  }
+
+  @Nullable
+  private static String readAsString(@Nullable JsonObject obj, @NonNull String key) {
+    try {
+      if (obj != null && obj.has(key) && !obj.get(key).isJsonNull()) {
+        return obj.get(key).getAsString();
+      }
+    } catch (Exception ignored) {
+      // No-op.
+    }
+    return null;
+  }
+
+  @Nullable
+  private static String trimToNull(@Nullable String value) {
+    if (value == null) {
+      return null;
+    }
+    String trimmed = value.trim();
+    return trimmed.isEmpty() ? null : trimmed;
+  }
+
+  @NonNull
+  private static String safeMessage(@Nullable Exception e) {
+    if (e == null) {
+      return "unknown";
+    }
+    String message = e.getMessage();
+    return message == null ? "unknown" : message;
+  }
+
+  private void logStream(@NonNull String message) {
+    if (BuildConfig.DEBUG) {
+      Log.d(TAG, "[DL_STREAM] " + message);
+    }
+  }
+
+  @NonNull
+  private static String previewText(@Nullable String text) {
+    String value = trimToNull(text);
+    if (value == null) {
+      return "-";
+    }
+    if (value.length() <= 24) {
+      return value;
+    }
+    return value.substring(0, 24) + "...";
+  }
+
+  @NonNull
+  private static String trimForLog(@Nullable String value) {
+    String trimmed = trimToNull(value);
+    return trimmed == null ? "-" : trimmed;
   }
 
   private static String normalizeOrDefault(String value, String defaultValue) {

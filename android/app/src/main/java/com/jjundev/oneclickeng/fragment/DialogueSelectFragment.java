@@ -3,6 +3,7 @@ package com.jjundev.oneclickeng.fragment;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,6 +25,7 @@ import com.jjundev.oneclickeng.dialog.DialogueGenerateDialog;
 import com.jjundev.oneclickeng.dialog.DialogueLearningSettingDialog;
 import com.jjundev.oneclickeng.learning.dialoguelearning.di.LearningDependencyProvider;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IDialogueGenerateManager;
+import com.jjundev.oneclickeng.learning.dialoguelearning.session.DialogueScriptStreamingSessionStore;
 import com.jjundev.oneclickeng.others.ScriptSelectAdapter;
 import com.jjundev.oneclickeng.others.ScriptTemplate;
 import com.jjundev.oneclickeng.settings.AppSettings;
@@ -33,7 +35,9 @@ import java.util.List;
 
 public class DialogueSelectFragment extends Fragment
     implements DialogueGenerateDialog.OnScriptParamsSelectedListener {
+  private static final String TAG = "DialogueSelectFragment";
   private static final String DIALOG_TAG_LEARNING_SETTINGS = "DialogueLearningSettingDialog";
+  private static final int MIN_TURN_COUNT_TO_START = 2;
 
   private ImageButton btnBack;
   private ImageButton btnSettings;
@@ -43,6 +47,9 @@ public class DialogueSelectFragment extends Fragment
   private ScriptSelectAdapter adapter;
   private List<ScriptTemplate> templateList;
   private IDialogueGenerateManager scriptGenerator;
+  @Nullable private String pendingScriptSessionId;
+  @Nullable private DialogueScriptStreamingSessionStore.Listener pendingScriptSessionListener;
+  private long scriptPreparationRequestId = 0L;
 
   @Nullable
   @Override
@@ -62,13 +69,12 @@ public class DialogueSelectFragment extends Fragment
         new IDialogueGenerateManager.InitCallback() {
           @Override
           public void onReady() {
-            android.util.Log.d("DialogueSelectFragment", "Script generator cache ready");
+            logStream("generator cache ready");
           }
 
           @Override
           public void onError(String error) {
-            android.util.Log.e(
-                "DialogueSelectFragment", "Script generator cache init error: " + error);
+            Log.e(TAG, "[DL_STREAM] generator cache init error: " + error);
           }
         });
 
@@ -80,6 +86,13 @@ public class DialogueSelectFragment extends Fragment
 
     setupRecyclerView();
     setupListeners();
+  }
+
+  @Override
+  public void onDestroyView() {
+    clearPendingScriptSession(true);
+    scriptPreparationRequestId = 0L;
+    super.onDestroyView();
   }
 
   private void setupRecyclerView() {
@@ -162,59 +175,346 @@ public class DialogueSelectFragment extends Fragment
   @Override
   public void onScriptParamsSelected(
       String level, String topic, String format, int length, DialogueGenerateDialog dialog) {
-    generateScript(level, topic, format, length, dialog);
+    generateScriptStreaming(level, topic, format, length, dialog);
   }
 
-  private void generateScript(
-      String level, String topic, String format, int length, DialogueGenerateDialog dialog) {
-    // If dialog is null, it means it was called from somewhere else (not the case
-    // here yet)
-    // If dialog is not null, the dialog itself is showing the loading UI
+  private void generateScriptStreaming(
+      @NonNull String level,
+      @NonNull String topic,
+      @NonNull String format,
+      int length,
+      @Nullable DialogueGenerateDialog dialog) {
+    logStream(
+        "prepare start: level="
+            + level
+            + ", topic="
+            + safeText(topic)
+            + ", format="
+            + format
+            + ", requestedLength="
+            + Math.max(1, length));
+    clearPendingScriptSession(true);
+    long requestId = ++scriptPreparationRequestId;
+    DialogueScriptStreamingSessionStore sessionStore =
+        LearningDependencyProvider.provideDialogueScriptStreamingSessionStore();
 
-    scriptGenerator.generateScript(
-        level,
-        topic,
-        format,
-        length,
-        new com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IDialogueGenerateManager.ScriptGenerationCallback() {
+    String sessionId = sessionStore.startSession(scriptGenerator, level, topic, format, length);
+    logStream("session started: requestId=" + requestId + ", sessionId=" + shortSession(sessionId));
+    final boolean[] started = {false};
+    final String[] resolvedTopic = {topic};
+    final int[] validTurnCount = {0};
+
+    DialogueScriptStreamingSessionStore.Listener listener =
+        new DialogueScriptStreamingSessionStore.Listener() {
           @Override
-          public void onSuccess(String jsonResult) {
-            if (!isAdded())
+          public void onMetadata(@NonNull DialogueScriptStreamingSessionStore.ScriptMetadata metadata) {
+            if (requestId != scriptPreparationRequestId || started[0]) {
               return;
-
-            if (dialog != null) {
-              dialog.dismiss();
             }
-
-            startScriptStudy(jsonResult, level);
+            String metadataTopic = trimToNull(metadata.getTopic());
+            if (metadataTopic != null) {
+              resolvedTopic[0] = metadataTopic;
+            }
+            logStream(
+                "prepare metadata: requestId="
+                    + requestId
+                    + ", topic="
+                    + safeText(resolvedTopic[0]));
           }
 
           @Override
-          public void onError(Throwable t) {
-            if (!isAdded())
+          public void onTurn(@NonNull IDialogueGenerateManager.ScriptTurnChunk turn) {
+            if (requestId != scriptPreparationRequestId || started[0]) {
               return;
-
-            if (dialog != null) {
-              dialog.showLoading(false);
             }
-            Toast.makeText(getContext(), "대본 생성 중 오류가 발생했어요", Toast.LENGTH_SHORT).show();
+            if (!isValidTurn(turn)) {
+              return;
+            }
+            validTurnCount[0]++;
+            logStream(
+                "prepare turn: requestId="
+                    + requestId
+                    + ", validTurnCount="
+                    + validTurnCount[0]
+                    + "/"
+                    + MIN_TURN_COUNT_TO_START
+                    + ", role="
+                    + safeText(turn.getRole()));
+            if (validTurnCount[0] >= MIN_TURN_COUNT_TO_START) {
+              started[0] = true;
+              logStream(
+                  "prepare threshold reached: requestId="
+                      + requestId
+                      + ", sessionId="
+                      + shortSession(sessionId));
+              startPreparedScriptStudy(
+                  dialog,
+                  requestId,
+                  level,
+                  Math.max(1, length),
+                  resolvedTopic[0],
+                  sessionId);
+            }
           }
-        });
-  }
 
-  private void startScriptStudy(@NonNull String scriptJson, @Nullable String level) {
-    if (getActivity() == null)
+          @Override
+          public void onComplete(@Nullable String warningMessage) {
+            if (requestId != scriptPreparationRequestId || started[0]) {
+              return;
+            }
+            logStream(
+                "prepare complete before start: requestId="
+                    + requestId
+                    + ", warning="
+                    + safeText(warningMessage));
+            showScriptPreparationError(dialog, requestId);
+          }
+
+          @Override
+          public void onFailure(@NonNull String error) {
+            if (requestId != scriptPreparationRequestId || started[0]) {
+              return;
+            }
+            logStream(
+                "prepare failure before start: requestId="
+                    + requestId
+                    + ", error="
+                    + safeText(error));
+            showScriptPreparationError(dialog, requestId);
+          }
+        };
+
+    pendingScriptSessionId = sessionId;
+    pendingScriptSessionListener = listener;
+    DialogueScriptStreamingSessionStore.Snapshot snapshot = sessionStore.attach(sessionId, listener);
+    if (snapshot == null) {
+      logStream(
+          "prepare attach failed: requestId="
+              + requestId
+              + ", sessionId="
+              + shortSession(sessionId));
+      showScriptPreparationError(dialog, requestId);
       return;
+    }
+    logStream(
+        "prepare snapshot: requestId="
+            + requestId
+            + ", bufferedTurns="
+            + snapshot.getBufferedTurns().size()
+            + ", completed="
+            + snapshot.isCompleted()
+            + ", failure="
+            + (trimToNull(snapshot.getFailureMessage()) != null));
+    if (snapshot.getMetadata() != null) {
+      String metadataTopic = trimToNull(snapshot.getMetadata().getTopic());
+      if (metadataTopic != null) {
+        resolvedTopic[0] = metadataTopic;
+      }
+    }
+    validTurnCount[0] = countValidTurns(snapshot.getBufferedTurns());
+    if (hasStartableTurns(snapshot.getBufferedTurns())) {
+      started[0] = true;
+      logStream(
+          "prepare threshold reached from snapshot: requestId="
+              + requestId
+              + ", sessionId="
+              + shortSession(sessionId));
+      startPreparedScriptStudy(
+          dialog, requestId, level, Math.max(1, length), resolvedTopic[0], sessionId);
+      return;
+    }
+    if (trimToNull(snapshot.getFailureMessage()) != null || snapshot.isCompleted()) {
+      logStream(
+          "prepare cannot start from snapshot: requestId="
+              + requestId
+              + ", completed="
+              + snapshot.isCompleted()
+              + ", failure="
+              + safeText(snapshot.getFailureMessage()));
+      showScriptPreparationError(dialog, requestId);
+    }
+  }
+
+  private void startPreparedScriptStudy(
+      @Nullable DialogueGenerateDialog dialog,
+      long requestId,
+      @NonNull String level,
+      int requestedLength,
+      @NonNull String requestedTopic,
+      @NonNull String sessionId) {
+    logStream(
+        "start learning activity: requestId="
+            + requestId
+            + ", level="
+            + level
+            + ", requestedLength="
+            + requestedLength
+            + ", topic="
+            + safeText(requestedTopic)
+            + ", sessionId="
+            + shortSession(sessionId));
+    clearPendingScriptSession(false);
+    finishScriptPreparation(dialog, requestId);
+    if (dialog != null && dialog.isAdded()) {
+      dialog.dismiss();
+    }
+    startScriptStudyStreaming(level, requestedLength, requestedTopic, sessionId);
+  }
+
+  private void showScriptPreparationError(@Nullable DialogueGenerateDialog dialog, long requestId) {
+    logStream("prepare error: requestId=" + requestId);
+    clearPendingScriptSession(true);
+    finishScriptPreparation(dialog, requestId);
+    if (!isAdded()) {
+      return;
+    }
+    Toast.makeText(getContext(), "대본 생성 중 오류가 발생했어요", Toast.LENGTH_SHORT).show();
+  }
+
+  private void finishScriptPreparation(@Nullable DialogueGenerateDialog dialog, long requestId) {
+    if (dialog != null) {
+      dialog.showLoading(false);
+    }
+    if (requestId == scriptPreparationRequestId) {
+      scriptPreparationRequestId = 0L;
+    }
+  }
+
+  private void clearPendingScriptSession(boolean releaseSession) {
+    String sessionId = pendingScriptSessionId;
+    DialogueScriptStreamingSessionStore.Listener listener = pendingScriptSessionListener;
+    pendingScriptSessionId = null;
+    pendingScriptSessionListener = null;
+
+    if (sessionId == null) {
+      return;
+    }
+    DialogueScriptStreamingSessionStore sessionStore =
+        LearningDependencyProvider.provideDialogueScriptStreamingSessionStore();
+    if (listener != null) {
+      sessionStore.detach(sessionId, listener);
+    }
+    if (releaseSession) {
+      sessionStore.release(sessionId);
+    }
+    logStream(
+        "clear pending session: sessionId="
+            + shortSession(sessionId)
+            + ", release="
+            + releaseSession);
+  }
+
+  private void startScriptStudyStreaming(
+      @NonNull String level,
+      int requestedLength,
+      @NonNull String requestedTopic,
+      @NonNull String sessionId) {
+    if (!isAdded() || getActivity() == null) {
+      logStream(
+          "start activity aborted: host unavailable, sessionId=" + shortSession(sessionId));
+      LearningDependencyProvider.provideDialogueScriptStreamingSessionStore().release(sessionId);
+      return;
+    }
 
     Intent intent = new Intent(getActivity(), DialogueLearningActivity.class);
-    intent.putExtra("SCRIPT_DATA", scriptJson);
-    if (level != null && !level.trim().isEmpty()) {
-      intent.putExtra(DialogueLearningActivity.EXTRA_SCRIPT_LEVEL, level);
+    intent.putExtra(DialogueLearningActivity.EXTRA_SCRIPT_LEVEL, level);
+    intent.putExtra(DialogueLearningActivity.EXTRA_SCRIPT_STREAM_SESSION_ID, sessionId);
+    intent.putExtra(DialogueLearningActivity.EXTRA_REQUESTED_SCRIPT_LENGTH, requestedLength);
+    intent.putExtra(DialogueLearningActivity.EXTRA_SCRIPT_TOPIC, requestedTopic);
+    try {
+      startActivity(intent);
+    } catch (Exception e) {
+      logStream(
+          "start activity failed: sessionId="
+              + shortSession(sessionId)
+              + ", error="
+              + safeText(e.getMessage()));
+      LearningDependencyProvider.provideDialogueScriptStreamingSessionStore().release(sessionId);
+      if (isAdded()) {
+        Toast.makeText(getContext(), "대본 화면 이동 중 오류가 발생했어요", Toast.LENGTH_SHORT).show();
+      }
+      return;
     }
-    startActivity(intent);
-
+    logStream("start activity success: sessionId=" + shortSession(sessionId));
     hideKeyboard();
   }
+
+  private boolean hasStartableTurns(
+      @Nullable List<IDialogueGenerateManager.ScriptTurnChunk> turns) {
+    if (turns == null || turns.size() < MIN_TURN_COUNT_TO_START) {
+      return false;
+    }
+    int validCount = 0;
+    for (IDialogueGenerateManager.ScriptTurnChunk turn : turns) {
+      if (isValidTurn(turn)) {
+        validCount++;
+      }
+      if (validCount >= MIN_TURN_COUNT_TO_START) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean isValidTurn(@Nullable IDialogueGenerateManager.ScriptTurnChunk turn) {
+    if (turn == null) {
+      return false;
+    }
+    return trimToNull(turn.getKorean()) != null && trimToNull(turn.getEnglish()) != null;
+  }
+
+  private int countValidTurns(@Nullable List<IDialogueGenerateManager.ScriptTurnChunk> turns) {
+    if (turns == null || turns.isEmpty()) {
+      return 0;
+    }
+    int count = 0;
+    for (IDialogueGenerateManager.ScriptTurnChunk turn : turns) {
+      if (isValidTurn(turn)) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  @Nullable
+  private static String trimToNull(@Nullable String value) {
+    if (value == null) {
+      return null;
+    }
+    String trimmed = value.trim();
+    return trimmed.isEmpty() ? null : trimmed;
+  }
+
+  private void logStream(@NonNull String message) {
+    if (BuildConfig.DEBUG) {
+      Log.d(TAG, "[DL_STREAM] " + message);
+    }
+  }
+
+  @NonNull
+  private static String shortSession(@Nullable String sessionId) {
+    String value = trimToNull(sessionId);
+    if (value == null) {
+      return "-";
+    }
+    if (value.length() <= 8) {
+      return value;
+    }
+    return value.substring(0, 8);
+  }
+
+  @NonNull
+  private static String safeText(@Nullable String value) {
+    String text = trimToNull(value);
+    if (text == null) {
+      return "-";
+    }
+    if (text.length() <= 32) {
+      return text;
+    }
+    return text.substring(0, 32) + "...";
+  }
+
 
   private void updateEmptyState() {
     if (templateList.isEmpty()) {

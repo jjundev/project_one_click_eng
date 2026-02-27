@@ -146,6 +146,10 @@ public final class DialogueTurnCoordinator {
       loggerDelegate.trace("TRACE_TURN_PATH action=empty_turn");
       return;
     }
+    if (turnResult.getType() == ScriptFlowController.NextTurnResult.Type.WAITING) {
+      loggerDelegate.trace("TRACE_TURN_PATH action=waiting_turn");
+      return;
+    }
 
     ScriptTurn turn = turnResult.getTurn();
     if (turn == null) {

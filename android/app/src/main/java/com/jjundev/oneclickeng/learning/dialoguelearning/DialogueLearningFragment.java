@@ -40,6 +40,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
+import com.jjundev.oneclickeng.activity.DialogueLearningActivity;
 import com.jjundev.oneclickeng.learning.dialoguelearning.coordinator.DialogueFeedbackCoordinator;
 import com.jjundev.oneclickeng.learning.dialoguelearning.coordinator.DialoguePlaybackCoordinator;
 import com.jjundev.oneclickeng.learning.dialoguelearning.coordinator.DialogueSpeakingCoordinator;
@@ -441,6 +442,28 @@ public class DialogueLearningFragment extends Fragment {
     if (getArguments() == null) {
       return;
     }
+    String streamSessionId =
+        getArguments().getString(DialogueLearningActivity.EXTRA_SCRIPT_STREAM_SESSION_ID);
+    if (!isBlank(streamSessionId) && viewModel != null) {
+      int requestedScriptLength =
+          getArguments().getInt(DialogueLearningActivity.EXTRA_REQUESTED_SCRIPT_LENGTH, 0);
+      String requestedTopic = getArguments().getString(DialogueLearningActivity.EXTRA_SCRIPT_TOPIC);
+      boolean attached =
+          viewModel.attachScriptStreamingSession(
+              streamSessionId, requestedScriptLength, requestedTopic);
+      if (!attached) {
+        logTrace("TRACE_STREAM_ATTACH success=false");
+        abortLearningHost("대본을 불러오지 못했어요");
+        return;
+      }
+      logTrace("TRACE_STREAM_ATTACH success=true");
+      isScriptLoaded = true;
+      hasNotifiedLearningSessionFinished = false;
+      applyScriptMetadataFromState();
+      tryStartTurnFlow();
+      return;
+    }
+
     String scriptJson = getArguments().getString("SCRIPT_DATA");
     if (scriptJson == null) {
       return;
@@ -1859,6 +1882,12 @@ public class DialogueLearningFragment extends Fragment {
     if (handleOpenSummaryEvent(consumedEvent)) {
       return;
     }
+    if (handleAdvanceTurnEvent(consumedEvent)) {
+      return;
+    }
+    if (handleAbortLearningEvent(consumedEvent)) {
+      return;
+    }
     handlePlayScriptTtsEvent(consumedEvent);
   }
 
@@ -1907,6 +1936,25 @@ public class DialogueLearningFragment extends Fragment {
     }
     logTrace("TRACE_SUMMARY_TRIGGER reason=user_click");
     openSummaryFragment("user_click");
+    return true;
+  }
+
+  private boolean handleAdvanceTurnEvent(@NonNull DialogueUiEvent consumedEvent) {
+    if (!(consumedEvent instanceof DialogueUiEvent.AdvanceTurn)) {
+      return false;
+    }
+    if (turnCoordinator != null) {
+      turnCoordinator.processNextScriptStep();
+    }
+    return true;
+  }
+
+  private boolean handleAbortLearningEvent(@NonNull DialogueUiEvent consumedEvent) {
+    if (!(consumedEvent instanceof DialogueUiEvent.AbortLearning)) {
+      return false;
+    }
+    DialogueUiEvent.AbortLearning abortEvent = (DialogueUiEvent.AbortLearning) consumedEvent;
+    abortLearningHost(abortEvent.getMessage());
     return true;
   }
 
@@ -2382,6 +2430,17 @@ public class DialogueLearningFragment extends Fragment {
       if (imm != null) {
         imm.hideSoftInputFromWindow(getView().getWindowToken(), 0);
       }
+    }
+  }
+
+  private void abortLearningHost(@Nullable String message) {
+    if (isAdded()) {
+      String toastMessage =
+          isBlank(message) ? "대본 생성 중 오류가 발생했어요" : message.trim();
+      Toast.makeText(getContext(), toastMessage, Toast.LENGTH_SHORT).show();
+    }
+    if (getActivity() != null) {
+      getActivity().finish();
     }
   }
 
