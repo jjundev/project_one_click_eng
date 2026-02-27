@@ -225,25 +225,62 @@ public class LoginActivity extends AppCompatActivity {
 
   private void checkEmailExists(String email) {
     setLoadingState(true);
-    new Handler(Looper.getMainLooper()).postDelayed(() -> {
-      setLoadingState(false);
-      // 이메일 보유 여부 분기 (test가 포함되어 있으면 기존 회원으로 간주)
-      if (email.contains("test")) {
-        TextView tvDisplayEmail = findViewById(R.id.tvDisplayEmail);
-        if (tvDisplayEmail != null)
-          tvDisplayEmail.setText(email);
-        showStep(layoutPasswordStep, layoutEmailStep, false);
-      } else {
-        showStep(layoutSignupStep, layoutEmailStep, false);
-      }
-    }, 1500);
+    FirebaseAuth.getInstance()
+        .fetchSignInMethodsForEmail(email)
+        .addOnCompleteListener(
+            task -> {
+              setLoadingState(false);
+              if (task.isSuccessful()) {
+                boolean isNewUser = task.getResult().getSignInMethods().isEmpty();
+                TextView tvDisplayEmail = findViewById(R.id.tvDisplayEmail);
+                if (tvDisplayEmail != null)
+                  tvDisplayEmail.setText(email);
+
+                TextView tvDisplaySignupEmail = findViewById(R.id.tvDisplaySignupEmail);
+                if (tvDisplaySignupEmail != null)
+                  tvDisplaySignupEmail.setText(email);
+
+                if (isNewUser) {
+                  showStep(layoutSignupStep, layoutEmailStep, false);
+                } else {
+                  showStep(layoutPasswordStep, layoutEmailStep, false);
+                }
+              } else {
+                Toast.makeText(this, "이메일 확인 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show();
+              }
+            });
   }
 
   private void setupPasswordStep() {
     findViewById(R.id.btnBackFromPassword).setOnClickListener(v -> showStep(layoutEmailStep, layoutPasswordStep, true));
+    TextInputEditText etPassword = findViewById(R.id.etPassword);
+
     findViewById(R.id.btnLogin).setOnClickListener(v -> {
-      Toast.makeText(this, "로그인 성공!", Toast.LENGTH_SHORT).show();
-      navigateToMain();
+      String password = etPassword.getText() != null ? etPassword.getText().toString() : "";
+      if (password.isEmpty()) {
+        Toast.makeText(this, "비밀번호를 입력해주세요.", Toast.LENGTH_SHORT).show();
+        return;
+      }
+
+      TextView tvDisplayEmail = findViewById(R.id.tvDisplayEmail);
+      String email = tvDisplayEmail.getText().toString();
+
+      setLoadingState(true);
+      FirebaseAuth.getInstance()
+          .signInWithEmailAndPassword(email, password)
+          .addOnCompleteListener(
+              this,
+              task -> {
+                setLoadingState(false);
+                if (task.isSuccessful()) {
+                  Log.d(TAG, "signInWithEmail:success");
+                  Toast.makeText(this, "로그인 성공!", Toast.LENGTH_SHORT).show();
+                  navigateToMain();
+                } else {
+                  Log.w(TAG, "signInWithEmail:failure", task.getException());
+                  Toast.makeText(this, "로그인 실패: 비밀번호를 확인해주세요.", Toast.LENGTH_SHORT).show();
+                }
+              });
     });
   }
 
@@ -261,8 +298,8 @@ public class LoginActivity extends AppCompatActivity {
 
       @Override
       public void onTextChanged(CharSequence s, int start, int before, int count) {
-        String p1 = etSignupPassword.getText().toString();
-        String p2 = etSignupPasswordConfirm.getText().toString();
+        String p1 = etSignupPassword.getText() != null ? etSignupPassword.getText().toString() : "";
+        String p2 = etSignupPasswordConfirm.getText() != null ? etSignupPasswordConfirm.getText().toString() : "";
 
         if (p1.length() == 0) {
           tvPasswordStrength.setText("비밀번호 강도: -");
@@ -293,8 +330,31 @@ public class LoginActivity extends AppCompatActivity {
     etSignupPasswordConfirm.addTextChangedListener(signupWatcher);
 
     btnSignup.setOnClickListener(v -> {
-      Toast.makeText(this, "회원가입 및 로그인 완료!", Toast.LENGTH_SHORT).show();
-      navigateToMain();
+      String password = etSignupPassword.getText() != null ? etSignupPassword.getText().toString() : "";
+      TextView tvDisplaySignupEmail = findViewById(R.id.tvDisplaySignupEmail);
+      String email = tvDisplaySignupEmail != null ? tvDisplaySignupEmail.getText().toString() : "";
+
+      if (email.isEmpty() || password.isEmpty()) {
+        Toast.makeText(this, "이메일 또는 비밀번호가 유효하지 않습니다.", Toast.LENGTH_SHORT).show();
+        return;
+      }
+
+      setLoadingState(true);
+      FirebaseAuth.getInstance()
+          .createUserWithEmailAndPassword(email, password)
+          .addOnCompleteListener(
+              this,
+              task -> {
+                setLoadingState(false);
+                if (task.isSuccessful()) {
+                  Log.d(TAG, "createUserWithEmail:success");
+                  Toast.makeText(this, "회원가입 및 로그인 완료!", Toast.LENGTH_SHORT).show();
+                  navigateToMain();
+                } else {
+                  Log.w(TAG, "createUserWithEmail:failure", task.getException());
+                  Toast.makeText(this, "회원가입 실패: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                }
+              });
     });
   }
 

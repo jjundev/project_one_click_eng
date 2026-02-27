@@ -32,6 +32,15 @@
             android:textStyle="bold" />
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/tvDisplaySignupEmail"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="example@domain.com"
+        android:textColor="@color/color_sub_text"
+        android:textSize="14sp"
+        android:layout_marginBottom="24dp" />
+
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/tilSignupPassword"
         android:layout_width="match_parent"
