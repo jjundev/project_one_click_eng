@@ -183,7 +183,7 @@ public class SettingFragment extends Fragment
     }
 
     if (layoutChargeCredit != null) {
-      layoutChargeCredit.setOnClickListener(v -> showToastSafe("충전 기능은 준비 중입니다."));
+      layoutChargeCredit.setOnClickListener(v -> showChargeCreditDialog());
     }
 
     if (tvLogout != null) {
@@ -537,6 +537,30 @@ public class SettingFragment extends Fragment
           }
         });
       }
+    });
+
+    dialog.show();
+  }
+
+  private void showChargeCreditDialog() {
+    View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_charge_credit, null);
+
+    AppCompatButton btnCancel = dialogView.findViewById(R.id.btn_charge_cancel);
+    AppCompatButton btnAd = dialogView.findViewById(R.id.btn_charge_ad);
+
+    android.app.Dialog dialog = new android.app.Dialog(requireContext());
+    dialog.setContentView(dialogView);
+    if (dialog.getWindow() != null) {
+      dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0));
+      android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+      int width = (int) (metrics.widthPixels * 0.9f);
+      dialog.getWindow().setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT);
+    }
+
+    btnCancel.setOnClickListener(v -> dialog.dismiss());
+    btnAd.setOnClickListener(v -> {
+      showToastSafe("광고보고 1크레딧 충전 기능은 준비 중입니다.");
+      dialog.dismiss();
     });
 
     dialog.show();
