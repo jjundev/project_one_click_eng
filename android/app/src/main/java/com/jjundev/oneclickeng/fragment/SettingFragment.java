@@ -106,6 +106,7 @@ public class SettingFragment extends Fragment
 
   private TextView tvCreditRemainingValue;
   private LinearLayout layoutChargeCredit;
+  private LinearLayout layoutCouponInput;
 
   private RewardedAd rewardedAd;
   private boolean isRewardEarned = false;
@@ -160,6 +161,7 @@ public class SettingFragment extends Fragment
 
     tvCreditRemainingValue = view.findViewById(R.id.tv_credit_remaining_value);
     layoutChargeCredit = view.findViewById(R.id.layout_charge_credit);
+    layoutCouponInput = view.findViewById(R.id.layout_coupon_input);
 
     if (tvAppVersion != null) {
       tvAppVersion.setText(BuildConfig.VERSION_NAME);
@@ -199,6 +201,10 @@ public class SettingFragment extends Fragment
 
     if (layoutChargeCredit != null) {
       layoutChargeCredit.setOnClickListener(v -> showChargeCreditDialog());
+    }
+
+    if (layoutCouponInput != null) {
+      layoutCouponInput.setOnClickListener(v -> showCouponInputDialog());
     }
 
     if (tvLogout != null) {
@@ -552,6 +558,109 @@ public class SettingFragment extends Fragment
           }
         });
       }
+    });
+
+    dialog.show();
+  }
+
+  private void showCouponInputDialog() {
+    View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_input_coupon, null);
+
+    EditText etCouponInput = dialogView.findViewById(R.id.et_coupon_input);
+    TextView tvError = dialogView.findViewById(R.id.tv_coupon_error);
+    AppCompatButton btnCancel = dialogView.findViewById(R.id.btn_coupon_cancel);
+    AppCompatButton btnApply = dialogView.findViewById(R.id.btn_coupon_apply);
+
+    android.app.Dialog dialog = new android.app.Dialog(requireContext());
+    dialog.setContentView(dialogView);
+    if (dialog.getWindow() != null) {
+      dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0));
+      android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+      int width = (int) (metrics.widthPixels * 0.9f);
+      dialog.getWindow().setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT);
+    }
+
+    btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+    btnApply.setOnClickListener(v -> {
+      String code = etCouponInput.getText().toString().trim();
+      if (code.isEmpty()) {
+        tvError.setText("쿠폰 코드를 입력해주세요.");
+        tvError.setVisibility(View.VISIBLE);
+        return;
+      }
+
+      // Hide keyboard
+      android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) requireContext()
+          .getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+      if (imm != null) {
+        imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+      }
+
+      tvError.setVisibility(View.GONE);
+      btnApply.setEnabled(false);
+      btnApply.setText("확인중...");
+
+      FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+      if (user == null) {
+        tvError.setText("로그인 정보를 확인할 수 없어요.");
+        tvError.setVisibility(View.VISIBLE);
+        btnApply.setEnabled(true);
+        btnApply.setText("적용");
+        return;
+      }
+
+      FirebaseFirestore db = FirebaseFirestore.getInstance();
+      db.collection("users").document(user.getUid()).get().addOnCompleteListener(task -> {
+        if (task.isSuccessful() && task.getResult() != null) {
+          DocumentSnapshot userDoc = task.getResult();
+          List<String> usedCodes = (List<String>) userDoc.get("used_code");
+          if (usedCodes != null && usedCodes.contains(code)) {
+            tvError.setText("이미 사용된 쿠폰입니다.");
+            tvError.setVisibility(View.VISIBLE);
+            btnApply.setEnabled(true);
+            btnApply.setText("적용");
+            return;
+          }
+
+          db.collection("coupons").whereEqualTo("code", code).get().addOnCompleteListener(couponTask -> {
+            if (couponTask.isSuccessful() && couponTask.getResult() != null && !couponTask.getResult().isEmpty()) {
+              DocumentSnapshot couponDoc = couponTask.getResult().getDocuments().get(0);
+              Long rewardCreditObj = couponDoc.getLong("reward_credit");
+              long rewardCredit = rewardCreditObj != null ? rewardCreditObj : 0L;
+
+              WriteBatch batch = db.batch();
+              com.google.firebase.firestore.DocumentReference userRef = db.collection("users").document(user.getUid());
+
+              batch.update(userRef, "credit", com.google.firebase.firestore.FieldValue.increment(rewardCredit));
+              batch.update(userRef, "used_code", com.google.firebase.firestore.FieldValue.arrayUnion(code));
+
+              batch.commit().addOnCompleteListener(updateTask -> {
+                if (updateTask.isSuccessful()) {
+                  showToastSafe(rewardCredit + " 크레딧이 지급되었어요");
+                  dialog.dismiss();
+                  fetchUserCredit(); // Refresh UI
+                } else {
+                  tvError.setText("보상 지급에 실패했어요.");
+                  tvError.setVisibility(View.VISIBLE);
+                  btnApply.setEnabled(true);
+                  btnApply.setText("적용");
+                }
+              });
+            } else {
+              tvError.setText("존재하지 않거나 유효하지 않은 쿠폰입니다.");
+              tvError.setVisibility(View.VISIBLE);
+              btnApply.setEnabled(true);
+              btnApply.setText("적용");
+            }
+          });
+        } else {
+          tvError.setText("사용자 정보를 확인하는 중 오류가 발생했습니다.");
+          tvError.setVisibility(View.VISIBLE);
+          btnApply.setEnabled(true);
+          btnApply.setText("적용");
+        }
+      });
     });
 
     dialog.show();
