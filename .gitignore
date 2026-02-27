@@ -19,3 +19,4 @@ android/local.properties
 local.properties
 *.jks
 *.keystore
+android/app/release/app-release.aab

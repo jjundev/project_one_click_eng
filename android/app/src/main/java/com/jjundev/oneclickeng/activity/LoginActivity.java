@@ -1,5 +1,6 @@
 package com.jjundev.oneclickeng.activity;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
@@ -13,12 +14,16 @@ import android.util.Log;
 import android.util.Patterns;
 import android.view.View;
 import android.view.animation.AnimationUtils;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.VideoView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.credentials.CredentialManager;
 import androidx.credentials.CredentialManagerCallback;
 import androidx.credentials.CustomCredential;
@@ -38,9 +43,12 @@ import com.jjundev.oneclickeng.R;
 
 public class LoginActivity extends AppCompatActivity {
 
+  private static final long IME_HIDE_TIMEOUT_MS = 300L;
+  private static final long IME_POLL_INTERVAL_MS = 16L;
   private VideoView videoViewBackground;
   private BottomSheetBehavior<LinearLayout> bottomSheetBehavior;
   private static final String TAG = "LoginActivity";
+  private final Handler imeHandler = new Handler(Looper.getMainLooper());
 
   private View layoutLoginContent;
   private View layoutEmailStep;
@@ -48,6 +56,8 @@ public class LoginActivity extends AppCompatActivity {
   private View layoutSignupStep;
   private View layoutLoginLoading;
   private View currentStepLayout;
+  private Runnable imeHidePollRunnable;
+  private boolean isBackTransitionPending;
 
   @Override
   protected void onStart() {
@@ -198,9 +208,23 @@ public class LoginActivity extends AppCompatActivity {
   }
 
   private void setupEmailStep() {
-    findViewById(R.id.btnBackFromEmail).setOnClickListener(v -> showStep(layoutLoginContent, layoutEmailStep, true));
     TextInputEditText etEmail = findViewById(R.id.etEmail);
     MaterialButton btnEmailContinue = findViewById(R.id.btnEmailContinue);
+    findViewById(R.id.btnBackFromEmail).setOnClickListener(v -> {
+      if (isBackTransitionPending) {
+        return;
+      }
+      isBackTransitionPending = true;
+      etEmail.clearFocus();
+      hideKeyboardThenRun(
+          v,
+          () -> {
+            isBackTransitionPending = false;
+            if (!isFinishing() && !isDestroyed()) {
+              showStep(layoutLoginContent, layoutEmailStep, true);
+            }
+          });
+    });
 
     etEmail.addTextChangedListener(new TextWatcher() {
       @Override
@@ -222,6 +246,59 @@ public class LoginActivity extends AppCompatActivity {
       String email = etEmail.getText().toString().trim();
       checkEmailExists(email);
     });
+  }
+
+  private void hideKeyboardThenRun(View tokenView, Runnable afterHidden) {
+    if (afterHidden == null) {
+      return;
+    }
+
+    View rootView = findViewById(android.R.id.content);
+    if (rootView == null) {
+      afterHidden.run();
+      return;
+    }
+
+    if (imeHidePollRunnable != null) {
+      imeHandler.removeCallbacks(imeHidePollRunnable);
+      imeHidePollRunnable = null;
+    }
+
+    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+    if (imm != null && tokenView != null) {
+      imm.hideSoftInputFromWindow(tokenView.getWindowToken(), 0);
+    }
+
+    WindowInsetsControllerCompat insetsController = ViewCompat.getWindowInsetsController(rootView);
+    if (insetsController != null) {
+      insetsController.hide(WindowInsetsCompat.Type.ime());
+    }
+
+    if (!isImeVisible(rootView)) {
+      afterHidden.run();
+      return;
+    }
+
+    final long startedAtMs = System.currentTimeMillis();
+    imeHidePollRunnable =
+        new Runnable() {
+          @Override
+          public void run() {
+            long elapsedMs = System.currentTimeMillis() - startedAtMs;
+            if (!isImeVisible(rootView) || elapsedMs >= IME_HIDE_TIMEOUT_MS) {
+              imeHidePollRunnable = null;
+              afterHidden.run();
+              return;
+            }
+            imeHandler.postDelayed(this, IME_POLL_INTERVAL_MS);
+          }
+        };
+    imeHandler.post(imeHidePollRunnable);
+  }
+
+  private boolean isImeVisible(View rootView) {
+    WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(rootView);
+    return insets != null && insets.isVisible(WindowInsetsCompat.Type.ime());
   }
 
   private void checkEmailExists(String email) {
@@ -253,8 +330,22 @@ public class LoginActivity extends AppCompatActivity {
   }
 
   private void setupPasswordStep() {
-    findViewById(R.id.btnBackFromPassword).setOnClickListener(v -> showStep(layoutEmailStep, layoutPasswordStep, true));
     TextInputEditText etPassword = findViewById(R.id.etPassword);
+    findViewById(R.id.btnBackFromPassword).setOnClickListener(v -> {
+      if (isBackTransitionPending) {
+        return;
+      }
+      isBackTransitionPending = true;
+      etPassword.clearFocus();
+      hideKeyboardThenRun(
+          v,
+          () -> {
+            isBackTransitionPending = false;
+            if (!isFinishing() && !isDestroyed()) {
+              showStep(layoutEmailStep, layoutPasswordStep, true);
+            }
+          });
+    });
 
     findViewById(R.id.btnLogin).setOnClickListener(v -> {
       String password = etPassword.getText() != null ? etPassword.getText().toString() : "";
@@ -286,11 +377,26 @@ public class LoginActivity extends AppCompatActivity {
   }
 
   private void setupSignupStep() {
-    findViewById(R.id.btnBackFromSignup).setOnClickListener(v -> showStep(layoutEmailStep, layoutSignupStep, true));
     TextInputEditText etSignupPassword = findViewById(R.id.etSignupPassword);
     TextInputEditText etSignupPasswordConfirm = findViewById(R.id.etSignupPasswordConfirm);
     MaterialButton btnSignup = findViewById(R.id.btnSignup);
     TextView tvPasswordStrength = findViewById(R.id.tvPasswordStrength);
+    findViewById(R.id.btnBackFromSignup).setOnClickListener(v -> {
+      if (isBackTransitionPending) {
+        return;
+      }
+      isBackTransitionPending = true;
+      etSignupPassword.clearFocus();
+      etSignupPasswordConfirm.clearFocus();
+      hideKeyboardThenRun(
+          v,
+          () -> {
+            isBackTransitionPending = false;
+            if (!isFinishing() && !isDestroyed()) {
+              showStep(layoutEmailStep, layoutSignupStep, true);
+            }
+          });
+    });
 
     TextWatcher signupWatcher = new TextWatcher() {
       @Override
