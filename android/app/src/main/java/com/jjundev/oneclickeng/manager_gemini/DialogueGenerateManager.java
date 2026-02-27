@@ -46,9 +46,11 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
   private boolean cacheReady = false;
 
   public interface ScriptGenerationCallback
-      extends IDialogueGenerateManager.ScriptGenerationCallback {}
+      extends IDialogueGenerateManager.ScriptGenerationCallback {
+  }
 
-  public interface InitCallback extends IDialogueGenerateManager.InitCallback {}
+  public interface InitCallback extends IDialogueGenerateManager.InitCallback {
+  }
 
   interface ValidationCallback {
     void onValid(String cacheName, long remainingSeconds);
@@ -120,12 +122,11 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
     this.apiKey = normalizeOrDefault(apiKey, "");
     this.modelName = normalizeOrDefault(modelName, DEFAULT_MODEL_NAME);
     this.gson = new Gson();
-    this.client =
-        new OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
-            .build();
+    this.client = new OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build();
     this.prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     this.mainHandler = new Handler(Looper.getMainLooper());
   }
@@ -184,143 +185,141 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
 
   private void createCache(IDialogueGenerateManager.InitCallback callback) {
     new Thread(
-            () -> {
-              try {
-                String systemPrompt = getSystemPrompt();
+        () -> {
+          try {
+            String systemPrompt = getSystemPrompt();
 
-                JsonObject requestBody = new JsonObject();
-                requestBody.addProperty("model", "models/" + modelName);
+            JsonObject requestBody = new JsonObject();
+            requestBody.addProperty("model", "models/" + modelName);
 
-                JsonArray contents = new JsonArray();
+            JsonArray contents = new JsonArray();
 
-                // Add system instruction as part of the cache request structure
-                // Note: For createCachedContent, systemInstruction is a top-level field, NOT
-                // inside contents
-                // But we also usually provide some example or context in 'contents' if needed.
-                // Here we just cache the system instruction mainly.
-                // However, the API requires 'contents' to be present and non-empty usually?
-                // Let's check GeminiCachedManager. It puts a dummy user/model turn in
-                // 'contents' to satisfy requirements or provide few-shot.
-                // The user request didn't strictly say to use few-shot, but caching just a
-                // system prompt is valid.
-                // Let's stick to just system instruction if possible, or add a simple "I'm
-                // ready" turn if strictly needed for context.
-                // GeminiCachedFeedbackManager used a dummy user message with context.
-                // I will add a simple acknowledgment interaction to be safe and ensure the
-                // model is "primed".
+            // Add system instruction as part of the cache request structure
+            // Note: For createCachedContent, systemInstruction is a top-level field, NOT
+            // inside contents
+            // But we also usually provide some example or context in 'contents' if needed.
+            // Here we just cache the system instruction mainly.
+            // However, the API requires 'contents' to be present and non-empty usually?
+            // Let's check GeminiCachedManager. It puts a dummy user/model turn in
+            // 'contents' to satisfy requirements or provide few-shot.
+            // The user request didn't strictly say to use few-shot, but caching just a
+            // system prompt is valid.
+            // Let's stick to just system instruction if possible, or add a simple "I'm
+            // ready" turn if strictly needed for context.
+            // GeminiCachedFeedbackManager used a dummy user message with context.
+            // I will add a simple acknowledgment interaction to be safe and ensure the
+            // model is "primed".
 
-                JsonObject userContent = new JsonObject();
-                userContent.addProperty("role", "user");
-                JsonArray userParts = new JsonArray();
-                JsonObject userPart = new JsonObject();
-                userPart.addProperty("text", "Initialize conversation script generator.");
-                userParts.add(userPart);
-                userContent.add("parts", userParts);
-                contents.add(userContent);
+            JsonObject userContent = new JsonObject();
+            userContent.addProperty("role", "user");
+            JsonArray userParts = new JsonArray();
+            JsonObject userPart = new JsonObject();
+            userPart.addProperty("text", "Initialize conversation script generator.");
+            userParts.add(userPart);
+            userContent.add("parts", userParts);
+            contents.add(userContent);
 
-                JsonObject modelContent = new JsonObject();
-                modelContent.addProperty("role", "model");
-                JsonArray modelParts = new JsonArray();
-                JsonObject modelPart = new JsonObject();
-                modelPart.addProperty(
-                    "text",
-                    "I am ready to generate English conversation scripts based on your requirements.");
-                modelParts.add(modelPart);
-                modelContent.add("parts", modelParts);
-                contents.add(modelContent);
+            JsonObject modelContent = new JsonObject();
+            modelContent.addProperty("role", "model");
+            JsonArray modelParts = new JsonArray();
+            JsonObject modelPart = new JsonObject();
+            modelPart.addProperty(
+                "text",
+                "I am ready to generate English conversation scripts based on your requirements.");
+            modelParts.add(modelPart);
+            modelContent.add("parts", modelParts);
+            contents.add(modelContent);
 
-                requestBody.add("contents", contents);
+            requestBody.add("contents", contents);
 
-                JsonObject sysInstruction = new JsonObject();
-                JsonArray sysParts = new JsonArray();
-                JsonObject sysPart = new JsonObject();
-                sysPart.addProperty("text", systemPrompt);
-                sysParts.add(sysPart);
-                sysInstruction.add("parts", sysParts);
-                requestBody.add("systemInstruction", sysInstruction);
+            JsonObject sysInstruction = new JsonObject();
+            JsonArray sysParts = new JsonArray();
+            JsonObject sysPart = new JsonObject();
+            sysPart.addProperty("text", systemPrompt);
+            sysParts.add(sysPart);
+            sysInstruction.add("parts", sysParts);
+            requestBody.add("systemInstruction", sysInstruction);
 
-                requestBody.addProperty("ttl", CACHE_TTL_SECONDS + "s");
-                requestBody.addProperty("displayName", "ScriptGeneratorCache");
+            requestBody.addProperty("ttl", CACHE_TTL_SECONDS + "s");
+            requestBody.addProperty("displayName", "ScriptGeneratorCache");
 
-                String url = BASE_URL + "/cachedContents?key=" + apiKey;
-                String jsonBody = gson.toJson(requestBody);
+            String url = BASE_URL + "/cachedContents?key=" + apiKey;
+            String jsonBody = gson.toJson(requestBody);
 
-                Request request =
-                    new Request.Builder()
-                        .url(url)
-                        .post(RequestBody.create(jsonBody, MediaType.parse("application/json")))
-                        .build();
+            Request request = new Request.Builder()
+                .url(url)
+                .post(RequestBody.create(jsonBody, MediaType.parse("application/json")))
+                .build();
 
-                try (Response response = client.newCall(request).execute()) {
-                  String responseBody = response.body() != null ? response.body().string() : "";
+            try (Response response = client.newCall(request).execute()) {
+              String responseBody = response.body() != null ? response.body().string() : "";
 
-                  if (!response.isSuccessful()) {
-                    Log.e(TAG, "Cache creation failed: " + response.code() + " - " + responseBody);
-                    mainHandler.post(
-                        () -> callback.onError("Cache creation failed: " + responseBody));
-                    return;
-                  }
-
-                  JsonObject result = JsonParser.parseString(responseBody).getAsJsonObject();
-                  cachedContentName = result.get("name").getAsString();
-                  cacheReady = true;
-
-                  prefs
-                      .edit()
-                      .putString(KEY_CACHE_NAME, cachedContentName)
-                      .putLong(KEY_CACHE_CREATED, System.currentTimeMillis())
-                      .putInt(KEY_CACHE_TTL, CACHE_TTL_SECONDS)
-                      .apply();
-
-                  Log.i(TAG, "New cache created: " + cachedContentName);
-                  mainHandler.post(callback::onReady);
-                }
-
-              } catch (Exception e) {
-                Log.e(TAG, "Cache initialization error", e);
-                mainHandler.post(() -> callback.onError("Error: " + e.getMessage()));
+              if (!response.isSuccessful()) {
+                Log.e(TAG, "Cache creation failed: " + response.code() + " - " + responseBody);
+                mainHandler.post(
+                    () -> callback.onError("Cache creation failed: " + responseBody));
+                return;
               }
-            })
+
+              JsonObject result = JsonParser.parseString(responseBody).getAsJsonObject();
+              cachedContentName = result.get("name").getAsString();
+              cacheReady = true;
+
+              prefs
+                  .edit()
+                  .putString(KEY_CACHE_NAME, cachedContentName)
+                  .putLong(KEY_CACHE_CREATED, System.currentTimeMillis())
+                  .putInt(KEY_CACHE_TTL, CACHE_TTL_SECONDS)
+                  .apply();
+
+              Log.i(TAG, "New cache created: " + cachedContentName);
+              mainHandler.post(callback::onReady);
+            }
+
+          } catch (Exception e) {
+            Log.e(TAG, "Cache initialization error", e);
+            mainHandler.post(() -> callback.onError("Error: " + e.getMessage()));
+          }
+        })
         .start();
   }
 
   private void validateCacheFromServer(String cacheName, ValidationCallback callback) {
     new Thread(
-            () -> {
-              try {
-                String url = BASE_URL + "/" + cacheName + "?key=" + apiKey;
+        () -> {
+          try {
+            String url = BASE_URL + "/" + cacheName + "?key=" + apiKey;
 
-                Request request = new Request.Builder().url(url).get().build();
+            Request request = new Request.Builder().url(url).get().build();
 
-                try (Response response = client.newCall(request).execute()) {
-                  if (response.code() == 404) {
-                    callback.onInvalid();
-                    return;
-                  }
-
-                  if (!response.isSuccessful()) {
-                    callback.onError("Server check failed: " + response.code());
-                    return;
-                  }
-
-                  String responseBody = response.body() != null ? response.body().string() : "";
-                  JsonObject result = JsonParser.parseString(responseBody).getAsJsonObject();
-
-                  if (result.has("expireTime")) {
-                    String expireTimeStr = result.get("expireTime").getAsString();
-                    Instant expireTime = Instant.parse(expireTimeStr);
-                    long remainingSeconds =
-                        expireTime.getEpochSecond() - Instant.now().getEpochSecond();
-                    callback.onValid(cacheName, remainingSeconds);
-                  } else {
-                    callback.onError("No expireTime in response");
-                  }
-                }
-              } catch (Exception e) {
-                Log.e(TAG, "Cache validation error", e);
-                callback.onError(e.getMessage());
+            try (Response response = client.newCall(request).execute()) {
+              if (response.code() == 404) {
+                callback.onInvalid();
+                return;
               }
-            })
+
+              if (!response.isSuccessful()) {
+                callback.onError("Server check failed: " + response.code());
+                return;
+              }
+
+              String responseBody = response.body() != null ? response.body().string() : "";
+              JsonObject result = JsonParser.parseString(responseBody).getAsJsonObject();
+
+              if (result.has("expireTime")) {
+                String expireTimeStr = result.get("expireTime").getAsString();
+                Instant expireTime = Instant.parse(expireTimeStr);
+                long remainingSeconds = expireTime.getEpochSecond() - Instant.now().getEpochSecond();
+                callback.onValid(cacheName, remainingSeconds);
+              } else {
+                callback.onError("No expireTime in response");
+              }
+            }
+          } catch (Exception e) {
+            Log.e(TAG, "Cache validation error", e);
+            callback.onError(e.getMessage());
+          }
+        })
         .start();
   }
 
@@ -350,39 +349,38 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
       int length,
       IDialogueGenerateManager.ScriptGenerationCallback callback) {
     new Thread(
-            () -> {
-              try {
-                JsonObject requestBody = new JsonObject();
-                requestBody.addProperty("cachedContent", cachedContentName);
+        () -> {
+          try {
+            JsonObject requestBody = new JsonObject();
+            requestBody.addProperty("cachedContent", cachedContentName);
 
-                JsonArray contents = new JsonArray();
-                JsonObject userContent = new JsonObject();
-                userContent.addProperty("role", "user");
-                JsonArray parts = new JsonArray();
-                JsonObject part = new JsonObject();
+            JsonArray contents = new JsonArray();
+            JsonObject userContent = new JsonObject();
+            userContent.addProperty("role", "user");
+            JsonArray parts = new JsonArray();
+            JsonObject part = new JsonObject();
 
-                String userPrompt =
-                    String.format(
-                        "Generate a script with these parameters:\n- level: %s\n- topic: %s\n- format: %s\n- length: %d",
-                        level, topic, format, length);
+            String userPrompt = String.format(
+                "Generate a script with these parameters:\n- level: %s\n- topic: %s\n- format: %s\n- length: %d",
+                level, topic, format, length);
 
-                part.addProperty("text", userPrompt);
-                parts.add(part);
-                userContent.add("parts", parts);
-                contents.add(userContent);
-                requestBody.add("contents", contents);
+            part.addProperty("text", userPrompt);
+            parts.add(part);
+            userContent.add("parts", parts);
+            contents.add(userContent);
+            requestBody.add("contents", contents);
 
-                JsonObject generationConfig = new JsonObject();
-                generationConfig.addProperty("responseMimeType", "application/json");
-                requestBody.add("generationConfig", generationConfig);
+            JsonObject generationConfig = new JsonObject();
+            generationConfig.addProperty("responseMimeType", "application/json");
+            requestBody.add("generationConfig", generationConfig);
 
-                sendAndParseRequest(requestBody, true, callback);
+            sendAndParseRequest(requestBody, true, callback);
 
-              } catch (Exception e) {
-                Log.e(TAG, "Cached generation error", e);
-                mainHandler.post(() -> callback.onError(e));
-              }
-            })
+          } catch (Exception e) {
+            Log.e(TAG, "Cached generation error", e);
+            mainHandler.post(() -> callback.onError(e));
+          }
+        })
         .start();
   }
 
@@ -393,47 +391,46 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
       int length,
       IDialogueGenerateManager.ScriptGenerationCallback callback) {
     new Thread(
-            () -> {
-              try {
-                JsonObject requestBody = new JsonObject();
+        () -> {
+          try {
+            JsonObject requestBody = new JsonObject();
 
-                // Add system instruction directly
-                JsonObject sysInstruction = new JsonObject();
-                JsonArray sysParts = new JsonArray();
-                JsonObject sysPart = new JsonObject();
-                sysPart.addProperty("text", getSystemPrompt());
-                sysParts.add(sysPart);
-                sysInstruction.add("parts", sysParts);
-                requestBody.add("systemInstruction", sysInstruction);
+            // Add system instruction directly
+            JsonObject sysInstruction = new JsonObject();
+            JsonArray sysParts = new JsonArray();
+            JsonObject sysPart = new JsonObject();
+            sysPart.addProperty("text", getSystemPrompt());
+            sysParts.add(sysPart);
+            sysInstruction.add("parts", sysParts);
+            requestBody.add("systemInstruction", sysInstruction);
 
-                JsonArray contents = new JsonArray();
-                JsonObject userContent = new JsonObject();
-                userContent.addProperty("role", "user");
-                JsonArray parts = new JsonArray();
-                JsonObject part = new JsonObject();
+            JsonArray contents = new JsonArray();
+            JsonObject userContent = new JsonObject();
+            userContent.addProperty("role", "user");
+            JsonArray parts = new JsonArray();
+            JsonObject part = new JsonObject();
 
-                String userPrompt =
-                    String.format(
-                        "Generate a script with these parameters:\n- level: %s\n- topic: %s\n- format: %s\n- length: %d",
-                        level, topic, format, length);
+            String userPrompt = String.format(
+                "Generate a script with these parameters:\n- level: %s\n- topic: %s\n- format: %s\n- length: %d",
+                level, topic, format, length);
 
-                part.addProperty("text", userPrompt);
-                parts.add(part);
-                userContent.add("parts", parts);
-                contents.add(userContent);
-                requestBody.add("contents", contents);
+            part.addProperty("text", userPrompt);
+            parts.add(part);
+            userContent.add("parts", parts);
+            contents.add(userContent);
+            requestBody.add("contents", contents);
 
-                JsonObject generationConfig = new JsonObject();
-                generationConfig.addProperty("responseMimeType", "application/json");
-                requestBody.add("generationConfig", generationConfig);
+            JsonObject generationConfig = new JsonObject();
+            generationConfig.addProperty("responseMimeType", "application/json");
+            requestBody.add("generationConfig", generationConfig);
 
-                sendAndParseRequest(requestBody, false, callback);
+            sendAndParseRequest(requestBody, false, callback);
 
-              } catch (Exception e) {
-                Log.e(TAG, "Non-cached generation error", e);
-                mainHandler.post(() -> callback.onError(e));
-              }
-            })
+          } catch (Exception e) {
+            Log.e(TAG, "Non-cached generation error", e);
+            mainHandler.post(() -> callback.onError(e));
+          }
+        })
         .start();
   }
 
@@ -444,14 +441,13 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
     try {
       Log.d(TAG, "Sending script generation request. Used cache: " + usedCache);
       String jsonBody = gson.toJson(requestBody);
-      Request request =
-          new Request.Builder()
-              .url(
-                  requestBody.has("cachedContent")
-                      ? BASE_URL + "/models/" + modelName + ":generateContent?key=" + apiKey
-                      : BASE_URL + "/models/" + modelName + ":generateContent?key=" + apiKey)
-              .post(RequestBody.create(jsonBody, MediaType.parse("application/json")))
-              .build();
+      Request request = new Request.Builder()
+          .url(
+              requestBody.has("cachedContent")
+                  ? BASE_URL + "/models/" + modelName + ":generateContent?key=" + apiKey
+                  : BASE_URL + "/models/" + modelName + ":generateContent?key=" + apiKey)
+          .post(RequestBody.create(jsonBody, MediaType.parse("application/json")))
+          .build();
 
       try (Response response = client.newCall(request).execute()) {
         String responseBody = response.body() != null ? response.body().string() : "";
@@ -484,173 +480,6 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
     }
   }
 
-  public String getPredefinedScript(String title) {
-    String opponentName = "AI Coach";
-    String opponentRole = "Tutor";
-    String opponentGender = "female";
-    List<ScriptLine> lines = new ArrayList<>();
-
-    if (title.equals("카페에서 주문하기")) {
-      opponentName = "바리스타";
-      opponentRole = "Barista";
-      opponentGender = "female";
-      lines.add(new ScriptLine("안녕하세요! 주문 도와드릴까요?", "Hello! How can I help you today?", "model"));
-      lines.add(
-          new ScriptLine(
-              "따뜻한 아메리카노 한 잔이랑 초콜릿 머핀 하나 주세요.",
-              "One hot americano and a chocolate muffin, please.",
-              "user"));
-      lines.add(
-          new ScriptLine(
-              "아메리카노 사이즈는 어떤 걸로 드릴까요?", "What size would you like for your americano?", "model"));
-      lines.add(
-          new ScriptLine(
-              "톨 사이즈로 주세요. 그리고 우유는 저지방으로 변경 가능한가요?",
-              "Tall size, please. And is it possible to change to low-fat milk?",
-              "user"));
-      lines.add(
-          new ScriptLine(
-              "네, 가능합니다. 머핀은 데워 드릴까요?",
-              "Yes, we can do that. Would you like me to warm up the muffin?",
-              "model"));
-      lines.add(new ScriptLine("네, 부탁드려요. 카드로 결제하겠습니다.", "Yes, please. I'll pay by card.", "user"));
-      lines.add(new ScriptLine("알겠습니다. 잠시만 기다려 주세요.", "Got it. Please wait a moment.", "model"));
-
-    } else if (title.equals("회사에서 자기소개")) {
-      opponentName = "팀장님";
-      opponentRole = "Team Manager";
-      opponentGender = "female";
-      lines.add(
-          new ScriptLine(
-              "현준 씨, 만나서 반갑습니다. 저희 팀에 오신 걸 환영해요.",
-              "Nice to meet you, Hyunjun. Welcome to our team.",
-              "model"));
-      lines.add(
-          new ScriptLine(
-              "감사합니다, 팀장님. 마케팅 팀의 일원이 되어 정말 기쁩니다.",
-              "Thank you. I'm very excited to be part of the marketing team.",
-              "user"));
-      lines.add(
-          new ScriptLine(
-              "이전 직장에서는 어떤 업무를 주로 담당하셨나요?",
-              "What were your main responsibilities at your previous job?",
-              "model"));
-      lines.add(
-          new ScriptLine(
-              "주로 브랜드 SNS 채널 관리와 유료 광고 캠페인 기획을 담당했습니다.",
-              "I was mainly in charge of managing brand SNS channels and planning paid ad campaigns.",
-              "user"));
-      lines.add(
-          new ScriptLine(
-              "그렇군요. 우리 팀에서는 이번 분기 브랜드 리뉴얼 프로젝트를 맡게 되실 거예요.",
-              "I see. In our team, you'll be working on the brand renewal project for this quarter.",
-              "model"));
-      lines.add(
-          new ScriptLine(
-              "알겠습니다. 최선을 다해 프로젝트를 성공적으로 이끌어 보겠습니다.",
-              "Understood. I'll do my best to make the project a success.",
-              "user"));
-
-    } else if (title.equals("공항 입국 심사")) {
-      opponentName = "입국 심사관";
-      opponentRole = "Immigration Officer";
-      opponentGender = "male";
-      lines.add(
-          new ScriptLine(
-              "여권 좀 보여주시겠어요? 방문 목적이 무엇입니까?",
-              "May I see your passport, please? What is the purpose of your visit?",
-              "model"));
-      lines.add(
-          new ScriptLine(
-              "여기 있습니다. 방문 목적은 관광입니다. 일주일 동안 머무를 예정이에요.",
-              "Here it is. I'm here for sightseeing. I'll be staying for a week.",
-              "user"));
-      lines.add(new ScriptLine("어디에서 머무르실 계획인가요?", "Where are you planning to stay?", "model"));
-      lines.add(
-          new ScriptLine(
-              "시내에 있는 힐튼 호텔에서 예약했습니다. 여기 예약 확인증입니다.",
-              "I've booked a room at the Hilton Hotel downtown. Here is my reservation confirmation.",
-              "user"));
-      lines.add(
-          new ScriptLine("귀국 항공권도 가지고 계신가요?", "Do you have a return ticket as well?", "model"));
-      lines.add(
-          new ScriptLine(
-              "네, 여기 있습니다. 다음 주 일요일 오후 비행기입니다.",
-              "Yes, here it is. My flight is for next Sunday afternoon.",
-              "user"));
-      lines.add(
-          new ScriptLine(
-              "네, 확인되었습니다. 즐거운 여행 되세요.",
-              "Okay, everything looks good. Have a nice trip.",
-              "model"));
-
-    } else if (title.equals("택시 목적지 말하기")) {
-      opponentName = "택시 기사";
-      opponentRole = "Taxi Driver";
-      opponentGender = "male";
-      lines.add(new ScriptLine("어서 오세요. 어디로 모실까요?", "Hello. Where would you like to go?", "model"));
-      lines.add(
-          new ScriptLine(
-              "기사님, 강남역 11번 출구로 가주세요. 얼마나 걸릴까요?",
-              "Please take me to Gangnam Station, exit 11. How long will it take?",
-              "user"));
-      lines.add(
-          new ScriptLine(
-              "지금 퇴근 시간이라 길이 좀 막히네요. 40분 정도 예상됩니다.",
-              "It's rush hour, so traffic is heavy. I expect it'll take about 40 minutes.",
-              "model"));
-      lines.add(
-          new ScriptLine(
-              "생각보다 오래 걸리네요. 혹시 빠른 길로 가주실 수 있나요?",
-              "That's longer than I thought. Could you take a faster route if possible?",
-              "user"));
-      lines.add(
-          new ScriptLine(
-              "네, 고속도로로 우회해서 최대한 빨리 가보겠습니다.",
-              "Sure, I'll take a detour via the highway to get there as fast as I can.",
-              "model"));
-      lines.add(
-          new ScriptLine(
-              "감사합니다. 저기 건물 앞에서 내려주시면 됩니다.",
-              "Thank you. You can drop me off in front of that building over there.",
-              "user"));
-
-    } else {
-      return createMockScript(
-          title, opponentName, opponentRole, "male", "안녕하세요! [" + title + "] 대본입니다.");
-    }
-
-    ScriptData data = new ScriptData(title, opponentName, opponentRole, opponentGender, lines);
-    return gson.toJson(data);
-  }
-
-  private String createMockScript(
-      String title,
-      String opponentName,
-      String opponentRole,
-      String opponentGender,
-      String initialKo) {
-    List<ScriptLine> lines = new ArrayList<>();
-    lines.add(
-        new ScriptLine(
-            initialKo, "Hello! I've prepared a script for the situation you mentioned.", "model"));
-    lines.add(
-        new ScriptLine(
-            "정말 감사합니다. 이 대화가 제 학습에 큰 도움이 될 것 같아요.",
-            "Thank you so much. I think this conversation will be a great help for my learning.",
-            "user"));
-    lines.add(
-        new ScriptLine(
-            "천만예요. 그럼 첫 번째 문장부터 시작해볼까요?",
-            "You're welcome. Shall we start from the first sentence then?",
-            "model"));
-    lines.add(
-        new ScriptLine("네, 준비되었습니다. 제가 먼저 읽어볼게요.", "Yes, I'm ready. I'll read first.", "user"));
-
-    ScriptData data = new ScriptData(title, opponentName, opponentRole, opponentGender, lines);
-    return gson.toJson(data);
-  }
-
   private String getSystemPrompt() {
     String prompt = readAssetFile("prompts/dialogue_generate/system_prompt.md");
     if (prompt.isEmpty()) {
@@ -661,8 +490,7 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
 
   private String readAssetFile(String fileName) {
     try (java.io.InputStream is = context.getAssets().open(fileName);
-        java.io.BufferedReader reader =
-            new java.io.BufferedReader(new java.io.InputStreamReader(is))) {
+        java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(is))) {
       StringBuilder sb = new StringBuilder();
       String line;
       while ((line = reader.readLine()) != null) {

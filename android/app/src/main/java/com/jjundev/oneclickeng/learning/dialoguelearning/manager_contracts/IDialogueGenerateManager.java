@@ -25,6 +25,4 @@ public interface IDialogueGenerateManager {
       int length,
       @NonNull ScriptGenerationCallback callback);
 
-  @NonNull
-  String getPredefinedScript(@NonNull String title);
 }

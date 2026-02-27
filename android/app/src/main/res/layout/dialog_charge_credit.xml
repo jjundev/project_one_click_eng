@@ -34,7 +34,7 @@
                 android:id="@+id/btn_charge_ad"
                 style="@style/DialogButtonPrimary"
                 android:layout_width="match_parent"
-                android:text="광고보고 1크레딧 충전하기" />
+                android:text="광고보고 1 크레딧 충전하기" />
 
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/btn_charge_cancel"

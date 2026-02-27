@@ -18,6 +18,16 @@ import androidx.fragment.app.DialogFragment;
 import com.jjundev.oneclickeng.R;
 
 public class DialogueGenerateDialog extends DialogFragment {
+  private static final String ARG_TOPIC = "arg_topic";
+
+  public static DialogueGenerateDialog newInstance(String topic) {
+    DialogueGenerateDialog fragment = new DialogueGenerateDialog();
+    Bundle args = new Bundle();
+    args.putString(ARG_TOPIC, topic);
+    fragment.setArguments(args);
+    return fragment;
+  }
+
   private View layoutInputForm;
   private View layoutLoading;
   private EditText etTopic;
@@ -62,6 +72,11 @@ public class DialogueGenerateDialog extends DialogFragment {
     layoutInputForm = view.findViewById(R.id.layout_input_form);
     layoutLoading = view.findViewById(R.id.layout_loading);
     etTopic = view.findViewById(R.id.et_topic_input);
+
+    if (getArguments() != null && getArguments().containsKey(ARG_TOPIC)) {
+      etTopic.setText(getArguments().getString(ARG_TOPIC));
+    }
+
     spinnerLevel = view.findViewById(R.id.spinner_level);
     tvLevelDescription = view.findViewById(R.id.tv_level_description);
     sbLength = view.findViewById(R.id.sb_length);
