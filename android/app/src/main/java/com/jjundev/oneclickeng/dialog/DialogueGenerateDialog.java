@@ -89,14 +89,21 @@ public class DialogueGenerateDialog extends DialogFragment {
 
   private void setupDropdowns() {
     String[] levels = getResources().getStringArray(R.array.levels);
-    ArrayAdapter<String> levelAdapter =
-        new ArrayAdapter<>(requireContext(), R.layout.item_dropdown, levels);
+    ArrayAdapter<String> levelAdapter = new ArrayAdapter<>(requireContext(), R.layout.item_dropdown, levels);
     spinnerLevel.setAdapter(levelAdapter);
 
     spinnerLevel.setOnItemClickListener(
         (parent, view, position, id) -> {
           String selectedLevel = (String) parent.getItemAtPosition(position);
           updateLevelDescription(selectedLevel);
+        });
+
+    spinnerLevel.setOnClickListener(v -> hideKeyboard());
+    spinnerLevel.setOnFocusChangeListener(
+        (v, hasFocus) -> {
+          if (hasFocus) {
+            hideKeyboard();
+          }
         });
 
     // Initialize description
@@ -106,19 +113,19 @@ public class DialogueGenerateDialog extends DialogFragment {
   private void updateLevelDescription(String level) {
     String description;
     switch (level) {
-      case "Beginner":
+      case "매우 쉬움":
         description = "기초적인 단어와 간단한 문장으로 대화할 수 있어요.";
         break;
-      case "Elementary":
+      case "쉬움":
         description = "익숙한 주제에 대해 짧고 쉬운 표현을 사용할 수 있어요.";
         break;
-      case "Intermediate":
+      case "보통":
         description = "일상적인 대화를 자연스럽게 나눌 수 있어요.";
         break;
-      case "Upper-Intermediate":
+      case "어려움":
         description = "다양한 주제에 대해 복잡한 문장을 구사할 수 있어요.";
         break;
-      case "Advanced":
+      case "매우 어려움":
         description = "전문적인 주제나 추상적인 개념도 유창하게 표현할 수 있어요.";
         break;
       default:
@@ -139,10 +146,12 @@ public class DialogueGenerateDialog extends DialogFragment {
           }
 
           @Override
-          public void onStartTrackingTouch(android.widget.SeekBar seekBar) {}
+          public void onStartTrackingTouch(android.widget.SeekBar seekBar) {
+          }
 
           @Override
-          public void onStopTrackingTouch(android.widget.SeekBar seekBar) {}
+          public void onStopTrackingTouch(android.widget.SeekBar seekBar) {
+          }
         });
 
     // Initialize text
@@ -164,8 +173,7 @@ public class DialogueGenerateDialog extends DialogFragment {
   private void hideKeyboard() {
     View view = getView();
     if (view != null) {
-      InputMethodManager imm =
-          (InputMethodManager) requireContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+      InputMethodManager imm = (InputMethodManager) requireContext().getSystemService(Context.INPUT_METHOD_SERVICE);
       if (imm != null) {
         imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
       }
@@ -181,7 +189,26 @@ public class DialogueGenerateDialog extends DialogFragment {
 
     hideKeyboard();
 
-    String level = spinnerLevel.getText().toString().toLowerCase().replace(" ", "-");
+    String levelUi = spinnerLevel.getText().toString();
+    String level = "intermediate";
+    switch (levelUi) {
+      case "매우 쉬움":
+        level = "beginner";
+        break;
+      case "쉬움":
+        level = "elementary";
+        break;
+      case "보통":
+        level = "intermediate";
+        break;
+      case "어려움":
+        level = "upper-intermediate";
+        break;
+      case "매우 어려움":
+        level = "advanced";
+        break;
+    }
+
     String format = "dialogue";
     int length = sbLength.getProgress() + 2;
 

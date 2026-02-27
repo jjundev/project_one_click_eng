@@ -97,6 +97,9 @@ public class SettingFragment extends Fragment
   private int creatorDeveloperTapCount;
   private long creatorDeveloperWindowStartElapsedMs = TAP_WINDOW_UNSET;
 
+  private TextView tvCreditRemainingValue;
+  private LinearLayout layoutChargeCredit;
+
   @Nullable
   @Override
   public View onCreateView(
@@ -140,6 +143,9 @@ public class SettingFragment extends Fragment
     tvAppVersion = view.findViewById(R.id.tv_app_version);
     tvLogout = view.findViewById(R.id.tv_logout);
 
+    tvCreditRemainingValue = view.findViewById(R.id.tv_credit_remaining_value);
+    layoutChargeCredit = view.findViewById(R.id.layout_charge_credit);
+
     if (tvAppVersion != null) {
       tvAppVersion.setText(BuildConfig.VERSION_NAME);
     }
@@ -174,6 +180,10 @@ public class SettingFragment extends Fragment
       logDebug("Bound developer card bonus listener");
     } else {
       logDebug("Developer card view not found; bonus listener not bound");
+    }
+
+    if (layoutChargeCredit != null) {
+      layoutChargeCredit.setOnClickListener(v -> showToastSafe("충전 기능은 준비 중입니다."));
     }
 
     if (tvLogout != null) {
@@ -583,8 +593,53 @@ public class SettingFragment extends Fragment
       tvProfileNicknameValue.setText(getEffectiveNickname());
     }
     renderProfileEmail();
+    fetchUserCredit();
 
     bindingState = false;
+  }
+
+  private void fetchUserCredit() {
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+    if (user == null || tvCreditRemainingValue == null) {
+      return;
+    }
+
+    FirebaseFirestore.getInstance()
+        .collection("users")
+        .document(user.getUid())
+        .get()
+        .addOnSuccessListener(documentSnapshot -> {
+          if (!isAdded())
+            return;
+          if (documentSnapshot.exists() && documentSnapshot.contains("credit")) {
+            Long credit = documentSnapshot.getLong("credit");
+            if (credit != null) {
+              tvCreditRemainingValue.setText(String.valueOf(credit));
+            } else {
+              tvCreditRemainingValue.setText("0");
+            }
+          } else {
+            // 저장된 크레딧이 없을 경우 0으로 표시하고 Firebase에 초기값 저장 (필요 시)
+            tvCreditRemainingValue.setText("0");
+            saveInitialCreditIfMissing(user.getUid());
+          }
+        })
+        .addOnFailureListener(e -> {
+          logDebug("Failed to fetch user credit: " + e.getMessage());
+          if (isAdded() && tvCreditRemainingValue != null) {
+            tvCreditRemainingValue.setText("-");
+          }
+        });
+  }
+
+  private void saveInitialCreditIfMissing(String uid) {
+    java.util.Map<String, Object> data = new java.util.HashMap<>();
+    data.put("credit", 0L);
+    FirebaseFirestore.getInstance()
+        .collection("users")
+        .document(uid)
+        .set(data, com.google.firebase.firestore.SetOptions.merge())
+        .addOnFailureListener(e -> logDebug("Failed to set initial credit: " + e.getMessage()));
   }
 
   private void showLearningDataResetDialog() {

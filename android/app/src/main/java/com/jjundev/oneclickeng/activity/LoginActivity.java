@@ -33,6 +33,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.jjundev.oneclickeng.R;
 
 public class LoginActivity extends AppCompatActivity {
@@ -345,14 +346,20 @@ public class LoginActivity extends AppCompatActivity {
           .addOnCompleteListener(
               this,
               task -> {
-                setLoadingState(false);
                 if (task.isSuccessful()) {
                   Log.d(TAG, "createUserWithEmail:success");
-                  Toast.makeText(this, "회원가입 및 로그인 완료!", Toast.LENGTH_SHORT).show();
-                  navigateToMain();
+                  if (task.getResult().getUser() != null) {
+                    initializeUserCredit(task.getResult().getUser().getUid(), "회원가입 및 로그인 완료! (10 크레딧 지급)");
+                  } else {
+                    setLoadingState(false);
+                    Toast.makeText(LoginActivity.this, "회원가입 및 로그인 완료!", Toast.LENGTH_SHORT).show();
+                    navigateToMain();
+                  }
                 } else {
+                  setLoadingState(false);
                   Log.w(TAG, "createUserWithEmail:failure", task.getException());
-                  Toast.makeText(this, "회원가입 실패: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                  Toast.makeText(LoginActivity.this, "회원가입 실패: " + task.getException().getMessage(), Toast.LENGTH_SHORT)
+                      .show();
                 }
               });
     });
@@ -414,16 +421,26 @@ public class LoginActivity extends AppCompatActivity {
             task -> {
               if (task.isSuccessful()) {
                 Log.d(TAG, "signInWithCredential:success");
-                Toast.makeText(LoginActivity.this, "로그인 성공!", Toast.LENGTH_SHORT).show();
-                navigateToMain();
+                boolean isNewUser = false;
+                if (task.getResult().getAdditionalUserInfo() != null) {
+                  isNewUser = task.getResult().getAdditionalUserInfo().isNewUser();
+                }
+
+                if (isNewUser && task.getResult().getUser() != null) {
+                  initializeUserCredit(task.getResult().getUser().getUid(), "로그인 성공! (10 크레딧 지급)");
+                } else {
+                  setLoadingState(false);
+                  Toast.makeText(LoginActivity.this, "로그인 성공!", Toast.LENGTH_SHORT).show();
+                  navigateToMain();
+                }
               } else {
+                setLoadingState(false);
                 Log.w(TAG, "signInWithCredential:failure", task.getException());
                 Toast.makeText(
                     LoginActivity.this,
                     "Firebase 인증 실패: " + task.getException().getMessage(),
                     Toast.LENGTH_SHORT)
                     .show();
-                setLoadingState(false);
               }
             });
   }
@@ -454,5 +471,20 @@ public class LoginActivity extends AppCompatActivity {
     if (videoViewBackground != null && videoViewBackground.isPlaying()) {
       videoViewBackground.pause();
     }
+  }
+
+  private void initializeUserCredit(String uid, String successMessage) {
+    java.util.Map<String, Object> data = new java.util.HashMap<>();
+    data.put("credit", 10L);
+    FirebaseFirestore.getInstance()
+        .collection("users")
+        .document(uid)
+        .set(data, com.google.firebase.firestore.SetOptions.merge())
+        .addOnCompleteListener(
+            task -> {
+              setLoadingState(false);
+              Toast.makeText(LoginActivity.this, successMessage, Toast.LENGTH_SHORT).show();
+              navigateToMain();
+            });
   }
 }

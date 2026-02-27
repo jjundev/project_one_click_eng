@@ -86,7 +86,7 @@
                     android:popupBackground="@drawable/bg_dropdown_menu_rounded"
                     android:inputType="none"
                     android:padding="0dp"
-                    android:text="Intermediate" />
+                    android:text="보통" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <TextView
