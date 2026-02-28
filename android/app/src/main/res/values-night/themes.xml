@@ -18,6 +18,10 @@
         <item name="android:windowBackground">@color/theme_color_background</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
-        <!-- Customize your theme here. -->
+    </style>
+
+    <style name="TextInputLayoutOverlay" parent="">
+        <item name="colorControlActivated">@color/color_primary_text</item>
+        <item name="colorPrimary">@color/color_primary_text</item>
     </style>
 </resources>

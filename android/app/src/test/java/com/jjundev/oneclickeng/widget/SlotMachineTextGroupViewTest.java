@@ -25,7 +25,8 @@ public class SlotMachineTextGroupViewTest {
 
   @Test
   public void animateText_hoursMinutes_splitsDigitsByPlace() {
-    SlotMachineTextGroupView view = new SlotMachineTextGroupView(RuntimeEnvironment.getApplication());
+    SlotMachineTextGroupView view =
+        new SlotMachineTextGroupView(RuntimeEnvironment.getApplication());
 
     view.animateText("1시간 38분", 0L, 0L);
 
@@ -35,7 +36,8 @@ public class SlotMachineTextGroupViewTest {
 
   @Test
   public void animateText_minutesOnly_splitsOnlyDigits() {
-    SlotMachineTextGroupView view = new SlotMachineTextGroupView(RuntimeEnvironment.getApplication());
+    SlotMachineTextGroupView view =
+        new SlotMachineTextGroupView(RuntimeEnvironment.getApplication());
 
     view.animateText("38분", 0L, 0L);
 
@@ -45,7 +47,8 @@ public class SlotMachineTextGroupViewTest {
 
   @Test
   public void animateText_streakWithEmoji_keepsEmojiIntact() {
-    SlotMachineTextGroupView view = new SlotMachineTextGroupView(RuntimeEnvironment.getApplication());
+    SlotMachineTextGroupView view =
+        new SlotMachineTextGroupView(RuntimeEnvironment.getApplication());
 
     view.animateText("12일째 열공 중 🔥", 0L, 0L);
 
@@ -57,7 +60,8 @@ public class SlotMachineTextGroupViewTest {
 
   @Test
   public void animateText_points_splitsAllDigits() {
-    SlotMachineTextGroupView view = new SlotMachineTextGroupView(RuntimeEnvironment.getApplication());
+    SlotMachineTextGroupView view =
+        new SlotMachineTextGroupView(RuntimeEnvironment.getApplication());
 
     view.animateText("150XP", 0L, 0L);
 
@@ -67,7 +71,8 @@ public class SlotMachineTextGroupViewTest {
 
   @Test
   public void animateText_points_smallerDeltaDigit_stabilizesEarlier() throws Exception {
-    SlotMachineTextGroupView view = new SlotMachineTextGroupView(RuntimeEnvironment.getApplication());
+    SlotMachineTextGroupView view =
+        new SlotMachineTextGroupView(RuntimeEnvironment.getApplication());
     ShadowLooper mainLooper = ShadowLooper.shadowMainLooper();
     view.setText("000XP");
 
@@ -91,7 +96,8 @@ public class SlotMachineTextGroupViewTest {
 
   @Test
   public void animateText_zeroDuration_updatesImmediatelyWithoutScheduling() throws Exception {
-    SlotMachineTextGroupView view = new SlotMachineTextGroupView(RuntimeEnvironment.getApplication());
+    SlotMachineTextGroupView view =
+        new SlotMachineTextGroupView(RuntimeEnvironment.getApplication());
     view.setText("000XP");
 
     view.animateText("150XP", 0L, 0L);
@@ -105,7 +111,8 @@ public class SlotMachineTextGroupViewTest {
 
   @Test
   public void animateText_sameString_doesNotRebuildChildren() {
-    SlotMachineTextGroupView view = new SlotMachineTextGroupView(RuntimeEnvironment.getApplication());
+    SlotMachineTextGroupView view =
+        new SlotMachineTextGroupView(RuntimeEnvironment.getApplication());
 
     view.animateText("38분", 0L, 0L);
     View firstBefore = view.getChildAt(0);
@@ -119,7 +126,8 @@ public class SlotMachineTextGroupViewTest {
 
   @Test
   public void cancelAnimation_stopsFurtherUpdates() {
-    SlotMachineTextGroupView view = new SlotMachineTextGroupView(RuntimeEnvironment.getApplication());
+    SlotMachineTextGroupView view =
+        new SlotMachineTextGroupView(RuntimeEnvironment.getApplication());
     ShadowLooper mainLooper = ShadowLooper.shadowMainLooper();
     view.setText("000XP");
     view.animateText("150XP", 900L, 0L);

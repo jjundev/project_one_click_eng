@@ -33,7 +33,8 @@ public final class SharedPreferencesCleaner {
       }
 
       try {
-        SharedPreferences preferences = context.getSharedPreferences(prefName, Context.MODE_PRIVATE);
+        SharedPreferences preferences =
+            context.getSharedPreferences(prefName, Context.MODE_PRIVATE);
         boolean isCleared = preferences.edit().clear().commit();
         boolean isDeleted = context.deleteSharedPreferences(prefName);
 

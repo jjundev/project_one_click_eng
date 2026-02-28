@@ -58,11 +58,9 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
   private boolean cacheReady = false;
 
   public interface ScriptGenerationCallback
-      extends IDialogueGenerateManager.ScriptGenerationCallback {
-  }
+      extends IDialogueGenerateManager.ScriptGenerationCallback {}
 
-  public interface InitCallback extends IDialogueGenerateManager.InitCallback {
-  }
+  public interface InitCallback extends IDialogueGenerateManager.InitCallback {}
 
   interface ValidationCallback {
     void onValid(String cacheName, long remainingSeconds);
@@ -134,11 +132,12 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
     this.apiKey = normalizeOrDefault(apiKey, "");
     this.modelName = normalizeOrDefault(modelName, DEFAULT_MODEL_NAME);
     this.gson = new Gson();
-    this.client = new OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
-        .build();
+    this.client =
+        new OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build();
     this.prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     this.mainHandler = new Handler(Looper.getMainLooper());
   }
@@ -197,141 +196,143 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
 
   private void createCache(IDialogueGenerateManager.InitCallback callback) {
     new Thread(
-        () -> {
-          try {
-            String systemPrompt = getSystemPrompt();
+            () -> {
+              try {
+                String systemPrompt = getSystemPrompt();
 
-            JsonObject requestBody = new JsonObject();
-            requestBody.addProperty("model", "models/" + modelName);
+                JsonObject requestBody = new JsonObject();
+                requestBody.addProperty("model", "models/" + modelName);
 
-            JsonArray contents = new JsonArray();
+                JsonArray contents = new JsonArray();
 
-            // Add system instruction as part of the cache request structure
-            // Note: For createCachedContent, systemInstruction is a top-level field, NOT
-            // inside contents
-            // But we also usually provide some example or context in 'contents' if needed.
-            // Here we just cache the system instruction mainly.
-            // However, the API requires 'contents' to be present and non-empty usually?
-            // Let's check GeminiCachedManager. It puts a dummy user/model turn in
-            // 'contents' to satisfy requirements or provide few-shot.
-            // The user request didn't strictly say to use few-shot, but caching just a
-            // system prompt is valid.
-            // Let's stick to just system instruction if possible, or add a simple "I'm
-            // ready" turn if strictly needed for context.
-            // GeminiCachedFeedbackManager used a dummy user message with context.
-            // I will add a simple acknowledgment interaction to be safe and ensure the
-            // model is "primed".
+                // Add system instruction as part of the cache request structure
+                // Note: For createCachedContent, systemInstruction is a top-level field, NOT
+                // inside contents
+                // But we also usually provide some example or context in 'contents' if needed.
+                // Here we just cache the system instruction mainly.
+                // However, the API requires 'contents' to be present and non-empty usually?
+                // Let's check GeminiCachedManager. It puts a dummy user/model turn in
+                // 'contents' to satisfy requirements or provide few-shot.
+                // The user request didn't strictly say to use few-shot, but caching just a
+                // system prompt is valid.
+                // Let's stick to just system instruction if possible, or add a simple "I'm
+                // ready" turn if strictly needed for context.
+                // GeminiCachedFeedbackManager used a dummy user message with context.
+                // I will add a simple acknowledgment interaction to be safe and ensure the
+                // model is "primed".
 
-            JsonObject userContent = new JsonObject();
-            userContent.addProperty("role", "user");
-            JsonArray userParts = new JsonArray();
-            JsonObject userPart = new JsonObject();
-            userPart.addProperty("text", "Initialize conversation script generator.");
-            userParts.add(userPart);
-            userContent.add("parts", userParts);
-            contents.add(userContent);
+                JsonObject userContent = new JsonObject();
+                userContent.addProperty("role", "user");
+                JsonArray userParts = new JsonArray();
+                JsonObject userPart = new JsonObject();
+                userPart.addProperty("text", "Initialize conversation script generator.");
+                userParts.add(userPart);
+                userContent.add("parts", userParts);
+                contents.add(userContent);
 
-            JsonObject modelContent = new JsonObject();
-            modelContent.addProperty("role", "model");
-            JsonArray modelParts = new JsonArray();
-            JsonObject modelPart = new JsonObject();
-            modelPart.addProperty(
-                "text",
-                "I am ready to generate English conversation scripts based on your requirements.");
-            modelParts.add(modelPart);
-            modelContent.add("parts", modelParts);
-            contents.add(modelContent);
+                JsonObject modelContent = new JsonObject();
+                modelContent.addProperty("role", "model");
+                JsonArray modelParts = new JsonArray();
+                JsonObject modelPart = new JsonObject();
+                modelPart.addProperty(
+                    "text",
+                    "I am ready to generate English conversation scripts based on your requirements.");
+                modelParts.add(modelPart);
+                modelContent.add("parts", modelParts);
+                contents.add(modelContent);
 
-            requestBody.add("contents", contents);
+                requestBody.add("contents", contents);
 
-            JsonObject sysInstruction = new JsonObject();
-            JsonArray sysParts = new JsonArray();
-            JsonObject sysPart = new JsonObject();
-            sysPart.addProperty("text", systemPrompt);
-            sysParts.add(sysPart);
-            sysInstruction.add("parts", sysParts);
-            requestBody.add("systemInstruction", sysInstruction);
+                JsonObject sysInstruction = new JsonObject();
+                JsonArray sysParts = new JsonArray();
+                JsonObject sysPart = new JsonObject();
+                sysPart.addProperty("text", systemPrompt);
+                sysParts.add(sysPart);
+                sysInstruction.add("parts", sysParts);
+                requestBody.add("systemInstruction", sysInstruction);
 
-            requestBody.addProperty("ttl", CACHE_TTL_SECONDS + "s");
-            requestBody.addProperty("displayName", "ScriptGeneratorCache");
+                requestBody.addProperty("ttl", CACHE_TTL_SECONDS + "s");
+                requestBody.addProperty("displayName", "ScriptGeneratorCache");
 
-            String url = BASE_URL + "/cachedContents?key=" + apiKey;
-            String jsonBody = gson.toJson(requestBody);
+                String url = BASE_URL + "/cachedContents?key=" + apiKey;
+                String jsonBody = gson.toJson(requestBody);
 
-            Request request = new Request.Builder()
-                .url(url)
-                .post(RequestBody.create(jsonBody, MediaType.parse("application/json")))
-                .build();
+                Request request =
+                    new Request.Builder()
+                        .url(url)
+                        .post(RequestBody.create(jsonBody, MediaType.parse("application/json")))
+                        .build();
 
-            try (Response response = client.newCall(request).execute()) {
-              String responseBody = response.body() != null ? response.body().string() : "";
+                try (Response response = client.newCall(request).execute()) {
+                  String responseBody = response.body() != null ? response.body().string() : "";
 
-              if (!response.isSuccessful()) {
-                Log.e(TAG, "Cache creation failed: " + response.code() + " - " + responseBody);
-                mainHandler.post(
-                    () -> callback.onError("Cache creation failed: " + responseBody));
-                return;
+                  if (!response.isSuccessful()) {
+                    Log.e(TAG, "Cache creation failed: " + response.code() + " - " + responseBody);
+                    mainHandler.post(
+                        () -> callback.onError("Cache creation failed: " + responseBody));
+                    return;
+                  }
+
+                  JsonObject result = JsonParser.parseString(responseBody).getAsJsonObject();
+                  cachedContentName = result.get("name").getAsString();
+                  cacheReady = true;
+
+                  prefs
+                      .edit()
+                      .putString(KEY_CACHE_NAME, cachedContentName)
+                      .putLong(KEY_CACHE_CREATED, System.currentTimeMillis())
+                      .putInt(KEY_CACHE_TTL, CACHE_TTL_SECONDS)
+                      .apply();
+
+                  Log.i(TAG, "New cache created: " + cachedContentName);
+                  mainHandler.post(callback::onReady);
+                }
+
+              } catch (Exception e) {
+                Log.e(TAG, "Cache initialization error", e);
+                mainHandler.post(() -> callback.onError("Error: " + e.getMessage()));
               }
-
-              JsonObject result = JsonParser.parseString(responseBody).getAsJsonObject();
-              cachedContentName = result.get("name").getAsString();
-              cacheReady = true;
-
-              prefs
-                  .edit()
-                  .putString(KEY_CACHE_NAME, cachedContentName)
-                  .putLong(KEY_CACHE_CREATED, System.currentTimeMillis())
-                  .putInt(KEY_CACHE_TTL, CACHE_TTL_SECONDS)
-                  .apply();
-
-              Log.i(TAG, "New cache created: " + cachedContentName);
-              mainHandler.post(callback::onReady);
-            }
-
-          } catch (Exception e) {
-            Log.e(TAG, "Cache initialization error", e);
-            mainHandler.post(() -> callback.onError("Error: " + e.getMessage()));
-          }
-        })
+            })
         .start();
   }
 
   private void validateCacheFromServer(String cacheName, ValidationCallback callback) {
     new Thread(
-        () -> {
-          try {
-            String url = BASE_URL + "/" + cacheName + "?key=" + apiKey;
+            () -> {
+              try {
+                String url = BASE_URL + "/" + cacheName + "?key=" + apiKey;
 
-            Request request = new Request.Builder().url(url).get().build();
+                Request request = new Request.Builder().url(url).get().build();
 
-            try (Response response = client.newCall(request).execute()) {
-              if (response.code() == 404) {
-                callback.onInvalid();
-                return;
+                try (Response response = client.newCall(request).execute()) {
+                  if (response.code() == 404) {
+                    callback.onInvalid();
+                    return;
+                  }
+
+                  if (!response.isSuccessful()) {
+                    callback.onError("Server check failed: " + response.code());
+                    return;
+                  }
+
+                  String responseBody = response.body() != null ? response.body().string() : "";
+                  JsonObject result = JsonParser.parseString(responseBody).getAsJsonObject();
+
+                  if (result.has("expireTime")) {
+                    String expireTimeStr = result.get("expireTime").getAsString();
+                    Instant expireTime = Instant.parse(expireTimeStr);
+                    long remainingSeconds =
+                        expireTime.getEpochSecond() - Instant.now().getEpochSecond();
+                    callback.onValid(cacheName, remainingSeconds);
+                  } else {
+                    callback.onError("No expireTime in response");
+                  }
+                }
+              } catch (Exception e) {
+                Log.e(TAG, "Cache validation error", e);
+                callback.onError(e.getMessage());
               }
-
-              if (!response.isSuccessful()) {
-                callback.onError("Server check failed: " + response.code());
-                return;
-              }
-
-              String responseBody = response.body() != null ? response.body().string() : "";
-              JsonObject result = JsonParser.parseString(responseBody).getAsJsonObject();
-
-              if (result.has("expireTime")) {
-                String expireTimeStr = result.get("expireTime").getAsString();
-                Instant expireTime = Instant.parse(expireTimeStr);
-                long remainingSeconds = expireTime.getEpochSecond() - Instant.now().getEpochSecond();
-                callback.onValid(cacheName, remainingSeconds);
-              } else {
-                callback.onError("No expireTime in response");
-              }
-            }
-          } catch (Exception e) {
-            Log.e(TAG, "Cache validation error", e);
-            callback.onError(e.getMessage());
-          }
-        })
+            })
         .start();
   }
 
@@ -387,7 +388,10 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
       int length,
       @NonNull IDialogueGenerateManager.ScriptStreamingCallback callback) {
     logStream(
-        "request path: cached, cacheName=" + trimForLog(cachedContentName) + ", length=" + Math.max(1, length));
+        "request path: cached, cacheName="
+            + trimForLog(cachedContentName)
+            + ", length="
+            + Math.max(1, length));
     new Thread(
             () -> {
               try {
@@ -439,38 +443,39 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
       int length,
       IDialogueGenerateManager.ScriptGenerationCallback callback) {
     new Thread(
-        () -> {
-          try {
-            JsonObject requestBody = new JsonObject();
-            requestBody.addProperty("cachedContent", cachedContentName);
+            () -> {
+              try {
+                JsonObject requestBody = new JsonObject();
+                requestBody.addProperty("cachedContent", cachedContentName);
 
-            JsonArray contents = new JsonArray();
-            JsonObject userContent = new JsonObject();
-            userContent.addProperty("role", "user");
-            JsonArray parts = new JsonArray();
-            JsonObject part = new JsonObject();
+                JsonArray contents = new JsonArray();
+                JsonObject userContent = new JsonObject();
+                userContent.addProperty("role", "user");
+                JsonArray parts = new JsonArray();
+                JsonObject part = new JsonObject();
 
-            String userPrompt = String.format(
-                "Generate a script with these parameters:\n- level: %s\n- topic: %s\n- format: %s\n- length: %d",
-                level, topic, format, length);
+                String userPrompt =
+                    String.format(
+                        "Generate a script with these parameters:\n- level: %s\n- topic: %s\n- format: %s\n- length: %d",
+                        level, topic, format, length);
 
-            part.addProperty("text", userPrompt);
-            parts.add(part);
-            userContent.add("parts", parts);
-            contents.add(userContent);
-            requestBody.add("contents", contents);
+                part.addProperty("text", userPrompt);
+                parts.add(part);
+                userContent.add("parts", parts);
+                contents.add(userContent);
+                requestBody.add("contents", contents);
 
-            JsonObject generationConfig = new JsonObject();
-            generationConfig.addProperty("responseMimeType", "application/json");
-            requestBody.add("generationConfig", generationConfig);
+                JsonObject generationConfig = new JsonObject();
+                generationConfig.addProperty("responseMimeType", "application/json");
+                requestBody.add("generationConfig", generationConfig);
 
-            sendAndParseRequest(requestBody, true, callback);
+                sendAndParseRequest(requestBody, true, callback);
 
-          } catch (Exception e) {
-            Log.e(TAG, "Cached generation error", e);
-            mainHandler.post(() -> callback.onError(e));
-          }
-        })
+              } catch (Exception e) {
+                Log.e(TAG, "Cached generation error", e);
+                mainHandler.post(() -> callback.onError(e));
+              }
+            })
         .start();
   }
 
@@ -481,46 +486,47 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
       int length,
       IDialogueGenerateManager.ScriptGenerationCallback callback) {
     new Thread(
-        () -> {
-          try {
-            JsonObject requestBody = new JsonObject();
+            () -> {
+              try {
+                JsonObject requestBody = new JsonObject();
 
-            // Add system instruction directly
-            JsonObject sysInstruction = new JsonObject();
-            JsonArray sysParts = new JsonArray();
-            JsonObject sysPart = new JsonObject();
-            sysPart.addProperty("text", getSystemPrompt());
-            sysParts.add(sysPart);
-            sysInstruction.add("parts", sysParts);
-            requestBody.add("systemInstruction", sysInstruction);
+                // Add system instruction directly
+                JsonObject sysInstruction = new JsonObject();
+                JsonArray sysParts = new JsonArray();
+                JsonObject sysPart = new JsonObject();
+                sysPart.addProperty("text", getSystemPrompt());
+                sysParts.add(sysPart);
+                sysInstruction.add("parts", sysParts);
+                requestBody.add("systemInstruction", sysInstruction);
 
-            JsonArray contents = new JsonArray();
-            JsonObject userContent = new JsonObject();
-            userContent.addProperty("role", "user");
-            JsonArray parts = new JsonArray();
-            JsonObject part = new JsonObject();
+                JsonArray contents = new JsonArray();
+                JsonObject userContent = new JsonObject();
+                userContent.addProperty("role", "user");
+                JsonArray parts = new JsonArray();
+                JsonObject part = new JsonObject();
 
-            String userPrompt = String.format(
-                "Generate a script with these parameters:\n- level: %s\n- topic: %s\n- format: %s\n- length: %d",
-                level, topic, format, length);
+                String userPrompt =
+                    String.format(
+                        "Generate a script with these parameters:\n- level: %s\n- topic: %s\n- format: %s\n- length: %d",
+                        level, topic, format, length);
 
-            part.addProperty("text", userPrompt);
-            parts.add(part);
-            userContent.add("parts", parts);
-            contents.add(userContent);
-            requestBody.add("contents", contents);
+                part.addProperty("text", userPrompt);
+                parts.add(part);
+                userContent.add("parts", parts);
+                contents.add(userContent);
+                requestBody.add("contents", contents);
 
-            JsonObject generationConfig = new JsonObject();
-            generationConfig.addProperty("responseMimeType", "application/json");
-            requestBody.add("generationConfig", generationConfig);
+                JsonObject generationConfig = new JsonObject();
+                generationConfig.addProperty("responseMimeType", "application/json");
+                requestBody.add("generationConfig", generationConfig);
 
-            sendAndParseRequest(requestBody, false, callback);
+                sendAndParseRequest(requestBody, false, callback);
 
-          } catch (Exception e) {
-            Log.e(TAG, "Non-cached generation error", e);
-            mainHandler.post(() -> callback.onError(e));
-          }
-        })
+              } catch (Exception e) {
+                Log.e(TAG, "Non-cached generation error", e);
+                mainHandler.post(() -> callback.onError(e));
+              }
+            })
         .start();
   }
 
@@ -740,8 +746,7 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
   }
 
   private void postStreamingFailure(
-      @NonNull IDialogueGenerateManager.ScriptStreamingCallback callback,
-      @NonNull String error) {
+      @NonNull IDialogueGenerateManager.ScriptStreamingCallback callback, @NonNull String error) {
     mainHandler.post(() -> callback.onFailure(error));
   }
 
@@ -752,13 +757,14 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
     try {
       Log.d(TAG, "Sending script generation request. Used cache: " + usedCache);
       String jsonBody = gson.toJson(requestBody);
-      Request request = new Request.Builder()
-          .url(
-              requestBody.has("cachedContent")
-                  ? BASE_URL + "/models/" + modelName + ":generateContent?key=" + apiKey
-                  : BASE_URL + "/models/" + modelName + ":generateContent?key=" + apiKey)
-          .post(RequestBody.create(jsonBody, MediaType.parse("application/json")))
-          .build();
+      Request request =
+          new Request.Builder()
+              .url(
+                  requestBody.has("cachedContent")
+                      ? BASE_URL + "/models/" + modelName + ":generateContent?key=" + apiKey
+                      : BASE_URL + "/models/" + modelName + ":generateContent?key=" + apiKey)
+              .post(RequestBody.create(jsonBody, MediaType.parse("application/json")))
+              .build();
 
       try (Response response = client.newCall(request).execute()) {
         String responseBody = response.body() != null ? response.body().string() : "";
@@ -801,7 +807,8 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
 
   private String readAssetFile(String fileName) {
     try (java.io.InputStream is = context.getAssets().open(fileName);
-        java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(is))) {
+        java.io.BufferedReader reader =
+            new java.io.BufferedReader(new java.io.InputStreamReader(is))) {
       StringBuilder sb = new StringBuilder();
       String line;
       while ((line = reader.readLine()) != null) {

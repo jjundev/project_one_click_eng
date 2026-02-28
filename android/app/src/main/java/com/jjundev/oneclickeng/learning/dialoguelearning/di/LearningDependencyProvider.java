@@ -24,6 +24,7 @@ import com.jjundev.oneclickeng.tool.AudioRecorder;
 public final class LearningDependencyProvider {
 
   @Nullable private static volatile QuizStreamingSessionStore quizStreamingSessionStore;
+
   @Nullable
   private static volatile DialogueScriptStreamingSessionStore dialogueScriptStreamingSessionStore;
 

@@ -133,7 +133,8 @@ public class NotificationInboxDialog extends DialogFragment {
     LayoutInflater inflater = LayoutInflater.from(requireContext());
     for (int i = 0; i < entries.size(); i++) {
       AppNotificationEntry entry = entries.get(i);
-      View itemView = inflater.inflate(R.layout.item_notification_inbox, layoutNotificationContainer, false);
+      View itemView =
+          inflater.inflate(R.layout.item_notification_inbox, layoutNotificationContainer, false);
 
       TextView tvSource = itemView.findViewById(R.id.tv_notification_source);
       TextView tvTitle = itemView.findViewById(R.id.tv_notification_title);
@@ -178,10 +179,12 @@ public class NotificationInboxDialog extends DialogFragment {
     boolean permissionGranted = true;
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
       permissionGranted =
-          ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS)
+          ContextCompat.checkSelfPermission(
+                  requireContext(), Manifest.permission.POST_NOTIFICATIONS)
               == PackageManager.PERMISSION_GRANTED;
     }
-    boolean notificationsEnabled = NotificationManagerCompat.from(requireContext()).areNotificationsEnabled();
+    boolean notificationsEnabled =
+        NotificationManagerCompat.from(requireContext()).areNotificationsEnabled();
     boolean canShowSystemNotification = permissionGranted && notificationsEnabled;
     tvPermissionNotice.setVisibility(canShowSystemNotification ? View.GONE : View.VISIBLE);
   }
@@ -195,7 +198,9 @@ public class NotificationInboxDialog extends DialogFragment {
     if (entry.isPostedToSystem()) {
       return getString(sourceLabelResId);
     }
-    return getString(sourceLabelResId) + " · " + getString(R.string.notification_inbox_source_not_posted);
+    return getString(sourceLabelResId)
+        + " · "
+        + getString(R.string.notification_inbox_source_not_posted);
   }
 
   @Nullable

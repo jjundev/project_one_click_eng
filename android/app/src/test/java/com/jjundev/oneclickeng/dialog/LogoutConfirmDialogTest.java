@@ -76,8 +76,7 @@ public class LogoutConfirmDialogTest {
     assertEquals(activity.getString(R.string.settings_logout_dialog_title), headerView.getText());
     assertEquals(
         activity.getString(R.string.settings_logout_dialog_message), messageView.getText());
-    assertEquals(
-        activity.getString(R.string.settings_logout_dialog_cancel), cancelView.getText());
+    assertEquals(activity.getString(R.string.settings_logout_dialog_cancel), cancelView.getText());
     assertEquals(
         activity.getString(R.string.settings_logout_dialog_confirm), confirmView.getText());
   }

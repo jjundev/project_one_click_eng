@@ -19,8 +19,10 @@ public class InMemoryDialogueScriptStreamingSessionStore
 
   private static final class SessionState {
     @Nullable private ScriptMetadata metadata;
-    @NonNull private final List<IDialogueGenerateManager.ScriptTurnChunk> bufferedTurns =
-        new ArrayList<>();
+
+    @NonNull
+    private final List<IDialogueGenerateManager.ScriptTurnChunk> bufferedTurns = new ArrayList<>();
+
     @NonNull private final Set<Listener> listeners = new HashSet<>();
     private int requestedLength = 0;
     @NonNull private String requestedTopic = "";
@@ -135,11 +137,7 @@ public class InMemoryDialogueScriptStreamingSessionStore
         return;
       }
       state.listeners.remove(listener);
-      logStream(
-          "detach: id="
-              + shortSession(sessionId)
-              + ", listeners="
-              + state.listeners.size());
+      logStream("detach: id=" + shortSession(sessionId) + ", listeners=" + state.listeners.size());
     }
   }
 

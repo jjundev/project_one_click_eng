@@ -1571,7 +1571,9 @@ public class DialogueLearningFragment extends Fragment {
 
   private void dispatchSceneRender(
       @NonNull LearningSessionSnapshot snapshot,
-      @NonNull LearningScene scene, @Nullable String sentenceToRender, boolean forceRebind) {
+      @NonNull LearningScene scene,
+      @Nullable String sentenceToRender,
+      boolean forceRebind) {
     if (scene == LearningScene.FEEDBACK) {
       if (forceRebind || !isCurrentBottomSheetLayout(R.layout.bottom_sheet_content_feedback)) {
         presentFeedbackSceneFromSnapshot(snapshot, sentenceToRender);
@@ -2023,7 +2025,8 @@ public class DialogueLearningFragment extends Fragment {
     outState.putSparseParcelableArray(STATE_BOTTOM_SHEET_HIERARCHY, hierarchyState);
   }
 
-  private void restoreBottomSheetHierarchyIfNeeded(@LayoutRes int layoutResId, @NonNull View content) {
+  private void restoreBottomSheetHierarchyIfNeeded(
+      @LayoutRes int layoutResId, @NonNull View content) {
     if (pendingBottomSheetLayoutResId == null
         || pendingBottomSheetHierarchyState == null
         || pendingBottomSheetLayoutResId != layoutResId) {
@@ -2435,8 +2438,7 @@ public class DialogueLearningFragment extends Fragment {
 
   private void abortLearningHost(@Nullable String message) {
     if (isAdded()) {
-      String toastMessage =
-          isBlank(message) ? "대본 생성 중 오류가 발생했어요" : message.trim();
+      String toastMessage = isBlank(message) ? "대본 생성 중 오류가 발생했어요" : message.trim();
       Toast.makeText(getContext(), toastMessage, Toast.LENGTH_SHORT).show();
     }
     if (getActivity() != null) {

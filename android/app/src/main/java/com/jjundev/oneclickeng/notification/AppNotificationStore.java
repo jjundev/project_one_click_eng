@@ -22,7 +22,9 @@ public class AppNotificationStore {
   private static final String KEY_ENTRIES_JSON = "entries_json";
   private static final int MAX_ENTRIES_PER_USER = 100;
 
-  @NonNull private static final Type ENTRY_LIST_TYPE = new TypeToken<List<AppNotificationEntry>>() {}.getType();
+  @NonNull
+  private static final Type ENTRY_LIST_TYPE =
+      new TypeToken<List<AppNotificationEntry>>() {}.getType();
 
   @NonNull private final SharedPreferences preferences;
   @NonNull private final Gson gson;

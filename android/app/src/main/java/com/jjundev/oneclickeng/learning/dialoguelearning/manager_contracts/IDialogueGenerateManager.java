@@ -22,8 +22,7 @@ public interface IDialogueGenerateManager {
     @NonNull private final String english;
     @NonNull private final String role;
 
-    public ScriptTurnChunk(
-        @NonNull String korean, @NonNull String english, @NonNull String role) {
+    public ScriptTurnChunk(@NonNull String korean, @NonNull String english, @NonNull String role) {
       this.korean = korean;
       this.english = english;
       this.role = role;
@@ -71,5 +70,4 @@ public interface IDialogueGenerateManager {
       @NonNull String format,
       int length,
       @NonNull ScriptStreamingCallback callback);
-
 }

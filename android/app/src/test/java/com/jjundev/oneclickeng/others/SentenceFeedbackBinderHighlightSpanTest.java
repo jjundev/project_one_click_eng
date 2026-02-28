@@ -69,7 +69,8 @@ public class SentenceFeedbackBinderHighlightSpanTest {
 
     SentenceFeedback feedback = new SentenceFeedback();
     GrammarFeedback grammarFeedback = new GrammarFeedback();
-    grammarFeedback.setCorrectedSentence(styledSentence(segment("night", TextSegment.TYPE_HIGHLIGHT)));
+    grammarFeedback.setCorrectedSentence(
+        styledSentence(segment("night", TextSegment.TYPE_HIGHLIGHT)));
     feedback.setGrammar(grammarFeedback);
 
     binder.bind(feedback);
@@ -179,7 +180,8 @@ public class SentenceFeedbackBinderHighlightSpanTest {
     return textSegment;
   }
 
-  private static void assertHasBackgroundColor(Spanned text, int start, int end, int expectedColor) {
+  private static void assertHasBackgroundColor(
+      Spanned text, int start, int end, int expectedColor) {
     BackgroundColorSpan[] spans = text.getSpans(start, end, BackgroundColorSpan.class);
     for (BackgroundColorSpan span : spans) {
       if (text.getSpanStart(span) <= start
@@ -191,7 +193,8 @@ public class SentenceFeedbackBinderHighlightSpanTest {
     throw new AssertionError("Expected BackgroundColorSpan not found in target range.");
   }
 
-  private static void assertHasForegroundColor(Spanned text, int start, int end, int expectedColor) {
+  private static void assertHasForegroundColor(
+      Spanned text, int start, int end, int expectedColor) {
     ForegroundColorSpan[] spans = text.getSpans(start, end, ForegroundColorSpan.class);
     for (ForegroundColorSpan span : spans) {
       if (text.getSpanStart(span) <= start

@@ -15,10 +15,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * 문자열에서 숫자(0~9)만 자릿수 단위 슬롯머신 애니메이션을 적용하는 텍스트 그룹 뷰입니다.
- * 비숫자 문자는 고정 텍스트로 표시합니다.
- */
+/** 문자열에서 숫자(0~9)만 자릿수 단위 슬롯머신 애니메이션을 적용하는 텍스트 그룹 뷰입니다. 비숫자 문자는 고정 텍스트로 표시합니다. */
 public class SlotMachineTextGroupView extends LinearLayout {
 
   @NonNull private String renderedText = "";
@@ -119,8 +116,7 @@ public class SlotMachineTextGroupView extends LinearLayout {
         SlotMachineTextView digitView = new SlotMachineTextView(getContext());
         applyBaseTextStyle(digitView);
         if (shouldAnimate && delta > 0) {
-          long digitDuration =
-              Math.max(1L, Math.round(duration * (delta / (double) maxDelta)));
+          long digitDuration = Math.max(1L, Math.round(duration * (delta / (double) maxDelta)));
           digitView.animateValue(startDigit, targetDigit, "", digitDuration, startDelay);
         } else {
           digitView.setText(String.valueOf(targetDigit));

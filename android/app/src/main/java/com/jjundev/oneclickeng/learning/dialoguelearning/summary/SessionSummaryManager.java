@@ -51,11 +51,12 @@ public class SessionSummaryManager implements ISessionSummaryLlmManager {
 
   private static final String DISPLAY_NAME_EXPRESSION_FILTER =
       "SessionSummaryExpressionFilterPrompt_v3";
-  private static final String DISPLAY_NAME_WORD_EXTRACTION = "SessionSummaryWordExtractionPrompt_v2";
+  private static final String DISPLAY_NAME_WORD_EXTRACTION =
+      "SessionSummaryWordExtractionPrompt_v2";
   private static final String EXPRESSION_FILTER_PROMPT_ASSET_PATH =
-          "prompts/session_summary/expression_filter_system_prompt.md";
+      "prompts/session_summary/expression_filter_system_prompt.md";
   private static final String WORD_EXTRACTION_PROMPT_ASSET_PATH =
-          "prompts/session_summary/word_extraction_system_prompt.md";
+      "prompts/session_summary/word_extraction_system_prompt.md";
 
   private final OkHttpClient client;
   private final OkHttpClient streamingClient;

@@ -14,6 +14,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatButton;
 import androidx.fragment.app.Fragment;
+import com.google.android.gms.ads.AdError;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.FullScreenContentCallback;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.rewarded.RewardedAd;
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
@@ -39,18 +45,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import com.google.android.gms.ads.AdError;
-import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.FullScreenContentCallback;
-import com.google.android.gms.ads.LoadAdError;
-import com.google.android.gms.ads.rewarded.RewardedAd;
-import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
-
 public class SettingFragment extends Fragment
-    implements
-    LearningDataResetDialog.OnLearningDataResetListener,
-    LearningMetricsResetDialog.OnLearningMetricsResetListener,
-    LogoutConfirmDialog.OnLogoutConfirmListener {
+    implements LearningDataResetDialog.OnLearningDataResetListener,
+        LearningMetricsResetDialog.OnLearningMetricsResetListener,
+        LogoutConfirmDialog.OnLogoutConfirmListener {
   private static final String TAG = "SettingFragment";
   private static final String TAG_LEARNING_DATA_RESET_DIALOG = "LearningDataResetDialog";
   private static final String TAG_LEARNING_METRICS_RESET_DIALOG = "LearningMetricsResetDialog";
@@ -71,16 +69,11 @@ public class SettingFragment extends Fragment
   private static final String CREATOR_PLANNER_BONUS_DAY_KEY_PREFIX = "planner_bonus_day_";
   private static final long TAP_WINDOW_UNSET = -1L;
 
-  @Nullable
-  private AppSettingsStore appSettingsStore;
-  @Nullable
-  private LearningStudyTimeStore learningStudyTimeStore;
-  @Nullable
-  private LearningStudyTimeCloudRepository learningStudyTimeCloudRepository;
-  @Nullable
-  private LearningPointStore learningPointStore;
-  @Nullable
-  private LearningPointCloudRepository learningPointCloudRepository;
+  @Nullable private AppSettingsStore appSettingsStore;
+  @Nullable private LearningStudyTimeStore learningStudyTimeStore;
+  @Nullable private LearningStudyTimeCloudRepository learningStudyTimeCloudRepository;
+  @Nullable private LearningPointStore learningPointStore;
+  @Nullable private LearningPointCloudRepository learningPointCloudRepository;
 
   private boolean bindingState;
   private boolean isLearningDataResetInProgress;
@@ -113,7 +106,8 @@ public class SettingFragment extends Fragment
   private boolean isWaitingForAd = false;
   private android.app.Dialog chargeCreditDialog; // 기존 다이얼로그를 멤버 변수로 참조
   private int adRetryAttempt = 0;
-  private final android.os.Handler adRetryHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+  private final android.os.Handler adRetryHandler =
+      new android.os.Handler(android.os.Looper.getMainLooper());
 
   @Nullable
   @Override
@@ -214,9 +208,10 @@ public class SettingFragment extends Fragment
 
   private void onCreatorPlannerCardTapped() {
     long nowElapsedMs = SystemClock.elapsedRealtime();
-    boolean startsNewWindow = creatorPlannerWindowStartElapsedMs == TAP_WINDOW_UNSET
-        || nowElapsedMs < creatorPlannerWindowStartElapsedMs
-        || nowElapsedMs - creatorPlannerWindowStartElapsedMs > CREATOR_BONUS_WINDOW_MS;
+    boolean startsNewWindow =
+        creatorPlannerWindowStartElapsedMs == TAP_WINDOW_UNSET
+            || nowElapsedMs < creatorPlannerWindowStartElapsedMs
+            || nowElapsedMs - creatorPlannerWindowStartElapsedMs > CREATOR_BONUS_WINDOW_MS;
     if (startsNewWindow) {
       creatorPlannerTapCount = 1;
       creatorPlannerWindowStartElapsedMs = nowElapsedMs;
@@ -224,7 +219,8 @@ public class SettingFragment extends Fragment
     } else {
       creatorPlannerTapCount++;
     }
-    logDebug("Planner card tap progress=" + creatorPlannerTapCount + "/" + CREATOR_BONUS_TAP_TARGET);
+    logDebug(
+        "Planner card tap progress=" + creatorPlannerTapCount + "/" + CREATOR_BONUS_TAP_TARGET);
 
     if (creatorPlannerTapCount >= CREATOR_BONUS_TAP_TARGET) {
       logDebug("Planner card bonus triggered");
@@ -240,9 +236,10 @@ public class SettingFragment extends Fragment
 
   private void onCreatorDeveloperCardTapped() {
     long nowElapsedMs = SystemClock.elapsedRealtime();
-    boolean startsNewWindow = creatorDeveloperWindowStartElapsedMs == TAP_WINDOW_UNSET
-        || nowElapsedMs < creatorDeveloperWindowStartElapsedMs
-        || nowElapsedMs - creatorDeveloperWindowStartElapsedMs > CREATOR_BONUS_WINDOW_MS;
+    boolean startsNewWindow =
+        creatorDeveloperWindowStartElapsedMs == TAP_WINDOW_UNSET
+            || nowElapsedMs < creatorDeveloperWindowStartElapsedMs
+            || nowElapsedMs - creatorDeveloperWindowStartElapsedMs > CREATOR_BONUS_WINDOW_MS;
     if (startsNewWindow) {
       creatorDeveloperTapCount = 1;
       creatorDeveloperWindowStartElapsedMs = nowElapsedMs;
@@ -251,10 +248,7 @@ public class SettingFragment extends Fragment
       creatorDeveloperTapCount++;
     }
     logDebug(
-        "Developer card tap progress="
-            + creatorDeveloperTapCount
-            + "/"
-            + CREATOR_BONUS_TAP_TARGET);
+        "Developer card tap progress=" + creatorDeveloperTapCount + "/" + CREATOR_BONUS_TAP_TARGET);
 
     if (creatorDeveloperTapCount >= CREATOR_BONUS_TAP_TARGET) {
       logDebug("Developer card bonus triggered");
@@ -278,7 +272,8 @@ public class SettingFragment extends Fragment
     }
 
     long nowEpochMs = System.currentTimeMillis();
-    String bonusDayKey = CREATOR_PLANNER_BONUS_DAY_KEY_PREFIX + nowEpochMs + "_" + UUID.randomUUID();
+    String bonusDayKey =
+        CREATOR_PLANNER_BONUS_DAY_KEY_PREFIX + nowEpochMs + "_" + UUID.randomUUID();
     studyTimeStore.applyManualBonus(CREATOR_PLANNER_BONUS_STUDY_MILLIS, bonusDayKey);
 
     LearningStudyTimeCloudRepository studyTimeCloudRepository = learningStudyTimeCloudRepository;
@@ -364,9 +359,11 @@ public class SettingFragment extends Fragment
 
   private void performLogout() {
     FirebaseAuth.getInstance().signOut();
-    int clearedPreferenceCount = SharedPreferencesCleaner.clearAll(requireContext().getApplicationContext());
+    int clearedPreferenceCount =
+        SharedPreferencesCleaner.clearAll(requireContext().getApplicationContext());
     logDebug("Cleared shared preferences files: " + clearedPreferenceCount);
-    android.content.Intent intent = new android.content.Intent(requireContext(), LoginActivity.class);
+    android.content.Intent intent =
+        new android.content.Intent(requireContext(), LoginActivity.class);
     intent.setFlags(
         android.content.Intent.FLAG_ACTIVITY_NEW_TASK
             | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -410,8 +407,7 @@ public class SettingFragment extends Fragment
     String userEmail = getCurrentUserEmailOrNull();
     if (userEmail == null) {
       cardProfileEmail.setVisibility(View.GONE);
-      if (cardChangePassword != null)
-        cardChangePassword.setVisibility(View.GONE);
+      if (cardChangePassword != null) cardChangePassword.setVisibility(View.GONE);
       tvProfileEmailValue.setText("");
       return;
     }
@@ -443,7 +439,8 @@ public class SettingFragment extends Fragment
       return;
     }
 
-    View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_change_password, null);
+    View dialogView =
+        LayoutInflater.from(getContext()).inflate(R.layout.dialog_change_password, null);
 
     EditText etCurrentPassword = dialogView.findViewById(R.id.et_current_password);
     View cardCurrentPassword = dialogView.findViewById(R.id.card_current_password);
@@ -467,98 +464,107 @@ public class SettingFragment extends Fragment
 
     btnCancel.setOnClickListener(v -> dialog.dismiss());
 
-    btnSave.setOnClickListener(v -> {
-      // 키보드 숨기기
-      android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) requireContext()
-          .getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
-      if (imm != null) {
-        imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
-      }
+    btnSave.setOnClickListener(
+        v -> {
+          // 키보드 숨기기
+          android.view.inputmethod.InputMethodManager imm =
+              (android.view.inputmethod.InputMethodManager)
+                  requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+          if (imm != null) {
+            imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+          }
 
-      tvError.setVisibility(View.GONE);
+          tvError.setVisibility(View.GONE);
 
-      boolean isCurrentPasswordVerified = layoutNewPasswordContainer.getVisibility() == View.VISIBLE;
+          boolean isCurrentPasswordVerified =
+              layoutNewPasswordContainer.getVisibility() == View.VISIBLE;
 
-      if (!isCurrentPasswordVerified) {
-        // Step 1: 현재 비밀번호 확인
-        String currentPassword = etCurrentPassword.getText().toString();
-        if (currentPassword.isEmpty()) {
-          tvError.setText("현재 비밀번호를 입력해주세요.");
-          tvError.setVisibility(View.VISIBLE);
-          return;
-        }
+          if (!isCurrentPasswordVerified) {
+            // Step 1: 현재 비밀번호 확인
+            String currentPassword = etCurrentPassword.getText().toString();
+            if (currentPassword.isEmpty()) {
+              tvError.setText("현재 비밀번호를 입력해주세요.");
+              tvError.setVisibility(View.VISIBLE);
+              return;
+            }
 
-        btnSave.setEnabled(false);
-        btnSave.setText("확인중...");
+            btnSave.setEnabled(false);
+            btnSave.setText("확인중...");
 
-        AuthCredential credential = EmailAuthProvider.getCredential(userEmail, currentPassword);
-        user.reauthenticate(credential).addOnCompleteListener(reauthTask -> {
-          if (reauthTask.isSuccessful()) {
-            // 확인 완료: 현재 비밀번호 입력창 숨기고 일반 텍스트로 표시, 새 비밀번호 입력창 표시
-            cardCurrentPassword.setVisibility(View.GONE);
-            tvConfirmedPassword.setText(currentPassword);
-            cardConfirmedPassword.setVisibility(View.VISIBLE);
+            AuthCredential credential = EmailAuthProvider.getCredential(userEmail, currentPassword);
+            user.reauthenticate(credential)
+                .addOnCompleteListener(
+                    reauthTask -> {
+                      if (reauthTask.isSuccessful()) {
+                        // 확인 완료: 현재 비밀번호 입력창 숨기고 일반 텍스트로 표시, 새 비밀번호 입력창 표시
+                        cardCurrentPassword.setVisibility(View.GONE);
+                        tvConfirmedPassword.setText(currentPassword);
+                        cardConfirmedPassword.setVisibility(View.VISIBLE);
 
-            layoutNewPasswordContainer.setVisibility(View.VISIBLE);
-            btnSave.setText("변경");
-            btnSave.setEnabled(true);
-            tvError.setVisibility(View.GONE);
+                        layoutNewPasswordContainer.setVisibility(View.VISIBLE);
+                        btnSave.setText("변경");
+                        btnSave.setEnabled(true);
+                        tvError.setVisibility(View.GONE);
+                      } else {
+                        btnSave.setEnabled(true);
+                        btnSave.setText("확인");
+                        tvError.setText("현재 비밀번호가 틀렸어요.");
+                        tvError.setVisibility(View.VISIBLE);
+                      }
+                    });
+
           } else {
-            btnSave.setEnabled(true);
-            btnSave.setText("확인");
-            tvError.setText("현재 비밀번호가 틀렸어요.");
-            tvError.setVisibility(View.VISIBLE);
+            // Step 2: 새 비밀번호 변경
+            String newPassword = etNewPassword.getText().toString();
+            String confirmPassword = etConfirmPassword.getText().toString();
+            String currentPasswordText = tvConfirmedPassword.getText().toString();
+
+            if (newPassword.isEmpty() || confirmPassword.isEmpty()) {
+              tvError.setText("새 비밀번호를 모두 입력해주세요.");
+              tvError.setVisibility(View.VISIBLE);
+              return;
+            }
+
+            if (newPassword.equals(currentPasswordText)) {
+              tvError.setText("이전 비밀번호와 동일한 비밀번호에요.");
+              tvError.setVisibility(View.VISIBLE);
+              return;
+            }
+
+            if (newPassword.length() < 6) {
+              tvError.setText("새 비밀번호는 6자 이상이어야 합니다.");
+              tvError.setVisibility(View.VISIBLE);
+              return;
+            }
+
+            if (!newPassword.equals(confirmPassword)) {
+              tvError.setText("새 비밀번호가 일치하지 않아요.");
+              tvError.setVisibility(View.VISIBLE);
+              return;
+            }
+
+            btnSave.setEnabled(false);
+            btnSave.setText("처리중...");
+
+            user.updatePassword(newPassword)
+                .addOnCompleteListener(
+                    updateTask -> {
+                      if (updateTask.isSuccessful()) {
+                        showToastSafe("비밀번호가 성공적으로 변경되었어요");
+                        dialog.dismiss();
+                      } else {
+                        btnSave.setEnabled(true);
+                        btnSave.setText("변경");
+                        String errorMsg =
+                            updateTask.getException() != null
+                                ? updateTask.getException().getMessage()
+                                : "알 수 없는 오류";
+                        tvError.setText("비밀번호 변경 실패: " + errorMsg);
+                        tvError.setVisibility(View.VISIBLE);
+                      }
+                    });
           }
         });
-
-      } else {
-        // Step 2: 새 비밀번호 변경
-        String newPassword = etNewPassword.getText().toString();
-        String confirmPassword = etConfirmPassword.getText().toString();
-        String currentPasswordText = tvConfirmedPassword.getText().toString();
-
-        if (newPassword.isEmpty() || confirmPassword.isEmpty()) {
-          tvError.setText("새 비밀번호를 모두 입력해주세요.");
-          tvError.setVisibility(View.VISIBLE);
-          return;
-        }
-
-        if (newPassword.equals(currentPasswordText)) {
-          tvError.setText("이전 비밀번호와 동일한 비밀번호에요.");
-          tvError.setVisibility(View.VISIBLE);
-          return;
-        }
-
-        if (newPassword.length() < 6) {
-          tvError.setText("새 비밀번호는 6자 이상이어야 합니다.");
-          tvError.setVisibility(View.VISIBLE);
-          return;
-        }
-
-        if (!newPassword.equals(confirmPassword)) {
-          tvError.setText("새 비밀번호가 일치하지 않아요.");
-          tvError.setVisibility(View.VISIBLE);
-          return;
-        }
-
-        btnSave.setEnabled(false);
-        btnSave.setText("처리중...");
-
-        user.updatePassword(newPassword).addOnCompleteListener(updateTask -> {
-          if (updateTask.isSuccessful()) {
-            showToastSafe("비밀번호가 성공적으로 변경되었어요");
-            dialog.dismiss();
-          } else {
-            btnSave.setEnabled(true);
-            btnSave.setText("변경");
-            String errorMsg = updateTask.getException() != null ? updateTask.getException().getMessage()
-                : "알 수 없는 오류";
-            tvError.setText("비밀번호 변경 실패: " + errorMsg);
-            tvError.setVisibility(View.VISIBLE);
-          }
-        });
-      }
-    });
 
     dialog.show();
   }
@@ -582,92 +588,118 @@ public class SettingFragment extends Fragment
 
     btnCancel.setOnClickListener(v -> dialog.dismiss());
 
-    btnApply.setOnClickListener(v -> {
-      String code = etCouponInput.getText().toString().trim();
-      if (code.isEmpty()) {
-        tvError.setText("쿠폰 코드를 입력해주세요.");
-        tvError.setVisibility(View.VISIBLE);
-        return;
-      }
+    btnApply.setOnClickListener(
+        v -> {
+          String code = etCouponInput.getText().toString().trim();
+          if (code.isEmpty()) {
+            tvError.setText("쿠폰 코드를 입력해주세요.");
+            tvError.setVisibility(View.VISIBLE);
+            return;
+          }
 
-      // Hide keyboard
-      android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) requireContext()
-          .getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
-      if (imm != null) {
-        imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
-      }
+          // Hide keyboard
+          android.view.inputmethod.InputMethodManager imm =
+              (android.view.inputmethod.InputMethodManager)
+                  requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+          if (imm != null) {
+            imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+          }
 
-      tvError.setVisibility(View.GONE);
-      btnApply.setEnabled(false);
-      btnApply.setText("확인중...");
+          tvError.setVisibility(View.GONE);
+          btnApply.setEnabled(false);
+          btnApply.setText("확인중...");
 
-      FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-      if (user == null) {
-        tvError.setText("로그인 정보를 확인할 수 없어요.");
-        tvError.setVisibility(View.VISIBLE);
-        btnApply.setEnabled(true);
-        btnApply.setText("적용");
-        return;
-      }
-
-      FirebaseFirestore db = FirebaseFirestore.getInstance();
-      db.collection("users").document(user.getUid()).get().addOnCompleteListener(task -> {
-        if (task.isSuccessful() && task.getResult() != null) {
-          DocumentSnapshot userDoc = task.getResult();
-          List<String> usedCodes = (List<String>) userDoc.get("used_code");
-          if (usedCodes != null && usedCodes.contains(code)) {
-            tvError.setText("이미 사용된 쿠폰입니다.");
+          FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+          if (user == null) {
+            tvError.setText("로그인 정보를 확인할 수 없어요.");
             tvError.setVisibility(View.VISIBLE);
             btnApply.setEnabled(true);
             btnApply.setText("적용");
             return;
           }
 
-          db.collection("coupons").whereEqualTo("code", code).get().addOnCompleteListener(couponTask -> {
-            if (couponTask.isSuccessful() && couponTask.getResult() != null && !couponTask.getResult().isEmpty()) {
-              DocumentSnapshot couponDoc = couponTask.getResult().getDocuments().get(0);
-              Long rewardCreditObj = couponDoc.getLong("reward_credit");
-              long rewardCredit = rewardCreditObj != null ? rewardCreditObj : 0L;
+          FirebaseFirestore db = FirebaseFirestore.getInstance();
+          db.collection("users")
+              .document(user.getUid())
+              .get()
+              .addOnCompleteListener(
+                  task -> {
+                    if (task.isSuccessful() && task.getResult() != null) {
+                      DocumentSnapshot userDoc = task.getResult();
+                      List<String> usedCodes = (List<String>) userDoc.get("used_code");
+                      if (usedCodes != null && usedCodes.contains(code)) {
+                        tvError.setText("이미 사용된 쿠폰입니다.");
+                        tvError.setVisibility(View.VISIBLE);
+                        btnApply.setEnabled(true);
+                        btnApply.setText("적용");
+                        return;
+                      }
 
-              WriteBatch batch = db.batch();
-              com.google.firebase.firestore.DocumentReference userRef = db.collection("users").document(user.getUid());
+                      db.collection("coupons")
+                          .whereEqualTo("code", code)
+                          .get()
+                          .addOnCompleteListener(
+                              couponTask -> {
+                                if (couponTask.isSuccessful()
+                                    && couponTask.getResult() != null
+                                    && !couponTask.getResult().isEmpty()) {
+                                  DocumentSnapshot couponDoc =
+                                      couponTask.getResult().getDocuments().get(0);
+                                  Long rewardCreditObj = couponDoc.getLong("reward_credit");
+                                  long rewardCredit =
+                                      rewardCreditObj != null ? rewardCreditObj : 0L;
 
-              batch.update(userRef, "credit", com.google.firebase.firestore.FieldValue.increment(rewardCredit));
-              batch.update(userRef, "used_code", com.google.firebase.firestore.FieldValue.arrayUnion(code));
+                                  WriteBatch batch = db.batch();
+                                  com.google.firebase.firestore.DocumentReference userRef =
+                                      db.collection("users").document(user.getUid());
 
-              batch.commit().addOnCompleteListener(updateTask -> {
-                if (updateTask.isSuccessful()) {
-                  showToastSafe(rewardCredit + " 크레딧이 지급되었어요");
-                  dialog.dismiss();
-                  fetchUserCredit(); // Refresh UI
-                } else {
-                  tvError.setText("보상 지급에 실패했어요.");
-                  tvError.setVisibility(View.VISIBLE);
-                  btnApply.setEnabled(true);
-                  btnApply.setText("적용");
-                }
-              });
-            } else {
-              tvError.setText("존재하지 않거나 유효하지 않은 쿠폰입니다.");
-              tvError.setVisibility(View.VISIBLE);
-              btnApply.setEnabled(true);
-              btnApply.setText("적용");
-            }
-          });
-        } else {
-          tvError.setText("사용자 정보를 확인하는 중 오류가 발생했습니다.");
-          tvError.setVisibility(View.VISIBLE);
-          btnApply.setEnabled(true);
-          btnApply.setText("적용");
-        }
-      });
-    });
+                                  batch.update(
+                                      userRef,
+                                      "credit",
+                                      com.google.firebase.firestore.FieldValue.increment(
+                                          rewardCredit));
+                                  batch.update(
+                                      userRef,
+                                      "used_code",
+                                      com.google.firebase.firestore.FieldValue.arrayUnion(code));
+
+                                  batch
+                                      .commit()
+                                      .addOnCompleteListener(
+                                          updateTask -> {
+                                            if (updateTask.isSuccessful()) {
+                                              showToastSafe(rewardCredit + " 크레딧이 지급되었어요");
+                                              dialog.dismiss();
+                                              fetchUserCredit(); // Refresh UI
+                                            } else {
+                                              tvError.setText("보상 지급에 실패했어요.");
+                                              tvError.setVisibility(View.VISIBLE);
+                                              btnApply.setEnabled(true);
+                                              btnApply.setText("적용");
+                                            }
+                                          });
+                                } else {
+                                  tvError.setText("존재하지 않거나 유효하지 않은 쿠폰입니다.");
+                                  tvError.setVisibility(View.VISIBLE);
+                                  btnApply.setEnabled(true);
+                                  btnApply.setText("적용");
+                                }
+                              });
+                    } else {
+                      tvError.setText("사용자 정보를 확인하는 중 오류가 발생했습니다.");
+                      tvError.setVisibility(View.VISIBLE);
+                      btnApply.setEnabled(true);
+                      btnApply.setText("적용");
+                    }
+                  });
+        });
 
     dialog.show();
   }
 
   private void showChargeCreditDialog() {
-    View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_charge_credit, null);
+    View dialogView =
+        LayoutInflater.from(getContext()).inflate(R.layout.dialog_charge_credit, null);
 
     View layoutContent = dialogView.findViewById(R.id.layout_content);
     View layoutLoading = dialogView.findViewById(R.id.layout_loading);
@@ -677,51 +709,62 @@ public class SettingFragment extends Fragment
     chargeCreditDialog = new android.app.Dialog(requireContext());
     chargeCreditDialog.setContentView(dialogView);
     if (chargeCreditDialog.getWindow() != null) {
-      chargeCreditDialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0));
+      chargeCreditDialog
+          .getWindow()
+          .setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0));
       android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
       int width = (int) (metrics.widthPixels * 0.9f);
       chargeCreditDialog.getWindow().setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT);
     }
 
     // 다이얼로그 닫힐 때 상태 리셋
-    chargeCreditDialog.setOnDismissListener(d -> {
-      isWaitingForAd = false;
-      chargeCreditDialog = null;
-    });
+    chargeCreditDialog.setOnDismissListener(
+        d -> {
+          isWaitingForAd = false;
+          chargeCreditDialog = null;
+        });
 
     btnCancel.setOnClickListener(v -> chargeCreditDialog.dismiss());
-    btnAd.setOnClickListener(v -> {
-      if (rewardedAd != null && isAdded()) {
-        chargeCreditDialog.dismiss();
-        isRewardEarned = false; // 보상을 받기 전 초기화
-        rewardedAd.show(requireActivity(), rewardItem -> {
-          // 보상 콜백
-          isRewardEarned = true;
-          increaseCredit();
-        });
-      } else {
-        // 광고 준비 안 됨: 기존 다이얼로그 내부에서 UI 전환 (로딩 표시)
-        isWaitingForAd = true;
-        layoutContent.setVisibility(View.GONE);
-        layoutLoading.setVisibility(View.VISIBLE);
-        chargeCreditDialog.setCancelable(false); // 로딩 중에는 백버튼 등으로 안 닫히게 처리
+    btnAd.setOnClickListener(
+        v -> {
+          if (rewardedAd != null && isAdded()) {
+            chargeCreditDialog.dismiss();
+            isRewardEarned = false; // 보상을 받기 전 초기화
+            rewardedAd.show(
+                requireActivity(),
+                rewardItem -> {
+                  // 보상 콜백
+                  isRewardEarned = true;
+                  increaseCredit();
+                });
+          } else {
+            // 광고 준비 안 됨: 기존 다이얼로그 내부에서 UI 전환 (로딩 표시)
+            isWaitingForAd = true;
+            layoutContent.setVisibility(View.GONE);
+            layoutLoading.setVisibility(View.VISIBLE);
+            chargeCreditDialog.setCancelable(false); // 로딩 중에는 백버튼 등으로 안 닫히게 처리
 
-        if (adRetryAttempt == 0) { // 재시도 중이 아니라면 새로 로드 요청
-          loadRewardedAd();
-        }
-      }
-    });
+            if (adRetryAttempt == 0) { // 재시도 중이 아니라면 새로 로드 요청
+              loadRewardedAd();
+            }
+          }
+        });
 
     chargeCreditDialog.show();
   }
 
   private void loadRewardedAd() {
     AdRequest adRequest = new AdRequest.Builder().build();
-    String adUnitId = BuildConfig.DEBUG ? "ca-app-pub-3940256099942544/5224354917"
-        : BuildConfig.ADMOB_REWARDED_AD_UNIT_ID;
+    String adUnitId =
+        BuildConfig.DEBUG
+            ? "ca-app-pub-3940256099942544/5224354917"
+            : BuildConfig.ADMOB_REWARDED_AD_UNIT_ID;
     logDebug("Loading rewarded ad with Unit ID: " + adUnitId);
-    RewardedAd.load(requireContext(), adUnitId,
-        adRequest, new RewardedAdLoadCallback() {
+    RewardedAd.load(
+        requireContext(),
+        adUnitId,
+        adRequest,
+        new RewardedAdLoadCallback() {
           @Override
           public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
             logDebug("Failed to load rewarded ad: " + loadAdError.getMessage());
@@ -733,7 +776,12 @@ public class SettingFragment extends Fragment
             if (adRetryAttempt <= 5) {
               if (isWaitingForAd) {
                 // 대기 중인 상태면 재시도 사실을 로그나 토스트로 알릴 필요는 없고 그냥 백오프로 로드
-                logDebug("Retrying ad load in " + retryDelayMillis + "ms (Attempt " + adRetryAttempt + ")");
+                logDebug(
+                    "Retrying ad load in "
+                        + retryDelayMillis
+                        + "ms (Attempt "
+                        + adRetryAttempt
+                        + ")");
               }
               adRetryHandler.postDelayed(() -> loadRewardedAd(), retryDelayMillis);
             } else {
@@ -765,39 +813,41 @@ public class SettingFragment extends Fragment
               }
 
               isRewardEarned = false;
-              rewardedAd.show(requireActivity(), rewardItem -> {
-                isRewardEarned = true;
-                increaseCredit();
-              });
+              rewardedAd.show(
+                  requireActivity(),
+                  rewardItem -> {
+                    isRewardEarned = true;
+                    increaseCredit();
+                  });
             }
           }
         });
   }
 
   private void setFullScreenContentCallback() {
-    if (rewardedAd == null)
-      return;
-    rewardedAd.setFullScreenContentCallback(new FullScreenContentCallback() {
-      @Override
-      public void onAdShowedFullScreenContent() {
-        rewardedAd = null; // 표시 직후 초기화 (재사용 불가)
-      }
+    if (rewardedAd == null) return;
+    rewardedAd.setFullScreenContentCallback(
+        new FullScreenContentCallback() {
+          @Override
+          public void onAdShowedFullScreenContent() {
+            rewardedAd = null; // 표시 직후 초기화 (재사용 불가)
+          }
 
-      @Override
-      public void onAdFailedToShowFullScreenContent(@NonNull AdError adError) {
-        logDebug("Ad failed to show: " + adError.getMessage());
-      }
+          @Override
+          public void onAdFailedToShowFullScreenContent(@NonNull AdError adError) {
+            logDebug("Ad failed to show: " + adError.getMessage());
+          }
 
-      @Override
-      public void onAdDismissedFullScreenContent() {
-        logDebug("Ad dismissed");
-        if (!isRewardEarned && isAdded()) {
-          // 사용자가 중간에 광고를 닫아 보상을 받지 못했을 때 안내
-          showToastSafe("광고 시청을 완료하지 않아 크레딧이 지급되지 않았어요");
-        }
-        loadRewardedAd(); // 다음 번을 대비하여 재생성
-      }
-    });
+          @Override
+          public void onAdDismissedFullScreenContent() {
+            logDebug("Ad dismissed");
+            if (!isRewardEarned && isAdded()) {
+              // 사용자가 중간에 광고를 닫아 보상을 받지 못했을 때 안내
+              showToastSafe("광고 시청을 완료하지 않아 크레딧이 지급되지 않았어요");
+            }
+            loadRewardedAd(); // 다음 번을 대비하여 재생성
+          }
+        });
   }
 
   private void increaseCredit() {
@@ -811,22 +861,25 @@ public class SettingFragment extends Fragment
         .collection("users")
         .document(user.getUid())
         .update("credit", com.google.firebase.firestore.FieldValue.increment(1))
-        .addOnSuccessListener(aVoid -> {
-          if (isAdded()) {
-            showToastSafe("1 크레딧이 충전되었어요");
-            fetchUserCredit(); // UI 업데이트
-          }
-        })
-        .addOnFailureListener(e -> {
-          logDebug("Failed to add credit: " + e.getMessage());
-          if (isAdded()) {
-            showToastSafe("크레딧 충전에 실패했어요");
-          }
-        });
+        .addOnSuccessListener(
+            aVoid -> {
+              if (isAdded()) {
+                showToastSafe("1 크레딧이 충전되었어요");
+                fetchUserCredit(); // UI 업데이트
+              }
+            })
+        .addOnFailureListener(
+            e -> {
+              logDebug("Failed to add credit: " + e.getMessage());
+              if (isAdded()) {
+                showToastSafe("크레딧 충전에 실패했어요");
+              }
+            });
   }
 
   private void showNicknameEditDialog() {
-    View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_profile_nickname, null);
+    View dialogView =
+        LayoutInflater.from(getContext()).inflate(R.layout.dialog_profile_nickname, null);
 
     EditText etNicknameInput = dialogView.findViewById(R.id.et_nickname_input);
     AppCompatButton btnCancel = dialogView.findViewById(R.id.btn_nickname_cancel);
@@ -891,28 +944,29 @@ public class SettingFragment extends Fragment
         .collection("users")
         .document(user.getUid())
         .get()
-        .addOnSuccessListener(documentSnapshot -> {
-          if (!isAdded())
-            return;
-          if (documentSnapshot.exists() && documentSnapshot.contains("credit")) {
-            Long credit = documentSnapshot.getLong("credit");
-            if (credit != null) {
-              tvCreditRemainingValue.setText(String.valueOf(credit));
-            } else {
-              tvCreditRemainingValue.setText("0");
-            }
-          } else {
-            // 저장된 크레딧이 없을 경우 0으로 표시하고 Firebase에 초기값 저장 (필요 시)
-            tvCreditRemainingValue.setText("0");
-            saveInitialCreditIfMissing(user.getUid());
-          }
-        })
-        .addOnFailureListener(e -> {
-          logDebug("Failed to fetch user credit: " + e.getMessage());
-          if (isAdded() && tvCreditRemainingValue != null) {
-            tvCreditRemainingValue.setText("-");
-          }
-        });
+        .addOnSuccessListener(
+            documentSnapshot -> {
+              if (!isAdded()) return;
+              if (documentSnapshot.exists() && documentSnapshot.contains("credit")) {
+                Long credit = documentSnapshot.getLong("credit");
+                if (credit != null) {
+                  tvCreditRemainingValue.setText(String.valueOf(credit));
+                } else {
+                  tvCreditRemainingValue.setText("0");
+                }
+              } else {
+                // 저장된 크레딧이 없을 경우 0으로 표시하고 Firebase에 초기값 저장 (필요 시)
+                tvCreditRemainingValue.setText("0");
+                saveInitialCreditIfMissing(user.getUid());
+              }
+            })
+        .addOnFailureListener(
+            e -> {
+              logDebug("Failed to fetch user credit: " + e.getMessage());
+              if (isAdded() && tvCreditRemainingValue != null) {
+                tvCreditRemainingValue.setText("-");
+              }
+            });
   }
 
   private void saveInitialCreditIfMissing(String uid) {
@@ -978,11 +1032,13 @@ public class SettingFragment extends Fragment
     boolean[] taskResults = new boolean[2];
     int[] completedCount = new int[1];
     studyTimeCloudRepository.resetMetricsForCurrentUser(
-        success -> onLearningMetricsResetTaskCompleted(
-            dialog, 0, success, taskResults, completedCount, studyTimeStore, pointStore));
+        success ->
+            onLearningMetricsResetTaskCompleted(
+                dialog, 0, success, taskResults, completedCount, studyTimeStore, pointStore));
     pointCloudRepository.resetTotalPointsForCurrentUser(
-        success -> onLearningMetricsResetTaskCompleted(
-            dialog, 1, success, taskResults, completedCount, studyTimeStore, pointStore));
+        success ->
+            onLearningMetricsResetTaskCompleted(
+                dialog, 1, success, taskResults, completedCount, studyTimeStore, pointStore));
   }
 
   private void onLearningMetricsResetTaskCompleted(

@@ -7,16 +7,16 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 import android.widget.PopupWindow;
+import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
-import com.jjundev.oneclickeng.dialog.NotificationInboxDialog;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.jjundev.oneclickeng.R;
+import com.jjundev.oneclickeng.dialog.NotificationInboxDialog;
 import com.jjundev.oneclickeng.settings.AppSettingsStore;
 import com.jjundev.oneclickeng.settings.LearningPointCloudRepository;
 import com.jjundev.oneclickeng.settings.LearningPointStore;
@@ -55,7 +55,8 @@ public class LearningModeSelectFragment extends Fragment {
           new LearningStudyTimeCloudRepository(getContext().getApplicationContext());
       learningPointStore = new LearningPointStore(getContext().getApplicationContext());
       learningPointCloudRepository =
-          new LearningPointCloudRepository(getContext().getApplicationContext(), learningPointStore);
+          new LearningPointCloudRepository(
+              getContext().getApplicationContext(), learningPointStore);
     }
     recordAppEntry();
 
@@ -396,7 +397,10 @@ public class LearningModeSelectFragment extends Fragment {
 
     PopupWindow popupWindow =
         new PopupWindow(
-            popupContent, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, true);
+            popupContent,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            true);
     popupWindow.setOutsideTouchable(true);
     popupWindow.setFocusable(true);
     popupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));

@@ -47,6 +47,7 @@
         android:id="@+id/tilSignupPassword"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:theme="@style/TextInputLayoutOverlay"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         app:endIconMode="password_toggle"
         app:boxCornerRadiusTopStart="12dp"
@@ -60,6 +61,8 @@
         app:errorTextColor="@color/color_error_et"
         app:boxStrokeErrorColor="@color/color_error_et"
         app:errorIconTint="@color/color_error_et"
+        app:cursorColor="@color/color_primary_text"
+        app:cursorErrorColor="@color/color_error_et"
         android:hint="새 비밀번호">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -76,6 +79,7 @@
         android:id="@+id/tilSignupPasswordConfirm"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:theme="@style/TextInputLayoutOverlay"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         app:endIconMode="password_toggle"
         android:layout_marginTop="12dp"
@@ -91,6 +95,8 @@
         app:errorTextColor="@color/color_error_et"
         app:boxStrokeErrorColor="@color/color_error_et"
         app:errorIconTint="@color/color_error_et"
+        app:cursorColor="@color/color_primary_text"
+        app:cursorErrorColor="@color/color_error_et"
         android:hint="비밀번호 확인">
 
         <com.google.android.material.textfield.TextInputEditText

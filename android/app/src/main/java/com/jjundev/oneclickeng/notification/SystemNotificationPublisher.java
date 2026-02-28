@@ -22,7 +22,12 @@ public final class SystemNotificationPublisher {
   public static void publishLocal(
       @NonNull Context context, @Nullable String title, @Nullable String body) {
     publish(
-        context, AppNotificationEntry.SOURCE_LOCAL, title, body, DEFAULT_CHANNEL_ID, System.currentTimeMillis());
+        context,
+        AppNotificationEntry.SOURCE_LOCAL,
+        title,
+        body,
+        DEFAULT_CHANNEL_ID,
+        System.currentTimeMillis());
   }
 
   public static void publish(
@@ -56,7 +61,8 @@ public final class SystemNotificationPublisher {
                 .setWhen(safeTimestamp)
                 .setShowWhen(true);
 
-        int notificationId = buildNotificationId(safeTimestamp, resolvedTitle, resolvedBody, source);
+        int notificationId =
+            buildNotificationId(safeTimestamp, resolvedTitle, resolvedBody, source);
         NotificationManagerCompat.from(appContext).notify(notificationId, builder.build());
         postedToSystem = true;
       } catch (SecurityException ignored) {

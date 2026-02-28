@@ -52,12 +52,19 @@
 
                     <TextView
                         android:id="@+id/tv_message"
+                        style="@style/DialogTextSubtitle"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:lineSpacingExtra="4dp"
-                        android:textColor="@color/color_sub_text"
-                        android:textSize="@dimen/dialog_subtitle_text_size"
                         android:text="현재 학습 내역이 저장되지 않아요." />
+
+                    <TextView
+                        android:id="@+id/tv_message_2"
+                        style="@style/DialogTextSubtitle"
+                        android:layout_marginTop="8dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="사용한 크레딧은 돌려받지 못해요." />
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

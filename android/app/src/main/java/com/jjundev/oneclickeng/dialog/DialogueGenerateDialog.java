@@ -104,7 +104,8 @@ public class DialogueGenerateDialog extends DialogFragment {
 
   private void setupDropdowns() {
     String[] levels = getResources().getStringArray(R.array.levels);
-    ArrayAdapter<String> levelAdapter = new ArrayAdapter<>(requireContext(), R.layout.item_dropdown, levels);
+    ArrayAdapter<String> levelAdapter =
+        new ArrayAdapter<>(requireContext(), R.layout.item_dropdown, levels);
     spinnerLevel.setAdapter(levelAdapter);
 
     spinnerLevel.setOnItemClickListener(
@@ -161,12 +162,10 @@ public class DialogueGenerateDialog extends DialogFragment {
           }
 
           @Override
-          public void onStartTrackingTouch(android.widget.SeekBar seekBar) {
-          }
+          public void onStartTrackingTouch(android.widget.SeekBar seekBar) {}
 
           @Override
-          public void onStopTrackingTouch(android.widget.SeekBar seekBar) {
-          }
+          public void onStopTrackingTouch(android.widget.SeekBar seekBar) {}
         });
 
     // Initialize text
@@ -188,7 +187,8 @@ public class DialogueGenerateDialog extends DialogFragment {
   private void hideKeyboard() {
     View view = getView();
     if (view != null) {
-      InputMethodManager imm = (InputMethodManager) requireContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+      InputMethodManager imm =
+          (InputMethodManager) requireContext().getSystemService(Context.INPUT_METHOD_SERVICE);
       if (imm != null) {
         imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
       }

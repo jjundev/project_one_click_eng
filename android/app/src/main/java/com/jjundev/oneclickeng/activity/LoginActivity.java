@@ -2,7 +2,6 @@ package com.jjundev.oneclickeng.activity;
 
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
@@ -13,7 +12,6 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.util.Patterns;
 import android.view.View;
-import android.view.animation.AnimationUtils;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -60,6 +58,7 @@ public class LoginActivity extends AppCompatActivity {
   private Runnable imeHidePollRunnable;
   private boolean isBackTransitionPending;
   private Runnable onSlideCollapsedAction;
+  private long backPressedTime = 0L;
 
   @Override
   protected void onStart() {
@@ -87,7 +86,8 @@ public class LoginActivity extends AppCompatActivity {
     // Prevent hiding bottom sheet completely by user drag
     bottomSheetBehavior.setHideable(false);
 
-    bottomSheet.getViewTreeObserver()
+    bottomSheet
+        .getViewTreeObserver()
         .addOnGlobalLayoutListener(
             new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
               @Override
@@ -108,22 +108,23 @@ public class LoginActivity extends AppCompatActivity {
 
                 // Start hidden by pushing it down by its own height
                 bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
-                bottomSheet.post(() -> {
-                  int sheetHeight = bottomSheet.getHeight();
-                  bottomSheet.setTranslationY(sheetHeight);
+                bottomSheet.post(
+                    () -> {
+                      int sheetHeight = bottomSheet.getHeight();
+                      bottomSheet.setTranslationY(sheetHeight);
 
-                  bottomSheet.postDelayed(
-                      () -> {
-                        bottomSheet
-                            .animate()
-                            .translationY(0f)
-                            .setDuration(600)
-                            .setInterpolator(
-                                new android.view.animation.DecelerateInterpolator(2.0f))
-                            .start();
-                      },
-                      200);
-                });
+                      bottomSheet.postDelayed(
+                          () -> {
+                            bottomSheet
+                                .animate()
+                                .translationY(0f)
+                                .setDuration(600)
+                                .setInterpolator(
+                                    new android.view.animation.DecelerateInterpolator(2.0f))
+                                .start();
+                          },
+                          200);
+                    });
               }
             });
 
@@ -160,6 +161,35 @@ public class LoginActivity extends AppCompatActivity {
 
     currentStepLayout = layoutLoginContent;
 
+    getOnBackPressedDispatcher()
+        .addCallback(
+            this,
+            new androidx.activity.OnBackPressedCallback(true) {
+              @Override
+              public void handleOnBackPressed() {
+                if (isBackTransitionPending) return;
+
+                if (currentStepLayout == layoutEmailStep) {
+                  View btn = LoginActivity.this.findViewById(R.id.btnBackFromEmail);
+                  if (btn != null) btn.performClick();
+                } else if (currentStepLayout == layoutSignupStep) {
+                  View btn = LoginActivity.this.findViewById(R.id.btnBackFromSignup);
+                  if (btn != null) btn.performClick();
+                } else if (currentStepLayout == layoutPasswordStep) {
+                  View btn = LoginActivity.this.findViewById(R.id.btnBackFromPassword);
+                  if (btn != null) btn.performClick();
+                } else {
+                  if (System.currentTimeMillis() - backPressedTime < 2000) {
+                    finish();
+                  } else {
+                    backPressedTime = System.currentTimeMillis();
+                    Toast.makeText(LoginActivity.this, "앱을 종료하려면 한번 더 눌러주세요", Toast.LENGTH_SHORT)
+                        .show();
+                  }
+                }
+              }
+            });
+
     findViewById(R.id.btnEmailLogin)
         .setOnClickListener(
             v -> {
@@ -170,10 +200,11 @@ public class LoginActivity extends AppCompatActivity {
     setupPasswordStep();
     setupSignupStep();
 
-    View.OnClickListener googleLoginListener = v -> {
-      setLoadingState(true);
-      signInWithGoogle();
-    };
+    View.OnClickListener googleLoginListener =
+        v -> {
+          setLoadingState(true);
+          signInWithGoogle();
+        };
 
     findViewById(R.id.btnGoogleLogin).setOnClickListener(googleLoginListener);
     findViewById(R.id.btnGoogleLoginFromEmail).setOnClickListener(googleLoginListener);
@@ -192,7 +223,9 @@ public class LoginActivity extends AppCompatActivity {
 
   private void setLoadingState(boolean isLoading) {
     if (isLoading) {
-      if (layoutLoginLoading != null && currentStepLayout != null && currentStepLayout != layoutLoginLoading) {
+      if (layoutLoginLoading != null
+          && currentStepLayout != null
+          && currentStepLayout != layoutLoginLoading) {
         preLoadingStepLayout = currentStepLayout;
         showStep(layoutLoginLoading, currentStepLayout, false);
       }
@@ -209,9 +242,10 @@ public class LoginActivity extends AppCompatActivity {
       swapViews(nextView, currentView);
       bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
     } else {
-      onSlideCollapsedAction = () -> {
-        swapViews(nextView, currentView);
-      };
+      onSlideCollapsedAction =
+          () -> {
+            swapViews(nextView, currentView);
+          };
       bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
     }
   }
@@ -254,49 +288,51 @@ public class LoginActivity extends AppCompatActivity {
     TextInputLayout tilEmail = findViewById(R.id.tilEmail);
     TextInputEditText etEmail = findViewById(R.id.etEmail);
     MaterialButton btnEmailContinue = findViewById(R.id.btnEmailContinue);
-    findViewById(R.id.btnBackFromEmail).setOnClickListener(v -> {
-      if (isBackTransitionPending) {
-        return;
-      }
-      isBackTransitionPending = true;
-      etEmail.clearFocus();
-      hideKeyboardThenRun(
-          v,
-          () -> {
-            isBackTransitionPending = false;
-            if (!isFinishing() && !isDestroyed()) {
-              showStep(layoutLoginContent, layoutEmailStep, true);
+    findViewById(R.id.btnBackFromEmail)
+        .setOnClickListener(
+            v -> {
+              if (isBackTransitionPending) {
+                return;
+              }
+              isBackTransitionPending = true;
+              etEmail.clearFocus();
+              hideKeyboardThenRun(
+                  v,
+                  () -> {
+                    isBackTransitionPending = false;
+                    if (!isFinishing() && !isDestroyed()) {
+                      showStep(layoutLoginContent, layoutEmailStep, true);
+                    }
+                  });
+            });
+
+    etEmail.addTextChangedListener(
+        new TextWatcher() {
+          @Override
+          public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+          @Override
+          public void onTextChanged(CharSequence s, int start, int before, int count) {
+            String email = s.toString().trim();
+            if (Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+              tilEmail.setErrorEnabled(false);
+              tilEmail.setError(null);
             }
-          });
-    });
+          }
 
-    etEmail.addTextChangedListener(new TextWatcher() {
-      @Override
-      public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-      }
+          @Override
+          public void afterTextChanged(Editable s) {}
+        });
 
-      @Override
-      public void onTextChanged(CharSequence s, int start, int before, int count) {
-        String email = s.toString().trim();
-        if (Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-          tilEmail.setErrorEnabled(false);
-          tilEmail.setError(null);
-        }
-      }
-
-      @Override
-      public void afterTextChanged(Editable s) {
-      }
-    });
-
-    btnEmailContinue.setOnClickListener(v -> {
-      String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
-      if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-        tilEmail.setError("올바른 이메일 주소를 입력해주세요.");
-        return;
-      }
-      checkEmailExists(email);
-    });
+    btnEmailContinue.setOnClickListener(
+        v -> {
+          String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
+          if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            tilEmail.setError("올바른 이메일 주소를 입력해주세요.");
+            return;
+          }
+          checkEmailExists(email);
+        });
   }
 
   private void hideKeyboardThenRun(View tokenView, Runnable afterHidden) {
@@ -331,18 +367,19 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     final long startedAtMs = System.currentTimeMillis();
-    imeHidePollRunnable = new Runnable() {
-      @Override
-      public void run() {
-        long elapsedMs = System.currentTimeMillis() - startedAtMs;
-        if (!isImeVisible(rootView) || elapsedMs >= IME_HIDE_TIMEOUT_MS) {
-          imeHidePollRunnable = null;
-          afterHidden.run();
-          return;
-        }
-        imeHandler.postDelayed(this, IME_POLL_INTERVAL_MS);
-      }
-    };
+    imeHidePollRunnable =
+        new Runnable() {
+          @Override
+          public void run() {
+            long elapsedMs = System.currentTimeMillis() - startedAtMs;
+            if (!isImeVisible(rootView) || elapsedMs >= IME_HIDE_TIMEOUT_MS) {
+              imeHidePollRunnable = null;
+              afterHidden.run();
+              return;
+            }
+            imeHandler.postDelayed(this, IME_POLL_INTERVAL_MS);
+          }
+        };
     imeHandler.post(imeHidePollRunnable);
   }
 
@@ -361,12 +398,10 @@ public class LoginActivity extends AppCompatActivity {
               if (task.isSuccessful()) {
                 boolean isNewUser = task.getResult().getSignInMethods().isEmpty();
                 TextView tvDisplayEmail = findViewById(R.id.tvDisplayEmail);
-                if (tvDisplayEmail != null)
-                  tvDisplayEmail.setText(email);
+                if (tvDisplayEmail != null) tvDisplayEmail.setText(email);
 
                 TextView tvDisplaySignupEmail = findViewById(R.id.tvDisplaySignupEmail);
-                if (tvDisplaySignupEmail != null)
-                  tvDisplaySignupEmail.setText(email);
+                if (tvDisplaySignupEmail != null) tvDisplaySignupEmail.setText(email);
 
                 if (isNewUser) {
                   showStep(layoutSignupStep, layoutEmailStep, false);
@@ -381,49 +416,53 @@ public class LoginActivity extends AppCompatActivity {
 
   private void setupPasswordStep() {
     TextInputEditText etPassword = findViewById(R.id.etPassword);
-    findViewById(R.id.btnBackFromPassword).setOnClickListener(v -> {
-      if (isBackTransitionPending) {
-        return;
-      }
-      isBackTransitionPending = true;
-      etPassword.clearFocus();
-      hideKeyboardThenRun(
-          v,
-          () -> {
-            isBackTransitionPending = false;
-            if (!isFinishing() && !isDestroyed()) {
-              showStep(layoutEmailStep, layoutPasswordStep, true);
-            }
-          });
-    });
+    findViewById(R.id.btnBackFromPassword)
+        .setOnClickListener(
+            v -> {
+              if (isBackTransitionPending) {
+                return;
+              }
+              isBackTransitionPending = true;
+              etPassword.clearFocus();
+              hideKeyboardThenRun(
+                  v,
+                  () -> {
+                    isBackTransitionPending = false;
+                    if (!isFinishing() && !isDestroyed()) {
+                      showStep(layoutEmailStep, layoutPasswordStep, true);
+                    }
+                  });
+            });
 
-    findViewById(R.id.btnLogin).setOnClickListener(v -> {
-      String password = etPassword.getText() != null ? etPassword.getText().toString() : "";
-      if (password.isEmpty()) {
-        Toast.makeText(this, "비밀번호를 입력해주세요.", Toast.LENGTH_SHORT).show();
-        return;
-      }
+    findViewById(R.id.btnLogin)
+        .setOnClickListener(
+            v -> {
+              String password = etPassword.getText() != null ? etPassword.getText().toString() : "";
+              if (password.isEmpty()) {
+                Toast.makeText(this, "비밀번호를 입력해주세요.", Toast.LENGTH_SHORT).show();
+                return;
+              }
 
-      TextView tvDisplayEmail = findViewById(R.id.tvDisplayEmail);
-      String email = tvDisplayEmail.getText().toString();
+              TextView tvDisplayEmail = findViewById(R.id.tvDisplayEmail);
+              String email = tvDisplayEmail.getText().toString();
 
-      setLoadingState(true);
-      FirebaseAuth.getInstance()
-          .signInWithEmailAndPassword(email, password)
-          .addOnCompleteListener(
-              this,
-              task -> {
-                setLoadingState(false);
-                if (task.isSuccessful()) {
-                  Log.d(TAG, "signInWithEmail:success");
-                  Toast.makeText(this, "로그인 성공!", Toast.LENGTH_SHORT).show();
-                  navigateToMain();
-                } else {
-                  Log.w(TAG, "signInWithEmail:failure", task.getException());
-                  Toast.makeText(this, "로그인 실패: 비밀번호를 확인해주세요.", Toast.LENGTH_SHORT).show();
-                }
-              });
-    });
+              setLoadingState(true);
+              FirebaseAuth.getInstance()
+                  .signInWithEmailAndPassword(email, password)
+                  .addOnCompleteListener(
+                      this,
+                      task -> {
+                        setLoadingState(false);
+                        if (task.isSuccessful()) {
+                          Log.d(TAG, "signInWithEmail:success");
+                          Toast.makeText(this, "로그인 성공!", Toast.LENGTH_SHORT).show();
+                          navigateToMain();
+                        } else {
+                          Log.w(TAG, "signInWithEmail:failure", task.getException());
+                          Toast.makeText(this, "로그인 실패: 비밀번호를 확인해주세요.", Toast.LENGTH_SHORT).show();
+                        }
+                      });
+            });
   }
 
   private void setupSignupStep() {
@@ -432,116 +471,133 @@ public class LoginActivity extends AppCompatActivity {
     TextInputLayout tilSignupPassword = findViewById(R.id.tilSignupPassword);
     TextInputLayout tilSignupPasswordConfirm = findViewById(R.id.tilSignupPasswordConfirm);
     MaterialButton btnSignup = findViewById(R.id.btnSignup);
-    findViewById(R.id.btnBackFromSignup).setOnClickListener(v -> {
-      if (isBackTransitionPending) {
-        return;
-      }
-      isBackTransitionPending = true;
-      etSignupPassword.clearFocus();
-      etSignupPasswordConfirm.clearFocus();
-      hideKeyboardThenRun(
-          v,
-          () -> {
-            isBackTransitionPending = false;
-            if (!isFinishing() && !isDestroyed()) {
-              showStep(layoutEmailStep, layoutSignupStep, true);
+    findViewById(R.id.btnBackFromSignup)
+        .setOnClickListener(
+            v -> {
+              if (isBackTransitionPending) {
+                return;
+              }
+              isBackTransitionPending = true;
+              etSignupPassword.clearFocus();
+              etSignupPasswordConfirm.clearFocus();
+              hideKeyboardThenRun(
+                  v,
+                  () -> {
+                    isBackTransitionPending = false;
+                    if (!isFinishing() && !isDestroyed()) {
+                      showStep(layoutEmailStep, layoutSignupStep, true);
+                    }
+                  });
+            });
+
+    TextWatcher signupWatcher =
+        new TextWatcher() {
+          @Override
+          public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+          @Override
+          public void onTextChanged(CharSequence s, int start, int before, int count) {
+            String p1 =
+                etSignupPassword.getText() != null ? etSignupPassword.getText().toString() : "";
+            String p2 =
+                etSignupPasswordConfirm.getText() != null
+                    ? etSignupPasswordConfirm.getText().toString()
+                    : "";
+
+            if (p1.length() >= 6) {
+              tilSignupPassword.setErrorEnabled(false);
+              tilSignupPassword.setError(null);
+            } else if (tilSignupPassword.getError() != null) {
+              // If the error was already shown by the button, keep updating the user if it's
+              // still invalid
+              tilSignupPassword.setError("비밀번호는 6자리 이상이어야 합니다.");
             }
-          });
-    });
 
-    TextWatcher signupWatcher = new TextWatcher() {
-      @Override
-      public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-      }
+            if (p1.equals(p2)) {
+              tilSignupPasswordConfirm.setErrorEnabled(false);
+              tilSignupPasswordConfirm.setError(null);
+            } else if (tilSignupPasswordConfirm.getError() != null || p2.length() > 0) {
+              // Show error if they don't match, but only if they've started typing in the
+              // confirm box
+              // or if the button was already clicked (which sets the error initially)
+              tilSignupPasswordConfirm.setError("비밀번호가 일치하지 않습니다.");
+            }
+          }
 
-      @Override
-      public void onTextChanged(CharSequence s, int start, int before, int count) {
-        String p1 = etSignupPassword.getText() != null ? etSignupPassword.getText().toString() : "";
-        String p2 = etSignupPasswordConfirm.getText() != null ? etSignupPasswordConfirm.getText().toString() : "";
-
-        if (p1.length() >= 6) {
-          tilSignupPassword.setErrorEnabled(false);
-          tilSignupPassword.setError(null);
-        } else if (tilSignupPassword.getError() != null) {
-          // If the error was already shown by the button, keep updating the user if it's
-          // still invalid
-          tilSignupPassword.setError("비밀번호는 6자리 이상이어야 합니다.");
-        }
-
-        if (p1.equals(p2)) {
-          tilSignupPasswordConfirm.setErrorEnabled(false);
-          tilSignupPasswordConfirm.setError(null);
-        } else if (tilSignupPasswordConfirm.getError() != null || p2.length() > 0) {
-          // Show error if they don't match, but only if they've started typing in the
-          // confirm box
-          // or if the button was already clicked (which sets the error initially)
-          tilSignupPasswordConfirm.setError("비밀번호가 일치하지 않습니다.");
-        }
-      }
-
-      @Override
-      public void afterTextChanged(Editable s) {
-      }
-    };
+          @Override
+          public void afterTextChanged(Editable s) {}
+        };
 
     etSignupPassword.addTextChangedListener(signupWatcher);
     etSignupPasswordConfirm.addTextChangedListener(signupWatcher);
 
-    btnSignup.setOnClickListener(v -> {
-      String password = etSignupPassword.getText() != null ? etSignupPassword.getText().toString() : "";
-      String passwordConfirm = etSignupPasswordConfirm.getText() != null ? etSignupPasswordConfirm.getText().toString()
-          : "";
-      TextView tvDisplaySignupEmail = findViewById(R.id.tvDisplaySignupEmail);
-      String email = tvDisplaySignupEmail != null ? tvDisplaySignupEmail.getText().toString() : "";
+    btnSignup.setOnClickListener(
+        v -> {
+          String password =
+              etSignupPassword.getText() != null ? etSignupPassword.getText().toString() : "";
+          String passwordConfirm =
+              etSignupPasswordConfirm.getText() != null
+                  ? etSignupPasswordConfirm.getText().toString()
+                  : "";
+          TextView tvDisplaySignupEmail = findViewById(R.id.tvDisplaySignupEmail);
+          String email =
+              tvDisplaySignupEmail != null ? tvDisplaySignupEmail.getText().toString() : "";
 
-      if (password.length() < 6) {
-        tilSignupPassword.setError("비밀번호는 6자리 이상이어야 합니다.");
-        return;
-      }
+          if (password.length() < 6) {
+            tilSignupPassword.setError("비밀번호는 6자리 이상이어야 합니다.");
+            return;
+          }
 
-      if (!password.equals(passwordConfirm)) {
-        tilSignupPasswordConfirm.setError("비밀번호가 일치하지 않습니다.");
-        return;
-      }
+          if (!password.equals(passwordConfirm)) {
+            tilSignupPasswordConfirm.setError("비밀번호가 일치하지 않습니다.");
+            return;
+          }
 
-      if (email.isEmpty()) {
-        Toast.makeText(this, "이메일 정보가 유효하지 않아요", Toast.LENGTH_SHORT).show();
-        return;
-      }
+          if (email.isEmpty()) {
+            Toast.makeText(this, "이메일 정보가 유효하지 않아요", Toast.LENGTH_SHORT).show();
+            return;
+          }
 
-      setLoadingState(true);
-      FirebaseAuth.getInstance()
-          .createUserWithEmailAndPassword(email, password)
-          .addOnCompleteListener(
-              this,
-              task -> {
-                if (task.isSuccessful()) {
-                  Log.d(TAG, "createUserWithEmail:success");
-                  if (task.getResult().getUser() != null) {
-                    initializeUserCredit(task.getResult().getUser().getUid(), "회원가입 및 로그인 완료! (10 크레딧 지급)");
-                  } else {
-                    setLoadingState(false);
-                    Toast.makeText(LoginActivity.this, "회원가입 및 로그인 완료!", Toast.LENGTH_SHORT).show();
-                    navigateToMain();
-                  }
-                } else {
-                  setLoadingState(false);
-                  Log.w(TAG, "createUserWithEmail:failure", task.getException());
-                  Toast.makeText(LoginActivity.this, "회원가입 실패: " + task.getException().getMessage(), Toast.LENGTH_SHORT)
-                      .show();
-                }
-              });
-    });
+          setLoadingState(true);
+          FirebaseAuth.getInstance()
+              .createUserWithEmailAndPassword(email, password)
+              .addOnCompleteListener(
+                  this,
+                  task -> {
+                    if (task.isSuccessful()) {
+                      Log.d(TAG, "createUserWithEmail:success");
+                      if (task.getResult().getUser() != null) {
+                        initializeUserCredit(
+                            task.getResult().getUser().getUid(), "회원가입 및 로그인 완료! (10 크레딧 지급)");
+                      } else {
+                        setLoadingState(false);
+                        Toast.makeText(LoginActivity.this, "회원가입 및 로그인 완료!", Toast.LENGTH_SHORT)
+                            .show();
+                        navigateToMain();
+                      }
+                    } else {
+                      setLoadingState(false);
+                      Log.w(TAG, "createUserWithEmail:failure", task.getException());
+                      Toast.makeText(
+                              LoginActivity.this,
+                              "회원가입 실패: " + task.getException().getMessage(),
+                              Toast.LENGTH_SHORT)
+                          .show();
+                    }
+                  });
+        });
   }
 
   private void signInWithGoogle() {
-    GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
-        .setFilterByAuthorizedAccounts(false)
-        .setServerClientId(getString(R.string.default_web_client_id))
-        .setAutoSelectEnabled(true)
-        .build();
+    GetGoogleIdOption googleIdOption =
+        new GetGoogleIdOption.Builder()
+            .setFilterByAuthorizedAccounts(false)
+            .setServerClientId(getString(R.string.default_web_client_id))
+            .setAutoSelectEnabled(true)
+            .build();
 
-    GetCredentialRequest request = new GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build();
+    GetCredentialRequest request =
+        new GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build();
 
     CredentialManager credentialManager = CredentialManager.create(this);
     credentialManager.getCredentialAsync(
@@ -558,8 +614,8 @@ public class LoginActivity extends AppCompatActivity {
                 if (credential
                     .getType()
                     .equals(GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL)) {
-                  GoogleIdTokenCredential googleIdTokenCredential = GoogleIdTokenCredential
-                      .createFrom(credential.getData());
+                  GoogleIdTokenCredential googleIdTokenCredential =
+                      GoogleIdTokenCredential.createFrom(credential.getData());
                   String idToken = googleIdTokenCredential.getIdToken();
                   firebaseAuthWithGoogle(idToken);
                 }
@@ -606,16 +662,17 @@ public class LoginActivity extends AppCompatActivity {
                 setLoadingState(false);
                 Log.w(TAG, "signInWithCredential:failure", task.getException());
                 Toast.makeText(
-                    LoginActivity.this,
-                    "Firebase 인증 실패: " + task.getException().getMessage(),
-                    Toast.LENGTH_SHORT)
+                        LoginActivity.this,
+                        "Firebase 인증 실패: " + task.getException().getMessage(),
+                        Toast.LENGTH_SHORT)
                     .show();
               }
             });
   }
 
   private void setupBackgroundVideo() {
-    Uri videoUri = Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.video_login_activity);
+    Uri videoUri =
+        Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.video_login_activity);
     videoViewBackground.setVideoURI(videoUri);
 
     videoViewBackground.setOnPreparedListener(

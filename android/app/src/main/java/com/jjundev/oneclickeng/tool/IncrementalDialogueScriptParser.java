@@ -5,9 +5,7 @@ import androidx.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Incrementally extracts dialogue metadata and completed turn objects from streamed JSON text.
- */
+/** Incrementally extracts dialogue metadata and completed turn objects from streamed JSON text. */
 public final class IncrementalDialogueScriptParser {
   private static final String SCRIPT_KEY = "\"script\"";
 

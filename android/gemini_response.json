@@ -1,0 +1,178 @@
+[
+  {
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "{\n  \"topic\": \"Testing topic extraction\",\n  \""
+            }
+          ],
+          "role": "model"
+        },
+        "index": 0
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 97,
+      "candidatesTokenCount": 14,
+      "totalTokenCount": 454,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 97
+        }
+      ],
+      "thoughtsTokenCount": 343
+    },
+    "modelVersion": "gemini-3-flash-preview",
+    "responseId": "NFiiadvxBZWdosUPheqJ4Ag"
+  },
+  {
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "opponent_name\": \"John\",\n  \"opponent_gender\": \"male\",\n  \"opponent_role\":"
+            }
+          ],
+          "role": "model"
+        },
+        "index": 0
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 97,
+      "candidatesTokenCount": 38,
+      "totalTokenCount": 478,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 97
+        }
+      ],
+      "thoughtsTokenCount": 343
+    },
+    "modelVersion": "gemini-3-flash-preview",
+    "responseId": "NFiiadvxBZWdosUPheqJ4Ag"
+  },
+  {
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": " \"Friend\",\n  \"script\": [\n    {\n      \"speaker\": \"User\",\n      \"text"
+            }
+          ],
+          "role": "model"
+        },
+        "index": 0
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 97,
+      "candidatesTokenCount": 62,
+      "totalTokenCount": 502,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 97
+        }
+      ],
+      "thoughtsTokenCount": 343
+    },
+    "modelVersion": "gemini-3-flash-preview",
+    "responseId": "NFiiadvxBZWdosUPheqJ4Ag"
+  },
+  {
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "\": \"Hi John, can you help me with this test?\"\n    },\n    {\n      \"speaker\": \"John"
+            }
+          ],
+          "role": "model"
+        },
+        "index": 0
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 97,
+      "candidatesTokenCount": 88,
+      "totalTokenCount": 528,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 97
+        }
+      ],
+      "thoughtsTokenCount": 343
+    },
+    "modelVersion": "gemini-3-flash-preview",
+    "responseId": "NFiiadvxBZWdosUPheqJ4Ag"
+  },
+  {
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "\",\n      \"text\": \"Sure! Testing is important for learning new things.\"\n    }\n  ]\n}"
+            }
+          ],
+          "role": "model"
+        },
+        "index": 0
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 97,
+      "candidatesTokenCount": 113,
+      "totalTokenCount": 553,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 97
+        }
+      ],
+      "thoughtsTokenCount": 343
+    },
+    "modelVersion": "gemini-3-flash-preview",
+    "responseId": "NFiiadvxBZWdosUPheqJ4Ag"
+  },
+  {
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "",
+              "thoughtSignature": "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"
+            }
+          ],
+          "role": "model"
+        },
+        "finishReason": "STOP",
+        "index": 0
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 97,
+      "candidatesTokenCount": 113,
+      "totalTokenCount": 553,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 97
+        }
+      ],
+      "thoughtsTokenCount": 343
+    },
+    "modelVersion": "gemini-3-flash-preview",
+    "responseId": "NFiiadvxBZWdosUPheqJ4Ag"
+  }
+]

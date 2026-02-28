@@ -31,11 +31,7 @@ public class DialogueSummaryViewModelPromptMappingTest {
     String featureBundleJson =
         featureBundleJson(
             new SummaryFeatureBundle.ExpressionCandidate(
-                "정확한 표현",
-                "나는 집에 갔다.",
-                "I goed home.",
-                "I went home.",
-                "설명"));
+                "정확한 표현", "나는 집에 갔다.", "I goed home.", "I went home.", "설명"));
 
     viewModel.initialize(summaryJson, featureBundleJson, null);
 

@@ -90,11 +90,7 @@ public final class LearningStudyTimeCloudRepository {
     appendPending(
         user.getUid(),
         new PendingDelta(
-            totalDeltaMillis,
-            todayDeltaMillis,
-            dayStart,
-            intervalStudyDayKeys,
-            new HashSet<>()));
+            totalDeltaMillis, todayDeltaMillis, dayStart, intervalStudyDayKeys, new HashSet<>()));
     flushPendingForCurrentUser();
   }
 
@@ -106,7 +102,8 @@ public final class LearningStudyTimeCloudRepository {
     long dayStart = resolveLocalDayStartEpochMs(epochMs);
     Set<String> streakDayKeys = new HashSet<>();
     streakDayKeys.add(formatLocalDayKey(dayStart));
-    appendPending(user.getUid(), new PendingDelta(0L, 0L, dayStart, new HashSet<>(), streakDayKeys));
+    appendPending(
+        user.getUid(), new PendingDelta(0L, 0L, dayStart, new HashSet<>(), streakDayKeys));
     flushPendingForCurrentUser();
   }
 
@@ -353,7 +350,8 @@ public final class LearningStudyTimeCloudRepository {
               long todayStart = resolveLocalDayStartEpochMs(now);
 
               long totalVisibleMillis = Math.max(0L, getLong(snapshot, FIELD_TOTAL_VISIBLE_MILLIS));
-              long remoteTodayVisibleMillis = Math.max(0L, getLong(snapshot, FIELD_TODAY_VISIBLE_MILLIS));
+              long remoteTodayVisibleMillis =
+                  Math.max(0L, getLong(snapshot, FIELD_TODAY_VISIBLE_MILLIS));
               long remoteDayStart = getLong(snapshot, FIELD_TODAY_DAY_START_EPOCH_MS);
               long todayVisibleMillis =
                   remoteDayStart == todayStart ? remoteTodayVisibleMillis : 0L;

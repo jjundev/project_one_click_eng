@@ -128,11 +128,13 @@ public class VennDiagramView extends View {
     intersectionItemPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     intersectionItemPaint.setTextSize(24f);
     intersectionItemPaint.setTextAlign(Paint.Align.CENTER);
-    intersectionItemPaint.setColor(ContextCompat.getColor(getContext(), R.color.color_primary_text));
+    intersectionItemPaint.setColor(
+        ContextCompat.getColor(getContext(), R.color.color_primary_text));
   }
 
   private void resolveContrastReferenceColors() {
-    lightBackgroundColor = resolveColorForMode(R.color.color_background_4, false, LIGHT_BG_FALLBACK);
+    lightBackgroundColor =
+        resolveColorForMode(R.color.color_background_4, false, LIGHT_BG_FALLBACK);
     darkBackgroundColor = resolveColorForMode(R.color.color_background_4, true, DARK_BG_FALLBACK);
     lightPrimaryTextColor =
         resolveColorForMode(R.color.color_primary_text, false, LIGHT_PRIMARY_TEXT_FALLBACK);
@@ -148,7 +150,8 @@ public class VennDiagramView extends View {
       if (baseContext == null) {
         return fallback;
       }
-      Configuration configuration = new Configuration(baseContext.getResources().getConfiguration());
+      Configuration configuration =
+          new Configuration(baseContext.getResources().getConfiguration());
       configuration.uiMode =
           (configuration.uiMode & ~Configuration.UI_MODE_NIGHT_MASK)
               | (nightMode ? Configuration.UI_MODE_NIGHT_YES : Configuration.UI_MODE_NIGHT_NO);
@@ -176,11 +179,13 @@ public class VennDiagramView extends View {
         resolveIntersectionColor(diagram.getIntersection(), FALLBACK_INTERSECTION_COLOR);
 
     int resolvedLeftColor = chooseSideColor(leftInputColor, FALLBACK_LEFT_COLOR, null);
-    int resolvedRightColor = chooseSideColor(rightInputColor, FALLBACK_RIGHT_COLOR, resolvedLeftColor);
+    int resolvedRightColor =
+        chooseSideColor(rightInputColor, FALLBACK_RIGHT_COLOR, resolvedLeftColor);
 
     // Keep left and right circles distinguishable. Prefer replacing right as requested.
     if (colorDistance(resolvedLeftColor, resolvedRightColor) < MIN_SIDE_COLOR_DISTANCE) {
-      resolvedRightColor = chooseSideColor(FALLBACK_RIGHT_COLOR, FALLBACK_RIGHT_COLOR, resolvedLeftColor);
+      resolvedRightColor =
+          chooseSideColor(FALLBACK_RIGHT_COLOR, FALLBACK_RIGHT_COLOR, resolvedLeftColor);
     }
 
     int resolvedIntersectionColor =
@@ -265,8 +270,7 @@ public class VennDiagramView extends View {
             contrastRatio(darkPrimaryTextColor, darkFill));
     double minSubContrast =
         Math.min(
-            contrastRatio(lightSubTextColor, lightFill),
-            contrastRatio(darkSubTextColor, darkFill));
+            contrastRatio(lightSubTextColor, lightFill), contrastRatio(darkSubTextColor, darkFill));
 
     return minPrimaryContrast >= MIN_PRIMARY_CONTRAST_SIDE
         && minSubContrast >= MIN_SUB_CONTRAST_SIDE;
@@ -311,7 +315,8 @@ public class VennDiagramView extends View {
     int r = (Color.red(foregroundColor) * alpha + Color.red(backgroundColor) * (255 - alpha)) / 255;
     int g =
         (Color.green(foregroundColor) * alpha + Color.green(backgroundColor) * (255 - alpha)) / 255;
-    int b = (Color.blue(foregroundColor) * alpha + Color.blue(backgroundColor) * (255 - alpha)) / 255;
+    int b =
+        (Color.blue(foregroundColor) * alpha + Color.blue(backgroundColor) * (255 - alpha)) / 255;
     return Color.rgb(r, g, b);
   }
 
@@ -341,7 +346,8 @@ public class VennDiagramView extends View {
     return parseHexColorOrFallback(circle.getColor(), fallback);
   }
 
-  private static int resolveIntersectionColor(@Nullable VennIntersection intersection, int fallback) {
+  private static int resolveIntersectionColor(
+      @Nullable VennIntersection intersection, int fallback) {
     if (intersection == null) {
       return fallback;
     }

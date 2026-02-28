@@ -27,25 +27,23 @@ public class SharedPreferencesCleanerTest {
     String firstPrefName = "sp_cleaner_test_first_" + suffix;
     String secondPrefName = "sp_cleaner_test_second_" + suffix;
 
-    appContext.getSharedPreferences(firstPrefName, Context.MODE_PRIVATE).edit()
+    appContext
+        .getSharedPreferences(firstPrefName, Context.MODE_PRIVATE)
+        .edit()
         .putString("first_key", "first_value")
         .commit();
-    appContext.getSharedPreferences(secondPrefName, Context.MODE_PRIVATE).edit()
+    appContext
+        .getSharedPreferences(secondPrefName, Context.MODE_PRIVATE)
+        .edit()
         .putInt("second_key", 2)
         .commit();
 
     int clearedCount = SharedPreferencesCleaner.clearAll(appContext);
 
     assertTrue(
-        appContext
-            .getSharedPreferences(firstPrefName, Context.MODE_PRIVATE)
-            .getAll()
-            .isEmpty());
+        appContext.getSharedPreferences(firstPrefName, Context.MODE_PRIVATE).getAll().isEmpty());
     assertTrue(
-        appContext
-            .getSharedPreferences(secondPrefName, Context.MODE_PRIVATE)
-            .getAll()
-            .isEmpty());
+        appContext.getSharedPreferences(secondPrefName, Context.MODE_PRIVATE).getAll().isEmpty());
     assertTrue(clearedCount >= 2);
   }
 
@@ -69,8 +67,7 @@ public class SharedPreferencesCleanerTest {
   @Test
   public void clearAll_whenSharedPrefsDirectoryEmpty_returnsZero() {
     java.io.File isolatedDataDir =
-        new java.io.File(
-            appContext.getCacheDir(), "sp_cleaner_empty_case_" + System.nanoTime());
+        new java.io.File(appContext.getCacheDir(), "sp_cleaner_empty_case_" + System.nanoTime());
     isolatedDataDir.mkdirs();
 
     Context isolatedContext =

@@ -106,9 +106,7 @@ public class LearningHistoryFragment extends Fragment {
                         if (itemToSwipe != null && viewModel != null) {
                           viewModel.removeCard(itemToSwipe);
                           android.widget.Toast.makeText(
-                                  requireContext(),
-                                  "카드를 삭제했어요",
-                                  android.widget.Toast.LENGTH_SHORT)
+                                  requireContext(), "카드를 삭제했어요", android.widget.Toast.LENGTH_SHORT)
                               .show();
                         }
                       }

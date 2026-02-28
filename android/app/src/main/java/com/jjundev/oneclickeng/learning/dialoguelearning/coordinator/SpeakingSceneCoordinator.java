@@ -165,7 +165,8 @@ public final class SpeakingSceneCoordinator {
           if (tvListeningStatus != null) {
             tvListeningStatus.setText("답변이 끝나면 마이크 버튼을 다시 누르세요");
             tvListeningStatus.setTextColor(
-                ContextCompat.getColor(tvListeningStatus.getContext(), R.color.state_listening_prompt));
+                ContextCompat.getColor(
+                    tvListeningStatus.getContext(), R.color.state_listening_prompt));
           }
 
           if (btnMicCircle != null) {

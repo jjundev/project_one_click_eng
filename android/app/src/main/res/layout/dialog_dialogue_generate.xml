@@ -141,7 +141,7 @@
                 style="@style/DialogButtonPrimary"
                 android:layout_width="match_parent"
                 android:layout_marginTop="@dimen/dialog_action_top_margin"
-                android:text="대본 생성하기" />
+                android:text="대본 생성하기 (1 크레딧)" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 

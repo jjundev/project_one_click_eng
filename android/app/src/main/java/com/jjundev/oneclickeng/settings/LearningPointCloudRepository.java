@@ -109,7 +109,8 @@ public final class LearningPointCloudRepository {
                   continue;
                 }
 
-                DocumentReference sessionRef = pointsRef.collection(COLLECTION_SESSIONS).document(sessionId);
+                DocumentReference sessionRef =
+                    pointsRef.collection(COLLECTION_SESSIONS).document(sessionId);
                 DocumentSnapshot sessionSnapshot = transaction.get(sessionRef);
                 sessionsToClear.add(sessionId);
                 if (sessionSnapshot.exists()) {
@@ -191,7 +192,9 @@ public final class LearningPointCloudRepository {
     resolvePointsDocument(user.getUid())
         .get()
         .addOnSuccessListener(
-            snapshot -> callback.onSuccess(safeLongToInt(Math.max(0L, getLong(snapshot, FIELD_TOTAL_POINTS)))))
+            snapshot ->
+                callback.onSuccess(
+                    safeLongToInt(Math.max(0L, getLong(snapshot, FIELD_TOTAL_POINTS)))))
         .addOnFailureListener(error -> callback.onFailure());
   }
 

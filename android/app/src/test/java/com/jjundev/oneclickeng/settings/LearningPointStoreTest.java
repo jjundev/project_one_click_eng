@@ -69,7 +69,8 @@ public class LearningPointStoreTest {
   public void statePersistsAcrossStoreRecreation() {
     store.awardSessionIfNeeded(
         "session-recreate",
-        new LearningPointAwardSpec("dialogue_learning", "upper-intermediate", 35, 1_700_000_000_000L));
+        new LearningPointAwardSpec(
+            "dialogue_learning", "upper-intermediate", 35, 1_700_000_000_000L));
 
     LearningPointStore recreatedStore =
         new LearningPointStore(preferences, new Gson(), pendingAwardListType);

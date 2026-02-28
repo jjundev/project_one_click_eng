@@ -34,7 +34,9 @@ public final class LearningPointStore {
   }
 
   LearningPointStore(
-      @NonNull SharedPreferences preferences, @NonNull Gson gson, @NonNull Type pendingAwardListType) {
+      @NonNull SharedPreferences preferences,
+      @NonNull Gson gson,
+      @NonNull Type pendingAwardListType) {
     this.preferences = preferences;
     this.gson = gson;
     this.pendingAwardListType = pendingAwardListType;
@@ -169,7 +171,9 @@ public final class LearningPointStore {
   }
 
   private void persistState(
-      int totalPoints, @NonNull Set<String> awardedSessionIds, @NonNull List<PendingPointAward> pendingAwards) {
+      int totalPoints,
+      @NonNull Set<String> awardedSessionIds,
+      @NonNull List<PendingPointAward> pendingAwards) {
     preferences
         .edit()
         .putLong(KEY_TOTAL_POINTS, Math.max(0, totalPoints))

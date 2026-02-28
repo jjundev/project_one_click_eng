@@ -70,8 +70,7 @@ public class ScriptFlowController {
       @NonNull String opponentRole,
       @NonNull String opponentGender) {
     this.script =
-        new DialogueScript(
-            topic, opponentName, opponentRole, opponentGender, new ArrayList<>());
+        new DialogueScript(topic, opponentName, opponentRole, opponentGender, new ArrayList<>());
     this.currentIndex = -1;
     this.streamCompleted = false;
   }
@@ -131,11 +130,9 @@ public class ScriptFlowController {
     if (nextIndex >= script.size()) {
       if (streamCompleted) {
         currentIndex = script.size();
-        return new NextTurnResult(
-            NextTurnResult.Type.FINISHED, null, script.size(), script.size());
+        return new NextTurnResult(NextTurnResult.Type.FINISHED, null, script.size(), script.size());
       }
-      return new NextTurnResult(
-          NextTurnResult.Type.WAITING, null, script.size(), script.size());
+      return new NextTurnResult(NextTurnResult.Type.WAITING, null, script.size(), script.size());
     }
 
     currentIndex = nextIndex;

@@ -7,11 +7,11 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
-import androidx.annotation.NonNull;
 import androidx.activity.EdgeToEdge;
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.navigation.NavController;
@@ -27,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
   private static final String KEY_PERMISSION_REQUESTED = "post_notifications_requested";
 
   private long backPressedTime = 0;
+
   @NonNull
   private final ActivityResultLauncher<String> notificationPermissionLauncher =
       registerForActivityResult(

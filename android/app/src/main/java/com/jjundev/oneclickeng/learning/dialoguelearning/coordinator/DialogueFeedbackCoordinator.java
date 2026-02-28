@@ -494,7 +494,8 @@ public final class DialogueFeedbackCoordinator {
     if (currentFeedbackState.isLoading()) {
       return false;
     }
-    if (currentFeedbackState.getSectionKey() != null || currentFeedbackState.getPartialFeedback() != null) {
+    if (currentFeedbackState.getSectionKey() != null
+        || currentFeedbackState.getPartialFeedback() != null) {
       return false;
     }
     if (currentFeedbackState.getFullFeedback() != null) {

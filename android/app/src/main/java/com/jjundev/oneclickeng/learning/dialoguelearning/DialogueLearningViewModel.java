@@ -42,8 +42,7 @@ public class DialogueLearningViewModel extends ViewModel {
   private final ExtraQuestionFlowController extraQuestionFlowController;
   private final LearningSessionOrchestrator sessionOrchestrator;
   @Nullable private final AudioRecorder audioRecorder;
-  @Nullable
-  private final DialogueScriptStreamingSessionStore scriptStreamingSessionStore;
+  @Nullable private final DialogueScriptStreamingSessionStore scriptStreamingSessionStore;
 
   private final MutableLiveData<BottomSheetMode> bottomSheetMode =
       new MutableLiveData<>(BottomSheetMode.DEFAULT_INPUT);
@@ -292,17 +291,18 @@ public class DialogueLearningViewModel extends ViewModel {
     DialogueScriptStreamingSessionStore.Listener listener =
         new DialogueScriptStreamingSessionStore.Listener() {
           @Override
-      public void onMetadata(@NonNull DialogueScriptStreamingSessionStore.ScriptMetadata metadata) {
-        logStream(
-            "metadata: sessionId="
-                + shortSession(attachedScriptSessionId)
-                + ", topic="
-                + safeText(metadata.getTopic())
-                + ", opponent="
-                + safeText(metadata.getOpponentName()));
-        applyStateAndPublish(
-            () -> {
-              scriptFlowController.updateStreamMetadata(
+          public void onMetadata(
+              @NonNull DialogueScriptStreamingSessionStore.ScriptMetadata metadata) {
+            logStream(
+                "metadata: sessionId="
+                    + shortSession(attachedScriptSessionId)
+                    + ", topic="
+                    + safeText(metadata.getTopic())
+                    + ", opponent="
+                    + safeText(metadata.getOpponentName()));
+            applyStateAndPublish(
+                () -> {
+                  scriptFlowController.updateStreamMetadata(
                       firstNonBlank(trimToNull(metadata.getTopic()), DEFAULT_TOPIC),
                       firstNonBlank(trimToNull(metadata.getOpponentName()), DEFAULT_OPPONENT_NAME),
                       DEFAULT_OPPONENT_ROLE,
@@ -313,70 +313,70 @@ public class DialogueLearningViewModel extends ViewModel {
           }
 
           @Override
-      public void onTurn(@NonNull IDialogueGenerateManager.ScriptTurnChunk turn) {
-        String korean = trimToNull(turn.getKorean());
-        String english = trimToNull(turn.getEnglish());
-        if (korean == null || english == null) {
-          logStream("turn ignored: invalid text payload");
-          return;
-        }
-        applyStateAndPublish(
-            () -> {
-              scriptFlowController.appendStreamTurn(
-                  new ScriptTurn(korean, english, resolveRole(turn.getRole())));
-              applyScriptStateFromController(false, null);
-              DialogueScript script = scriptFlowController.getScript();
-              int total = script == null ? 0 : script.size();
-              logStream(
-                  "turn appended: sessionId="
-                      + shortSession(attachedScriptSessionId)
-                      + ", totalTurns="
-                      + total
-                      + ", role="
-                      + safeText(turn.getRole()));
-            });
-        if (waitingForStreamTurn) {
-          waitingForStreamTurn = false;
-          logStream("waiting resolved: emit AdvanceTurn");
-          emitUiEvent(new DialogueUiEvent.AdvanceTurn());
-        }
-      }
-
-      @Override
-      public void onComplete(@Nullable String warningMessage) {
-        logStream(
-            "stream complete: sessionId="
-                + shortSession(attachedScriptSessionId)
-                + ", warning="
-                + safeText(warningMessage));
-        applyStateAndPublish(
-            () -> {
-              scriptFlowController.markStreamCompleted();
+          public void onTurn(@NonNull IDialogueGenerateManager.ScriptTurnChunk turn) {
+            String korean = trimToNull(turn.getKorean());
+            String english = trimToNull(turn.getEnglish());
+            if (korean == null || english == null) {
+              logStream("turn ignored: invalid text payload");
+              return;
+            }
+            applyStateAndPublish(
+                () -> {
+                  scriptFlowController.appendStreamTurn(
+                      new ScriptTurn(korean, english, resolveRole(turn.getRole())));
                   applyScriptStateFromController(false, null);
-        });
-        if (waitingForStreamTurn) {
-          waitingForStreamTurn = false;
-          logStream("waiting resolved by complete: emit AdvanceTurn");
-          emitUiEvent(new DialogueUiEvent.AdvanceTurn());
-        }
-      }
+                  DialogueScript script = scriptFlowController.getScript();
+                  int total = script == null ? 0 : script.size();
+                  logStream(
+                      "turn appended: sessionId="
+                          + shortSession(attachedScriptSessionId)
+                          + ", totalTurns="
+                          + total
+                          + ", role="
+                          + safeText(turn.getRole()));
+                });
+            if (waitingForStreamTurn) {
+              waitingForStreamTurn = false;
+              logStream("waiting resolved: emit AdvanceTurn");
+              emitUiEvent(new DialogueUiEvent.AdvanceTurn());
+            }
+          }
 
-      @Override
-      public void onFailure(@NonNull String error) {
-        if (abortEventDispatched) {
-          logStream("failure ignored: abort already dispatched");
-          return;
-        }
-        abortEventDispatched = true;
-        waitingForStreamTurn = false;
-        logStream(
-            "stream failure: sessionId="
-                + shortSession(attachedScriptSessionId)
-                + ", error="
-                + safeText(error));
-        detachScriptStreamingSession(true);
-        emitUiEvent(
-            new DialogueUiEvent.AbortLearning(
+          @Override
+          public void onComplete(@Nullable String warningMessage) {
+            logStream(
+                "stream complete: sessionId="
+                    + shortSession(attachedScriptSessionId)
+                    + ", warning="
+                    + safeText(warningMessage));
+            applyStateAndPublish(
+                () -> {
+                  scriptFlowController.markStreamCompleted();
+                  applyScriptStateFromController(false, null);
+                });
+            if (waitingForStreamTurn) {
+              waitingForStreamTurn = false;
+              logStream("waiting resolved by complete: emit AdvanceTurn");
+              emitUiEvent(new DialogueUiEvent.AdvanceTurn());
+            }
+          }
+
+          @Override
+          public void onFailure(@NonNull String error) {
+            if (abortEventDispatched) {
+              logStream("failure ignored: abort already dispatched");
+              return;
+            }
+            abortEventDispatched = true;
+            waitingForStreamTurn = false;
+            logStream(
+                "stream failure: sessionId="
+                    + shortSession(attachedScriptSessionId)
+                    + ", error="
+                    + safeText(error));
+            detachScriptStreamingSession(true);
+            emitUiEvent(
+                new DialogueUiEvent.AbortLearning(
                     firstNonBlank(trimToNull(error), "대본 생성 중 오류가 발생했어요")));
           }
         };
@@ -833,7 +833,8 @@ public class DialogueLearningViewModel extends ViewModel {
     if (script == null) {
       return;
     }
-    int currentStep = finished ? script.size() : Math.max(0, scriptFlowController.getCurrentIndex() + 1);
+    int currentStep =
+        finished ? script.size() : Math.max(0, scriptFlowController.getCurrentIndex() + 1);
     scriptUiState.setValue(
         new ScriptUiState(
             currentStep,
@@ -866,11 +867,7 @@ public class DialogueLearningViewModel extends ViewModel {
     if (release) {
       store.release(sessionId);
     }
-    logStream(
-        "detach: sessionId="
-            + shortSession(sessionId)
-            + ", release="
-            + release);
+    logStream("detach: sessionId=" + shortSession(sessionId) + ", release=" + release);
   }
 
   @NonNull

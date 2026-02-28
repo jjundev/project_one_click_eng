@@ -45,7 +45,8 @@ public class VennColorContrastGuardTest {
     Paint sideItemPaint = getPaint(view, "sideItemPaint");
     Paint intersectionItemPaint = getPaint(view, "intersectionItemPaint");
 
-    assertEquals(ContextCompat.getColor(context, R.color.color_primary_text), labelPaint.getColor());
+    assertEquals(
+        ContextCompat.getColor(context, R.color.color_primary_text), labelPaint.getColor());
     assertEquals(ContextCompat.getColor(context, R.color.color_sub_text), sideItemPaint.getColor());
     assertEquals(
         ContextCompat.getColor(context, R.color.color_primary_text),
@@ -62,7 +63,8 @@ public class VennColorContrastGuardTest {
     Paint sideItemPaint = getPaint(view, "sideItemPaint");
     Paint intersectionItemPaint = getPaint(view, "intersectionItemPaint");
 
-    assertEquals(ContextCompat.getColor(context, R.color.color_primary_text), labelPaint.getColor());
+    assertEquals(
+        ContextCompat.getColor(context, R.color.color_primary_text), labelPaint.getColor());
     assertEquals(ContextCompat.getColor(context, R.color.color_sub_text), sideItemPaint.getColor());
     assertEquals(
         ContextCompat.getColor(context, R.color.color_primary_text),
@@ -94,9 +96,12 @@ public class VennColorContrastGuardTest {
     int originalSideColor = Color.argb(SIDE_ALPHA, 156, 39, 176); // #9C27B0 with side alpha.
     assertNotEquals(originalSideColor, rightPaintColor);
 
-    int leftBase = Color.rgb(Color.red(leftPaintColor), Color.green(leftPaintColor), Color.blue(leftPaintColor));
+    int leftBase =
+        Color.rgb(
+            Color.red(leftPaintColor), Color.green(leftPaintColor), Color.blue(leftPaintColor));
     int rightBase =
-        Color.rgb(Color.red(rightPaintColor), Color.green(rightPaintColor), Color.blue(rightPaintColor));
+        Color.rgb(
+            Color.red(rightPaintColor), Color.green(rightPaintColor), Color.blue(rightPaintColor));
     assertTrue(colorDistance(leftBase, rightBase) >= 50d);
 
     assertSideContrastThresholdsMet(context, leftBase);
@@ -141,7 +146,8 @@ public class VennColorContrastGuardTest {
   public void prompts_includeVennAccessibilityRules_inAssetsAndDummy() throws Exception {
     Context context = RuntimeEnvironment.getApplication();
     String systemPromptAsset = readAsset(context, "prompts/sentence_feedback/system_prompt.md");
-    String contextMaterialAsset = readAsset(context, "prompts/sentence_feedback/context_material.md");
+    String contextMaterialAsset =
+        readAsset(context, "prompts/sentence_feedback/context_material.md");
 
     SentenceFeedbackManager manager = new SentenceFeedbackManager(context, "", "");
     String systemPromptDummy = invokePrivatePromptMethod(manager, "buildSystemPrompt_Dummy");
@@ -178,8 +184,8 @@ public class VennColorContrastGuardTest {
     return builder.toString();
   }
 
-  private static String invokePrivatePromptMethod(SentenceFeedbackManager manager, String methodName)
-      throws Exception {
+  private static String invokePrivatePromptMethod(
+      SentenceFeedbackManager manager, String methodName) throws Exception {
     Method method = SentenceFeedbackManager.class.getDeclaredMethod(methodName);
     method.setAccessible(true);
     return (String) method.invoke(manager);
@@ -215,7 +221,8 @@ public class VennColorContrastGuardTest {
 
     double minPrimary =
         Math.min(contrastRatio(lightPrimary, lightFill), contrastRatio(darkPrimary, darkFill));
-    assertTrue("Intersection primary contrast must be >= 4.5 but was " + minPrimary, minPrimary >= 4.5d);
+    assertTrue(
+        "Intersection primary contrast must be >= 4.5 but was " + minPrimary, minPrimary >= 4.5d);
   }
 
   private static int resolveColorForMode(Context context, int colorRes, boolean nightMode) {
@@ -231,7 +238,8 @@ public class VennColorContrastGuardTest {
     int r = (Color.red(foregroundColor) * alpha + Color.red(backgroundColor) * (255 - alpha)) / 255;
     int g =
         (Color.green(foregroundColor) * alpha + Color.green(backgroundColor) * (255 - alpha)) / 255;
-    int b = (Color.blue(foregroundColor) * alpha + Color.blue(backgroundColor) * (255 - alpha)) / 255;
+    int b =
+        (Color.blue(foregroundColor) * alpha + Color.blue(backgroundColor) * (255 - alpha)) / 255;
     return Color.rgb(r, g, b);
   }
 

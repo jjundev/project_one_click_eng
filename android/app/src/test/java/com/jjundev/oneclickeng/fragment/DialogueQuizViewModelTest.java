@@ -318,22 +318,14 @@ public class DialogueQuizViewModelTest {
   private static QuizData.QuizQuestion buildChoiceQuestionWithMaterial(
       @NonNull String questionMain, @NonNull String questionMaterial, @NonNull String answer) {
     return new QuizData.QuizQuestion(
-        questionMain,
-        questionMaterial,
-        answer,
-        Arrays.asList(answer, "Wrong-A", "Wrong-B"),
-        null);
+        questionMain, questionMaterial, answer, Arrays.asList(answer, "Wrong-A", "Wrong-B"), null);
   }
 
   @NonNull
   private static QuizData.QuizQuestion buildFourChoiceQuestion(
       @NonNull String questionMain, @NonNull String answer) {
     return new QuizData.QuizQuestion(
-        questionMain,
-        null,
-        answer,
-        Arrays.asList(answer, "Wrong-A", "Wrong-B", "Wrong-C"),
-        null);
+        questionMain, null, answer, Arrays.asList(answer, "Wrong-A", "Wrong-B", "Wrong-C"), null);
   }
 
   private static class FakeQuizGenerationManager implements IQuizGenerationManager {

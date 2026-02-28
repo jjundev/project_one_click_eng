@@ -18,6 +18,17 @@ import androidx.fragment.app.FragmentManager;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.gms.ads.AdError;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.FullScreenContentCallback;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.rewarded.RewardedAd;
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.activity.DialogueLearningActivity;
@@ -50,6 +61,14 @@ public class DialogueSelectFragment extends Fragment
   @Nullable private String pendingScriptSessionId;
   @Nullable private DialogueScriptStreamingSessionStore.Listener pendingScriptSessionListener;
   private long scriptPreparationRequestId = 0L;
+
+  private RewardedAd rewardedAd;
+  private boolean isRewardEarned = false;
+  private boolean isWaitingForAd = false;
+  private android.app.Dialog chargeCreditDialog;
+  private int adRetryAttempt = 0;
+  private final android.os.Handler adRetryHandler =
+      new android.os.Handler(android.os.Looper.getMainLooper());
 
   @Nullable
   @Override
@@ -86,12 +105,14 @@ public class DialogueSelectFragment extends Fragment
 
     setupRecyclerView();
     setupListeners();
+    loadRewardedAd();
   }
 
   @Override
   public void onDestroyView() {
     clearPendingScriptSession(true);
     scriptPreparationRequestId = 0L;
+    adRetryHandler.removeCallbacksAndMessages(null);
     super.onDestroyView();
   }
 
@@ -107,20 +128,22 @@ public class DialogueSelectFragment extends Fragment
     templateList.add(
         new ScriptTemplate("🚕", "택시 목적지 말하기", "실전 생활 표현", "기사님, 강남역으로 가주세요. 얼마나 걸릴까요?"));
 
-    adapter = new ScriptSelectAdapter(
-        templateList,
-        template -> {
-          hideKeyboard();
-          DialogueGenerateDialog dialog = DialogueGenerateDialog.newInstance(template.getTitle());
-          dialog.show(getChildFragmentManager(), "DialogueGenerateDialog");
-        });
+    adapter =
+        new ScriptSelectAdapter(
+            templateList,
+            template -> {
+              hideKeyboard();
+              DialogueGenerateDialog dialog =
+                  DialogueGenerateDialog.newInstance(template.getTitle());
+              dialog.show(getChildFragmentManager(), "DialogueGenerateDialog");
+            });
 
     rvScripts.setLayoutManager(new GridLayoutManager(getContext(), 2));
     rvScripts.setAdapter(adapter);
 
     // Apply layout animation to the RecyclerView
-    android.view.animation.LayoutAnimationController controller = android.view.animation.AnimationUtils
-        .loadLayoutAnimation(
+    android.view.animation.LayoutAnimationController controller =
+        android.view.animation.AnimationUtils.loadLayoutAnimation(
             rvScripts.getContext(), R.anim.layout_anim_slide_fade_in);
     rvScripts.setLayoutAnimation(controller);
 
@@ -168,14 +191,45 @@ public class DialogueSelectFragment extends Fragment
       return;
     }
 
-    new DialogueLearningSettingDialog()
-        .show(fragmentManager, DIALOG_TAG_LEARNING_SETTINGS);
+    new DialogueLearningSettingDialog().show(fragmentManager, DIALOG_TAG_LEARNING_SETTINGS);
   }
 
   @Override
   public void onScriptParamsSelected(
       String level, String topic, String format, int length, DialogueGenerateDialog dialog) {
-    generateScriptStreaming(level, topic, format, length, dialog);
+    if (dialog != null) {
+      dialog.showLoading(true);
+    }
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+    if (user == null) {
+      if (dialog != null) dialog.showLoading(false);
+      Toast.makeText(getContext(), "로그인이 필요합니다.", Toast.LENGTH_SHORT).show();
+      return;
+    }
+
+    FirebaseFirestore.getInstance()
+        .collection("users")
+        .document(user.getUid())
+        .get()
+        .addOnCompleteListener(
+            task -> {
+              if (!isAdded()) return;
+              if (task.isSuccessful() && task.getResult() != null) {
+                DocumentSnapshot doc = task.getResult();
+                Long creditObj = doc.getLong("credit");
+                long credit = creditObj != null ? creditObj : 0L;
+                if (credit > 0) {
+                  generateScriptStreaming(level, topic, format, length, dialog);
+                } else {
+                  if (dialog != null) dialog.dismiss();
+                  Toast.makeText(getContext(), "크레딧이 부족해요", Toast.LENGTH_SHORT).show();
+                  showChargeCreditDialog();
+                }
+              } else {
+                if (dialog != null) dialog.dismiss();
+                Toast.makeText(getContext(), "크레딧 정보를 불러오지 못했어요.", Toast.LENGTH_SHORT).show();
+              }
+            });
   }
 
   private void generateScriptStreaming(
@@ -207,7 +261,8 @@ public class DialogueSelectFragment extends Fragment
     DialogueScriptStreamingSessionStore.Listener listener =
         new DialogueScriptStreamingSessionStore.Listener() {
           @Override
-          public void onMetadata(@NonNull DialogueScriptStreamingSessionStore.ScriptMetadata metadata) {
+          public void onMetadata(
+              @NonNull DialogueScriptStreamingSessionStore.ScriptMetadata metadata) {
             if (requestId != scriptPreparationRequestId || started[0]) {
               return;
             }
@@ -248,12 +303,7 @@ public class DialogueSelectFragment extends Fragment
                       + ", sessionId="
                       + shortSession(sessionId));
               startPreparedScriptStudy(
-                  dialog,
-                  requestId,
-                  level,
-                  Math.max(1, length),
-                  resolvedTopic[0],
-                  sessionId);
+                  dialog, requestId, level, Math.max(1, length), resolvedTopic[0], sessionId);
             }
           }
 
@@ -286,7 +336,8 @@ public class DialogueSelectFragment extends Fragment
 
     pendingScriptSessionId = sessionId;
     pendingScriptSessionListener = listener;
-    DialogueScriptStreamingSessionStore.Snapshot snapshot = sessionStore.attach(sessionId, listener);
+    DialogueScriptStreamingSessionStore.Snapshot snapshot =
+        sessionStore.attach(sessionId, listener);
     if (snapshot == null) {
       logStream(
           "prepare attach failed: requestId="
@@ -410,8 +461,7 @@ public class DialogueSelectFragment extends Fragment
       @NonNull String requestedTopic,
       @NonNull String sessionId) {
     if (!isAdded() || getActivity() == null) {
-      logStream(
-          "start activity aborted: host unavailable, sessionId=" + shortSession(sessionId));
+      logStream("start activity aborted: host unavailable, sessionId=" + shortSession(sessionId));
       LearningDependencyProvider.provideDialogueScriptStreamingSessionStore().release(sessionId);
       return;
     }
@@ -423,6 +473,17 @@ public class DialogueSelectFragment extends Fragment
     intent.putExtra(DialogueLearningActivity.EXTRA_SCRIPT_TOPIC, requestedTopic);
     try {
       startActivity(intent);
+
+      // 크레딧 1 차감 로직
+      FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+      if (user != null) {
+        FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(user.getUid())
+            .update("credit", FieldValue.increment(-1))
+            .addOnFailureListener(e -> logStream("Failed to decrement credit: " + e.getMessage()));
+      }
+
     } catch (Exception e) {
       logStream(
           "start activity failed: sessionId="
@@ -515,7 +576,6 @@ public class DialogueSelectFragment extends Fragment
     return text.substring(0, 32) + "...";
   }
 
-
   private void updateEmptyState() {
     if (templateList.isEmpty()) {
       layoutEmptyState.setVisibility(View.VISIBLE);
@@ -530,8 +590,181 @@ public class DialogueSelectFragment extends Fragment
   private void hideKeyboard() {
     View view = getActivity().getCurrentFocus();
     if (view != null) {
-      InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+      InputMethodManager imm =
+          (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
       imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
     }
+  }
+
+  private void showChargeCreditDialog() {
+    View dialogView =
+        LayoutInflater.from(getContext()).inflate(R.layout.dialog_charge_credit, null);
+
+    View layoutContent = dialogView.findViewById(R.id.layout_content);
+    View layoutLoading = dialogView.findViewById(R.id.layout_loading);
+    AppCompatButton btnCancel = dialogView.findViewById(R.id.btn_charge_cancel);
+    AppCompatButton btnAd = dialogView.findViewById(R.id.btn_charge_ad);
+
+    chargeCreditDialog = new android.app.Dialog(requireContext());
+    chargeCreditDialog.setContentView(dialogView);
+    if (chargeCreditDialog.getWindow() != null) {
+      chargeCreditDialog
+          .getWindow()
+          .setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0));
+      android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+      int width = (int) (metrics.widthPixels * 0.9f);
+      chargeCreditDialog.getWindow().setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT);
+    }
+
+    chargeCreditDialog.setOnDismissListener(
+        d -> {
+          isWaitingForAd = false;
+          chargeCreditDialog = null;
+        });
+
+    btnCancel.setOnClickListener(v -> chargeCreditDialog.dismiss());
+    btnAd.setOnClickListener(
+        v -> {
+          if (rewardedAd != null && isAdded()) {
+            chargeCreditDialog.dismiss();
+            isRewardEarned = false;
+            rewardedAd.show(
+                requireActivity(),
+                rewardItem -> {
+                  isRewardEarned = true;
+                  increaseCredit();
+                });
+          } else {
+            isWaitingForAd = true;
+            layoutContent.setVisibility(View.GONE);
+            layoutLoading.setVisibility(View.VISIBLE);
+            chargeCreditDialog.setCancelable(false);
+
+            if (adRetryAttempt == 0) {
+              loadRewardedAd();
+            }
+          }
+        });
+
+    chargeCreditDialog.show();
+  }
+
+  private void loadRewardedAd() {
+    AdRequest adRequest = new AdRequest.Builder().build();
+    String adUnitId =
+        BuildConfig.DEBUG
+            ? "ca-app-pub-3940256099942544/5224354917"
+            : BuildConfig.ADMOB_REWARDED_AD_UNIT_ID;
+    logStream("Loading rewarded ad with Unit ID: " + adUnitId);
+    RewardedAd.load(
+        requireContext(),
+        adUnitId,
+        adRequest,
+        new RewardedAdLoadCallback() {
+          @Override
+          public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+            logStream("Failed to load rewarded ad: " + loadAdError.getMessage());
+            rewardedAd = null;
+            adRetryAttempt++;
+            long retryDelayMillis = (long) Math.pow(2, Math.min(6, adRetryAttempt)) * 1000L;
+            if (adRetryAttempt <= 5) {
+              if (isWaitingForAd) {
+                logStream(
+                    "Retrying ad load in "
+                        + retryDelayMillis
+                        + "ms (Attempt "
+                        + adRetryAttempt
+                        + ")");
+              }
+              adRetryHandler.postDelayed(() -> loadRewardedAd(), retryDelayMillis);
+            } else {
+              if (isWaitingForAd) {
+                isWaitingForAd = false;
+                if (chargeCreditDialog != null && chargeCreditDialog.isShowing()) {
+                  chargeCreditDialog.dismiss();
+                }
+                if (isAdded()) {
+                  Toast.makeText(
+                          getContext(), "광고를 불러오는 데 실패했어요. 나중에 다시 시도해주세요.", Toast.LENGTH_SHORT)
+                      .show();
+                }
+              }
+            }
+          }
+
+          @Override
+          public void onAdLoaded(@NonNull RewardedAd ad) {
+            logStream("Rewarded ad loaded.");
+            rewardedAd = ad;
+            adRetryAttempt = 0;
+            setFullScreenContentCallback();
+
+            if (isWaitingForAd && isAdded()) {
+              isWaitingForAd = false;
+              if (chargeCreditDialog != null && chargeCreditDialog.isShowing()) {
+                chargeCreditDialog.dismiss();
+              }
+              isRewardEarned = false;
+              rewardedAd.show(
+                  requireActivity(),
+                  rewardItem -> {
+                    isRewardEarned = true;
+                    increaseCredit();
+                  });
+            }
+          }
+        });
+  }
+
+  private void setFullScreenContentCallback() {
+    if (rewardedAd == null) return;
+    rewardedAd.setFullScreenContentCallback(
+        new FullScreenContentCallback() {
+          @Override
+          public void onAdShowedFullScreenContent() {
+            rewardedAd = null;
+          }
+
+          @Override
+          public void onAdFailedToShowFullScreenContent(@NonNull AdError adError) {
+            logStream("Ad failed to show: " + adError.getMessage());
+          }
+
+          @Override
+          public void onAdDismissedFullScreenContent() {
+            logStream("Ad dismissed");
+            if (!isRewardEarned && isAdded()) {
+              Toast.makeText(getContext(), "광고 시청을 완료하지 않아 크레딧이 지급되지 않았어요", Toast.LENGTH_SHORT)
+                  .show();
+            }
+            loadRewardedAd();
+          }
+        });
+  }
+
+  private void increaseCredit() {
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+    if (user == null) {
+      Toast.makeText(getContext(), "로그인 정보를 확인할 수 없어요", Toast.LENGTH_SHORT).show();
+      return;
+    }
+
+    FirebaseFirestore.getInstance()
+        .collection("users")
+        .document(user.getUid())
+        .update("credit", com.google.firebase.firestore.FieldValue.increment(1))
+        .addOnSuccessListener(
+            aVoid -> {
+              if (isAdded()) {
+                Toast.makeText(getContext(), "1 크레딧이 충전되었어요", Toast.LENGTH_SHORT).show();
+              }
+            })
+        .addOnFailureListener(
+            e -> {
+              logStream("Failed to add credit: " + e.getMessage());
+              if (isAdded()) {
+                Toast.makeText(getContext(), "크레딧 충전에 실패했어요", Toast.LENGTH_SHORT).show();
+              }
+            });
   }
 }

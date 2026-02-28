@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:layout_marginBottom="24dp">
-        
+
         <ImageView
             android:id="@+id/btnBackFromEmail"
             android:layout_width="wrap_content"
@@ -37,6 +37,7 @@
         android:id="@+id/tilEmail"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:theme="@style/TextInputLayoutOverlay"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         android:layout_marginBottom="24dp"
         app:boxCornerRadiusTopStart="12dp"
@@ -50,6 +51,8 @@
         app:errorTextColor="@color/color_error_et"
         app:boxStrokeErrorColor="@color/color_error_et"
         app:errorIconTint="@color/color_error_et"
+        app:cursorColor="@color/color_primary_text"
+        app:cursorErrorColor="@color/color_error_et"
         android:hint="이메일 주소">
 
         <com.google.android.material.textfield.TextInputEditText

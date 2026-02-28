@@ -571,7 +571,7 @@ public class DialogueQuizActivity extends AppCompatActivity {
       inputAnswerLayout.setVisibility(View.GONE);
     }
     if (btnPrimary != null) {
-        // TODO: 틀린 경우에는 분홍색 버튼, 맞은 경우에는 초록색 버튼
+      // TODO: 틀린 경우에는 분홍색 버튼, 맞은 경우에는 초록색 버튼
       btnPrimary.setBackgroundColor(ContextCompat.getColor(this, R.color.card_purple_start));
       btnPrimary.setTextColor(ContextCompat.getColor(this, R.color.color_text_on_fixed_bg));
       btnPrimary.setVisibility(View.VISIBLE);
