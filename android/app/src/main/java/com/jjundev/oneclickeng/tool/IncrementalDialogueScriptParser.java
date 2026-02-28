@@ -4,14 +4,20 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /** Incrementally extracts dialogue metadata and completed turn objects from streamed JSON text. */
 public final class IncrementalDialogueScriptParser {
   private static final String SCRIPT_KEY = "\"script\"";
+  private static final String DEFAULT_OPPONENT_NAME = "AI Coach";
+  private static final String DEFAULT_OPPONENT_GENDER = "female";
+  private static final String[] TOPIC_KEYS = {"topic", "topicTitle", "conversationTopic"};
+  private static final String[] OPPONENT_NAME_KEYS = {"opponent_name", "opponentName"};
+  private static final String[] OPPONENT_GENDER_KEYS = {"opponent_gender", "opponentGender"};
 
   @NonNull private final StringBuilder buffer = new StringBuilder();
   private int emittedTurnCount = 0;
-  private boolean metadataEmitted = false;
+  @Nullable private Metadata lastEmittedMetadata;
 
   public static final class Metadata {
     @NonNull private final String topic;
@@ -67,12 +73,11 @@ public final class IncrementalDialogueScriptParser {
       buffer.append(chunk);
     }
 
-    Metadata metadata = null;
-    if (!metadataEmitted) {
-      metadata = tryExtractMetadata(buffer.toString());
-      if (metadata != null) {
-        metadataEmitted = true;
-      }
+    Metadata metadata = tryExtractMetadata(buffer.toString(), lastEmittedMetadata);
+    if (metadata != null && isSameMetadata(metadata, lastEmittedMetadata)) {
+      metadata = null;
+    } else if (metadata != null) {
+      lastEmittedMetadata = metadata;
     }
 
     List<String> allCompleted = extractCompletedTurnObjects(buffer.toString());
@@ -87,18 +92,53 @@ public final class IncrementalDialogueScriptParser {
   }
 
   @Nullable
-  private static Metadata tryExtractMetadata(@NonNull String source) {
-    String topic = readJsonStringValue(source, "topic");
-    String opponentName = readJsonStringValue(source, "opponent_name");
-    if (isBlank(topic) || isBlank(opponentName)) {
+  private static Metadata tryExtractMetadata(
+      @NonNull String source, @Nullable Metadata previousMetadata) {
+    String topic =
+        firstNonBlank(
+            readJsonStringValue(source, TOPIC_KEYS),
+            previousMetadata == null ? null : previousMetadata.getTopic());
+    if (isBlank(topic)) {
       return null;
     }
 
-    String opponentGender = readJsonStringValue(source, "opponent_gender");
-    if (isBlank(opponentGender)) {
-      opponentGender = "female";
+    String opponentName =
+        firstNonBlank(
+            readJsonStringValue(source, OPPONENT_NAME_KEYS),
+            previousMetadata == null ? null : previousMetadata.getOpponentName(),
+            DEFAULT_OPPONENT_NAME);
+
+    String previousGender =
+        firstNonBlank(
+            previousMetadata == null ? null : previousMetadata.getOpponentGender(),
+            DEFAULT_OPPONENT_GENDER);
+    String opponentGender =
+        normalizeGender(
+            firstNonBlank(readJsonStringValue(source, OPPONENT_GENDER_KEYS), previousGender),
+            previousGender);
+
+    return new Metadata(topic.trim(), opponentName.trim(), opponentGender);
+  }
+
+  private static boolean isSameMetadata(
+      @NonNull Metadata current, @Nullable Metadata previousMetadata) {
+    if (previousMetadata == null) {
+      return false;
     }
-    return new Metadata(topic.trim(), opponentName.trim(), opponentGender.trim());
+    return current.getTopic().equals(previousMetadata.getTopic())
+        && current.getOpponentName().equals(previousMetadata.getOpponentName())
+        && current.getOpponentGender().equals(previousMetadata.getOpponentGender());
+  }
+
+  @Nullable
+  private static String readJsonStringValue(@NonNull String source, @NonNull String[] keys) {
+    for (String key : keys) {
+      String value = readJsonStringValue(source, key);
+      if (!isBlank(value)) {
+        return value;
+      }
+    }
+    return null;
   }
 
   @Nullable
@@ -244,6 +284,46 @@ public final class IncrementalDialogueScriptParser {
   }
 
   private static boolean isBlank(@Nullable String value) {
-    return value == null || value.trim().isEmpty();
+    return trimToNull(value) == null;
+  }
+
+  @NonNull
+  private static String normalizeGender(@Nullable String raw, @NonNull String fallback) {
+    String fallbackValue = trimToNull(fallback);
+    if (fallbackValue == null) {
+      fallbackValue = DEFAULT_OPPONENT_GENDER;
+    }
+    String value = trimToNull(raw);
+    if (value == null) {
+      return fallbackValue;
+    }
+    String lowered = value.toLowerCase(Locale.US);
+    if ("male".equals(lowered) || "female".equals(lowered)) {
+      return lowered;
+    }
+    return fallbackValue;
+  }
+
+  @Nullable
+  private static String firstNonBlank(@Nullable String... candidates) {
+    if (candidates == null) {
+      return null;
+    }
+    for (String candidate : candidates) {
+      String trimmed = trimToNull(candidate);
+      if (trimmed != null) {
+        return trimmed;
+      }
+    }
+    return null;
+  }
+
+  @Nullable
+  private static String trimToNull(@Nullable String value) {
+    if (value == null) {
+      return null;
+    }
+    String trimmed = value.trim();
+    return trimmed.isEmpty() ? null : trimmed;
   }
 }

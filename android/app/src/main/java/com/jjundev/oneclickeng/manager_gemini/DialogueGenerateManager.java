@@ -17,6 +17,8 @@ import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IDialogueGenerateManager;
 import com.jjundev.oneclickeng.tool.IncrementalDialogueScriptParser;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -37,6 +39,8 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
   private static final String KEY_CACHE_NAME = "gemini_script_cache_name";
   private static final String KEY_CACHE_CREATED = "gemini_script_cache_created_at";
   private static final String KEY_CACHE_TTL = "gemini_script_cache_ttl_seconds";
+  private static final String KEY_PROMPT_SIGNATURE = "gemini_script_prompt_signature";
+  private static final String KEY_CACHE_MODEL = "gemini_script_cache_model";
   private static final int MIN_REMAINING_TTL_SECONDS = 300; // 5 minutes
 
   private static final OkHttpClient streamingClient =
@@ -144,7 +148,19 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
 
   @Override
   public void initializeCache(IDialogueGenerateManager.InitCallback callback) {
+    String systemPrompt = getSystemPrompt();
+    String promptSignature = buildPromptSignature(systemPrompt);
     String savedCacheName = prefs.getString(KEY_CACHE_NAME, null);
+    String savedPromptSignature = prefs.getString(KEY_PROMPT_SIGNATURE, null);
+    String savedModelName = prefs.getString(KEY_CACHE_MODEL, null);
+
+    if (savedCacheName != null
+        && (!promptSignature.equals(savedPromptSignature) || !modelName.equals(savedModelName))) {
+      Log.i(TAG, "Prompt or model changed. Recreating cache.");
+      clearLocalCacheData();
+      createCache(systemPrompt, promptSignature, callback);
+      return;
+    }
 
     if (savedCacheName != null) {
       long createdAt = prefs.getLong(KEY_CACHE_CREATED, 0);
@@ -154,52 +170,53 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
       if (elapsedSeconds > ttl) {
         Log.d(TAG, "Local cache expired, creating new one");
         clearLocalCacheData();
-        createCache(callback);
+        createCache(systemPrompt, promptSignature, callback);
         return;
       }
 
       validateCacheFromServer(
           savedCacheName,
           new ValidationCallback() {
-            @Override
-            public void onValid(String name, long remainingSeconds) {
-              if (remainingSeconds > MIN_REMAINING_TTL_SECONDS) {
-                Log.i(TAG, "Reusing existing cache: " + name);
-                cachedContentName = name;
-                cacheReady = true;
-                mainHandler.post(callback::onReady);
-              } else {
-                Log.i(TAG, "Cache expiring soon. Creating new cache.");
-                createCache(callback);
+              @Override
+              public void onValid(String name, long remainingSeconds) {
+                if (remainingSeconds > MIN_REMAINING_TTL_SECONDS) {
+                  Log.i(TAG, "Reusing existing cache: " + name);
+                  cachedContentName = name;
+                  cacheReady = true;
+                  mainHandler.post(callback::onReady);
+                } else {
+                  Log.i(TAG, "Cache expiring soon. Creating new cache.");
+                  createCache(systemPrompt, promptSignature, callback);
+                }
               }
-            }
 
-            @Override
-            public void onInvalid() {
-              Log.i(TAG, "Saved cache invalid. Creating new cache.");
-              clearLocalCacheData();
-              createCache(callback);
-            }
+              @Override
+              public void onInvalid() {
+                Log.i(TAG, "Saved cache invalid. Creating new cache.");
+                clearLocalCacheData();
+                createCache(systemPrompt, promptSignature, callback);
+              }
 
-            @Override
-            public void onError(String error) {
-              Log.w(TAG, "Validation error: " + error + ". Creating new cache.");
-              createCache(callback);
-            }
-          });
+              @Override
+              public void onError(String error) {
+                Log.w(TAG, "Validation error: " + error + ". Creating new cache.");
+                createCache(systemPrompt, promptSignature, callback);
+              }
+            });
 
     } else {
       Log.i(TAG, "No local cache found. Creating new cache.");
-      createCache(callback);
+      createCache(systemPrompt, promptSignature, callback);
     }
   }
 
-  private void createCache(IDialogueGenerateManager.InitCallback callback) {
+  private void createCache(
+      @NonNull String systemPrompt,
+      @NonNull String promptSignature,
+      IDialogueGenerateManager.InitCallback callback) {
     new Thread(
             () -> {
               try {
-                String systemPrompt = getSystemPrompt();
-
                 JsonObject requestBody = new JsonObject();
                 requestBody.addProperty("model", "models/" + modelName);
 
@@ -282,6 +299,8 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
                       .putString(KEY_CACHE_NAME, cachedContentName)
                       .putLong(KEY_CACHE_CREATED, System.currentTimeMillis())
                       .putInt(KEY_CACHE_TTL, CACHE_TTL_SECONDS)
+                      .putString(KEY_PROMPT_SIGNATURE, promptSignature)
+                      .putString(KEY_CACHE_MODEL, modelName)
                       .apply();
 
                   Log.i(TAG, "New cache created: " + cachedContentName);
@@ -337,7 +356,14 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
   }
 
   private void clearLocalCacheData() {
-    prefs.edit().remove(KEY_CACHE_NAME).remove(KEY_CACHE_CREATED).remove(KEY_CACHE_TTL).apply();
+    prefs
+        .edit()
+        .remove(KEY_CACHE_NAME)
+        .remove(KEY_CACHE_CREATED)
+        .remove(KEY_CACHE_TTL)
+        .remove(KEY_PROMPT_SIGNATURE)
+        .remove(KEY_CACHE_MODEL)
+        .apply();
   }
 
   @Override
@@ -822,148 +848,35 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
   }
 
   private String getSystemPrompt_Dummy() {
-    return "You are an English conversation script generator for Korean language learners.\n"
+    return "You are an English conversation script generator for Korean learners.\n"
+        + "The user provides level, topic, format, and length.\n"
+        + "Return ONLY valid JSON. Do not output markdown or extra text.\n"
         + "\n"
-        + "Your task is to generate a realistic, natural English conversation script based on the user's input.\n"
-        + "\n"
-        + "---\n"
-        + "\n"
-        + "## Input Parameters\n"
-        + "\n"
-        + "The user will provide the following:\n"
-        + "- **level**: one of [beginner, elementary, intermediate, upper-intermediate, advanced]\n"
-        + "- **topic**: the conversation topic (e.g., \"ordering coffee\", \"job interview\", \"airport check-in\")\n"
-        + "- **format**: fixed as [dialogue]\n"
-        + "- **length**: number of script lines to generate (e.g., 10, 20, 30)\n"
-        + "\n"
-        + "---\n"
-        + "\n"
-        + "## Level Definitions\n"
-        + "\n"
-        + "### beginner (CEFR A1)\n"
-        + "- Vocabulary: ~500 words, basic survival vocabulary only\n"
-        + "- Grammar: present simple, \"can\", basic imperatives\n"
-        + "- Sentence length: 3-6 words average\n"
-        + "- Restrictions: NO idioms, NO phrasal verbs, NO complex connectors\n"
-        + "- Style: very short turns, simple questions and answers\n"
-        + "\n"
-        + "### elementary (CEFR A2)\n"
-        + "- Vocabulary: ~1,000 words, everyday vocabulary\n"
-        + "- Grammar: past simple, future with \"will/going to\", basic modals (can, should)\n"
-        + "- Sentence length: 6-9 words average\n"
-        + "- Restrictions: NO idioms, basic phrasal verbs only (e.g., look for, pick up)\n"
-        + "- Style: short turns, some follow-up questions\n"
-        + "\n"
-        + "### intermediate (CEFR B1)\n"
-        + "- Vocabulary: ~2,500 words, broader everyday and some abstract vocabulary\n"
-        + "- Grammar: present perfect, basic conditionals (if + present), comparatives/superlatives, passive voice (simple)\n"
-        + "- Sentence length: 9-13 words average\n"
-        + "- Allowed: common idioms (e.g., \"break the ice\"), common phrasal verbs\n"
-        + "- Style: natural turn-taking, opinions and reasons\n"
-        + "\n"
-        + "### upper-intermediate (CEFR B2)\n"
-        + "- Vocabulary: ~5,000 words, includes semi-formal and topic-specific vocabulary\n"
-        + "- Grammar: all conditionals, reported speech, relative clauses, passive voice (all forms), wish/would rather\n"
-        + "- Sentence length: 13-18 words average\n"
-        + "- Allowed: natural idioms, phrasal verbs, discourse markers (however, on the other hand)\n"
-        + "- Style: extended turns, persuasion, nuance, hedging language\n"
-        + "\n"
-        + "### advanced (CEFR C1)\n"
-        + "- Vocabulary: unrestricted, includes academic, professional, and nuanced vocabulary\n"
-        + "- Grammar: unrestricted, including inversion, cleft sentences, subjunctive, mixed conditionals\n"
-        + "- Sentence length: 15-25 words average\n"
-        + "- Allowed: all idiomatic expressions, colloquialisms, cultural references\n"
-        + "- Style: complex argumentation, humor, implicit meaning, natural speech patterns\n"
-        + "\n"
-        + "---\n"
-        + "\n"
-        + "## Output Rules\n"
-        + "\n"
-        + "1. You MUST respond ONLY with a valid JSON object. No markdown, no explanation, no preamble.\n"
-        + "2. The JSON must strictly follow this schema:\n"
-        + "\n"
+        + "Use this exact snake_case schema:\n"
         + "{\n"
-        + "  \"topic\": \"A short description of the conversation topic in Korean (max 15 characters, including spaces and punctuation)\",\n"
-        + "  \"opponent_name\": \"The conversation partner's name or title (e.g., John, The Manager, Driver)\",\n"
-        + "  \"opponent_gender\": \"The conversation partner's gender (male or female)\",\n"
-        + "  \"opponent_role\": \"The conversation partner's role in English (e.g., Barista, Interviewer, Immigration Officer)\",\n"
+        + "  \"topic\": \"Korean topic title (<=15 chars)\",\n"
+        + "  \"opponent_name\": \"Partner name/title\",\n"
+        + "  \"opponent_gender\": \"male\",\n"
+        + "  \"opponent_role\": \"Partner role in English\",\n"
         + "  \"script\": [\n"
         + "    {\n"
-        + "      \"ko\": \"Korean translation of the line\",\n"
-        + "      \"en\": \"English original line\",\n"
-        + "      \"role\": \"model\" (for Opponent) OR \"user\"\n"
+        + "      \"ko\": \"Korean translation\",\n"
+        + "      \"en\": \"English original\",\n"
+        + "      \"role\": \"model\"\n"
         + "    }\n"
         + "  ]\n"
         + "}\n"
         + "\n"
-        + "3. Write the English line (\"en\") FIRST as the original, then provide a natural Korean translation (\"ko\"). The Korean should feel natural, not word-for-word literal.\n"
-        + "4. **role**: Use \"model\" for the Opponent (AI/Check-in Agent/Interviewer) and \"user\" for the learner.\n"
-        + "5. Format is strictly **dialogue**: alternate between the user and the opponent naturally.\n"
-        + "6. The conversation should feel realistic and culturally appropriate for the given topic.\n"
-        + "7. The \"topic\" value MUST be written in Korean and MUST be 15 characters or fewer (including spaces and punctuation). If it exceeds 15 characters, rewrite it to a shorter Korean title while preserving the core meaning.\n"
-        + "8. Strictly adhere to the vocabulary, grammar, and sentence length constraints of the specified level.\n"
-        + "9. Do NOT include any text outside the JSON object.\n"
-        + "\n"
-        + "---\n"
-        + "\n"
-        + "## CRITICAL: Length and Conversation Structure Rules\n"
-        + "\n"
-        + "The **length** parameter defines the EXACT number of lines in the \"script\" array. This is a hard constraint. Follow these rules strictly:\n"
-        + "\n"
-        + "### Rule 1: Exact Line Count\n"
-        + "- The \"script\" array MUST contain EXACTLY the number of items specified by **length**.\n"
-        + "- Not one more. Not one less. Count carefully before outputting.\n"
-        + "\n"
-        + "### Rule 2: Plan the Conversation Arc BEFORE Writing\n"
-        + "Before generating the script, mentally plan the conversation in three phases:\n"
-        + "\n"
-        + "| Phase | Line Range | Purpose |\n"
-        + "|-------|-----------|---------|\n"
-        + "| **Opening** | Lines 1 ~ 20% | Greetings, establishing context, opening the topic |\n"
-        + "| **Body** | Lines 20% ~ 75% | Main content, questions, exchanges, key information |\n"
-        + "| **Closing** | Lines 75% ~ 100% | Wrapping up, confirming, saying goodbye, final farewell |\n"
-        + "\n"
-        + "For example, if length = 10:\n"
-        + "- Lines 1-2: Opening (greeting, starting the conversation)\n"
-        + "- Lines 3-7: Body (main topic exchange)\n"
-        + "- Lines 8-10: Closing (wrapping up, farewell)\n"
-        + "\n"
-        + "If length = 20:\n"
-        + "- Lines 1-4: Opening\n"
-        + "- Lines 5-15: Body\n"
-        + "- Lines 16-20: Closing\n"
-        + "\n"
-        + "### Rule 3: The Conversation MUST Reach a Natural Conclusion at the LAST Line\n"
-        + "- The very last line (line number = length) MUST be a clear, natural ending of the conversation.\n"
-        + "- Appropriate final lines include: a farewell (\"Goodbye!\", \"See you later!\", \"Have a great day!\"), a final confirmation (\"Thanks, I appreciate it!\"), or a closing remark that signals the conversation is over.\n"
-        + "- The conversation must NOT feel cut off, unfinished, or like it could continue.\n"
-        + "- The conversation must NOT end prematurely before reaching the specified length. Do not insert farewells or closing lines too early.\n"
-        + "\n"
-        + "### Rule 4: Pacing — Avoid Rushing or Dragging\n"
-        + "- Do NOT cram all the important content into the first few lines and then pad the rest with filler.\n"
-        + "- Do NOT drag out the opening with excessive small talk if the length is short.\n"
-        + "- Distribute the content evenly. The conversation should flow naturally across the full length.\n"
-        + "- If the length is long (e.g., 30+), introduce sub-topics, follow-up questions, or minor complications to keep the conversation engaging throughout.\n"
-        + "- If the length is short (e.g., 6-8), get to the point quickly but still include a proper greeting and farewell.\n"
-        + "\n"
-        + "### Rule 5: Self-Validation\n"
-        + "After generating the script, verify:\n"
-        + "- [ ] The \"script\" array has EXACTLY **length** items\n"
-        + "- [ ] The last line is a natural conversation ending\n"
-        + "- [ ] The conversation does not end abruptly or feel incomplete\n"
-        + "- [ ] No farewell or closing appears before the final 25% of lines\n"
-        + "- [ ] The \"opponent_gender\" field is \"male\" or \"female\" based on the opponent's name/role.\n"
-        + "\n"
-        + "### Rule 7: Diversity and Realism Rule\n"
-        + "- Do NOT default to one gender.\n"
-        + "- Vary the opponent's gender based on the context, role, and name. \n"
-        + "- For example, a Barista could be male or female, a Manager could be male or female. \n"
-        + "- Ensure a healthy mix of male and female characters across different requests.\n"
-        + "\n"
-        + "### Rule 6: First Speaker\n"
-        + "- The FIRST line of the script (index 0) MUST be spoken by the **Opponent** (the person talking to the user).\n"
-        + "- For example, if the topic is \"Ordering Coffee\", the first line should be the Barista saying \"Hello, what can I get for you?\".\n"
-        + "- Ensure the roles alternate naturally from there: Opponent -> User -> Opponent -> User...";
+        + "Rules:\n"
+        + "1) Keys must be snake_case exactly: topic, opponent_name, opponent_gender, opponent_role, script, ko, en, role.\n"
+        + "2) Put metadata fields before the script array.\n"
+        + "3) role must be exactly \"model\" or \"user\".\n"
+        + "4) topic must be Korean and 15 characters or fewer.\n"
+        + "5) script length must be EXACTLY the requested length.\n"
+        + "6) Start with opponent(model) and alternate naturally.\n"
+        + "7) Final line must clearly close the conversation.\n"
+        + "8) Respect the requested proficiency level.\n"
+        + "9) Output only the JSON object.";
   }
 
   @Nullable
@@ -1018,6 +931,31 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
   private static String trimForLog(@Nullable String value) {
     String trimmed = trimToNull(value);
     return trimmed == null ? "-" : trimmed;
+  }
+
+  @NonNull
+  private static String buildPromptSignature(@Nullable String prompt) {
+    String value = normalizeOrDefault(prompt, "");
+    try {
+      MessageDigest digest = MessageDigest.getInstance("SHA-256");
+      byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
+      return toHex(hash);
+    } catch (Exception ignored) {
+      return Integer.toHexString(value.hashCode());
+    }
+  }
+
+  @NonNull
+  private static String toHex(@NonNull byte[] bytes) {
+    StringBuilder builder = new StringBuilder(bytes.length * 2);
+    for (byte current : bytes) {
+      String hex = Integer.toHexString(current & 0xff);
+      if (hex.length() == 1) {
+        builder.append('0');
+      }
+      builder.append(hex);
+    }
+    return builder.toString();
   }
 
   private static String normalizeOrDefault(String value, String defaultValue) {

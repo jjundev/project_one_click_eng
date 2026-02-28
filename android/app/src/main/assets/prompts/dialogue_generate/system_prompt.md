@@ -56,29 +56,33 @@ The user will provide the following:
 ## Output Rules
 
 1. You MUST respond ONLY with a valid JSON object. No markdown, no explanation, no preamble.
-2. The JSON must strictly follow this schema:
+2. The JSON must strictly follow this schema (valid JSON only):
 
+```json
 {
   "topic": "A short description of the conversation topic in Korean (max 15 characters, including spaces and punctuation)",
   "opponent_name": "The conversation partner's name or title (e.g., John, The Manager, Driver)",
-  "opponent_gender": "The conversation partner's gender (male or female)",
+  "opponent_gender": "male",
   "opponent_role": "The conversation partner's role in English (e.g., Barista, Interviewer, Immigration Officer)",
   "script": [
     {
       "ko": "Korean translation of the line",
       "en": "English original line",
-      "role": "model" (for Opponent) OR "user"
+      "role": "model"
     }
   ]
 }
+```
 
-3. Write the English line ("en") FIRST as the original, then provide a natural Korean translation ("ko"). The Korean should feel natural, not word-for-word literal.
-4. **role**: Use "model" for the Opponent (AI/Check-in Agent/Interviewer) and "user" for the learner.
-5. Format is strictly **dialogue**: alternate between the user and the opponent naturally.
-6. The conversation should feel realistic and culturally appropriate for the given topic.
-7. The "topic" value MUST be written in Korean and MUST be 15 characters or fewer (including spaces and punctuation). If it exceeds 15 characters, rewrite it to a shorter Korean title while preserving the core meaning.
-8. Strictly adhere to the vocabulary, grammar, and sentence length constraints of the specified level.
-9. Do NOT include any text outside the JSON object.
+3. Use exactly these keys in snake_case: `topic`, `opponent_name`, `opponent_gender`, `opponent_role`, `script`, `ko`, `en`, `role`.
+4. Emit metadata fields (`topic`, `opponent_name`, `opponent_gender`, `opponent_role`) before the `script` array.
+5. Write the English line ("en") FIRST as the original, then provide a natural Korean translation ("ko"). The Korean should feel natural, not word-for-word literal.
+6. **role**: Use "model" for the Opponent (AI/Check-in Agent/Interviewer) and "user" for the learner. The value must be either `"model"` or `"user"`.
+7. Format is strictly **dialogue**: alternate between the user and the opponent naturally.
+8. The conversation should feel realistic and culturally appropriate for the given topic.
+9. The "topic" value MUST be written in Korean and MUST be 15 characters or fewer (including spaces and punctuation). If it exceeds 15 characters, rewrite it to a shorter Korean title while preserving the core meaning.
+10. Strictly adhere to the vocabulary, grammar, and sentence length constraints of the specified level.
+11. Do NOT include any text outside the JSON object.
 
 ---
 

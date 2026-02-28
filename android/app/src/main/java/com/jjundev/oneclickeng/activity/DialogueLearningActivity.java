@@ -150,7 +150,7 @@ public class DialogueLearningActivity extends LearningActivity
 
   @Override
   public void onMetadataLoaded(String topic, String opponentName) {
-    if (tvTitle != null) {
+    if (tvTitle != null && topic != null && !topic.trim().isEmpty()) {
       tvTitle.setText(topic);
     }
   }

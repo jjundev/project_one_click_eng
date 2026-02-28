@@ -255,7 +255,8 @@ public class DialogueSelectFragment extends Fragment
     String sessionId = sessionStore.startSession(scriptGenerator, level, topic, format, length);
     logStream("session started: requestId=" + requestId + ", sessionId=" + shortSession(sessionId));
     final boolean[] started = {false};
-    final String[] resolvedTopic = {topic};
+    final String userRequestedTopic = topic;
+    final String[] streamedTopic = {userRequestedTopic};
     final int[] validTurnCount = {0};
 
     DialogueScriptStreamingSessionStore.Listener listener =
@@ -268,13 +269,13 @@ public class DialogueSelectFragment extends Fragment
             }
             String metadataTopic = trimToNull(metadata.getTopic());
             if (metadataTopic != null) {
-              resolvedTopic[0] = metadataTopic;
+              streamedTopic[0] = metadataTopic;
             }
             logStream(
                 "prepare metadata: requestId="
                     + requestId
                     + ", topic="
-                    + safeText(resolvedTopic[0]));
+                    + safeText(streamedTopic[0]));
           }
 
           @Override
@@ -303,7 +304,12 @@ public class DialogueSelectFragment extends Fragment
                       + ", sessionId="
                       + shortSession(sessionId));
               startPreparedScriptStudy(
-                  dialog, requestId, level, Math.max(1, length), resolvedTopic[0], sessionId);
+                  dialog,
+                  requestId,
+                  level,
+                  Math.max(1, length),
+                  userRequestedTopic,
+                  sessionId);
             }
           }
 
@@ -359,7 +365,7 @@ public class DialogueSelectFragment extends Fragment
     if (snapshot.getMetadata() != null) {
       String metadataTopic = trimToNull(snapshot.getMetadata().getTopic());
       if (metadataTopic != null) {
-        resolvedTopic[0] = metadataTopic;
+        streamedTopic[0] = metadataTopic;
       }
     }
     validTurnCount[0] = countValidTurns(snapshot.getBufferedTurns());
@@ -371,7 +377,12 @@ public class DialogueSelectFragment extends Fragment
               + ", sessionId="
               + shortSession(sessionId));
       startPreparedScriptStudy(
-          dialog, requestId, level, Math.max(1, length), resolvedTopic[0], sessionId);
+          dialog,
+          requestId,
+          level,
+          Math.max(1, length),
+          userRequestedTopic,
+          sessionId);
       return;
     }
     if (trimToNull(snapshot.getFailureMessage()) != null || snapshot.isCompleted()) {
