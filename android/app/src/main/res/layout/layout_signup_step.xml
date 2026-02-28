@@ -36,6 +36,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:lineSpacingMultiplier="1.2"
         android:text="처음 오셨군요!\n비밀번호를 설정해주세요"
         android:textColor="@color/color_primary_text"
         android:textSize="24sp"
@@ -56,6 +57,9 @@
         app:boxStrokeWidth="1dp"
         app:boxStrokeWidthFocused="1dp"
         app:hintTextColor="@color/color_primary_text"
+        app:errorTextColor="@color/color_error_et"
+        app:boxStrokeErrorColor="@color/color_error_et"
+        app:errorIconTint="@color/color_error_et"
         android:hint="새 비밀번호">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -66,16 +70,7 @@
             android:maxLines="1" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <TextView
-        android:id="@+id/tvPasswordStrength"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="비밀번호 강도: 약함"
-        android:textColor="@color/color_sub_text"
-        android:textSize="12sp"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="16dp"
-        android:layout_marginStart="4dp" />
+
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/tilSignupPasswordConfirm"
@@ -83,6 +78,7 @@
         android:layout_height="wrap_content"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         app:endIconMode="password_toggle"
+        android:layout_marginTop="12dp"
         android:layout_marginBottom="24dp"
         app:boxCornerRadiusTopStart="12dp"
         app:boxCornerRadiusTopEnd="12dp"
@@ -92,6 +88,9 @@
         app:boxStrokeWidth="1dp"
         app:boxStrokeWidthFocused="1dp"
         app:hintTextColor="@color/color_primary_text"
+        app:errorTextColor="@color/color_error_et"
+        app:boxStrokeErrorColor="@color/color_error_et"
+        app:errorIconTint="@color/color_error_et"
         android:hint="비밀번호 확인">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -113,8 +112,7 @@
         android:textStyle="bold"
         app:backgroundTint="@color/color_dialog_primary_button_bg"
         app:cornerRadius="16dp"
-        app:elevation="0dp"
-        android:enabled="false" />
+        app:elevation="0dp" />
 
     <LinearLayout
         android:layout_width="match_parent"

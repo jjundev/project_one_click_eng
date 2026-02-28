@@ -35,6 +35,7 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.GoogleAuthProvider;
@@ -208,6 +209,7 @@ public class LoginActivity extends AppCompatActivity {
   }
 
   private void setupEmailStep() {
+    TextInputLayout tilEmail = findViewById(R.id.tilEmail);
     TextInputEditText etEmail = findViewById(R.id.etEmail);
     MaterialButton btnEmailContinue = findViewById(R.id.btnEmailContinue);
     findViewById(R.id.btnBackFromEmail).setOnClickListener(v -> {
@@ -234,7 +236,10 @@ public class LoginActivity extends AppCompatActivity {
       @Override
       public void onTextChanged(CharSequence s, int start, int before, int count) {
         String email = s.toString().trim();
-        btnEmailContinue.setEnabled(Patterns.EMAIL_ADDRESS.matcher(email).matches());
+        if (Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+          tilEmail.setErrorEnabled(false);
+          tilEmail.setError(null);
+        }
       }
 
       @Override
@@ -243,7 +248,11 @@ public class LoginActivity extends AppCompatActivity {
     });
 
     btnEmailContinue.setOnClickListener(v -> {
-      String email = etEmail.getText().toString().trim();
+      String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
+      if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+        tilEmail.setError("올바른 이메일 주소를 입력해주세요.");
+        return;
+      }
       checkEmailExists(email);
     });
   }
@@ -280,19 +289,18 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     final long startedAtMs = System.currentTimeMillis();
-    imeHidePollRunnable =
-        new Runnable() {
-          @Override
-          public void run() {
-            long elapsedMs = System.currentTimeMillis() - startedAtMs;
-            if (!isImeVisible(rootView) || elapsedMs >= IME_HIDE_TIMEOUT_MS) {
-              imeHidePollRunnable = null;
-              afterHidden.run();
-              return;
-            }
-            imeHandler.postDelayed(this, IME_POLL_INTERVAL_MS);
-          }
-        };
+    imeHidePollRunnable = new Runnable() {
+      @Override
+      public void run() {
+        long elapsedMs = System.currentTimeMillis() - startedAtMs;
+        if (!isImeVisible(rootView) || elapsedMs >= IME_HIDE_TIMEOUT_MS) {
+          imeHidePollRunnable = null;
+          afterHidden.run();
+          return;
+        }
+        imeHandler.postDelayed(this, IME_POLL_INTERVAL_MS);
+      }
+    };
     imeHandler.post(imeHidePollRunnable);
   }
 
@@ -379,8 +387,9 @@ public class LoginActivity extends AppCompatActivity {
   private void setupSignupStep() {
     TextInputEditText etSignupPassword = findViewById(R.id.etSignupPassword);
     TextInputEditText etSignupPasswordConfirm = findViewById(R.id.etSignupPasswordConfirm);
+    TextInputLayout tilSignupPassword = findViewById(R.id.tilSignupPassword);
+    TextInputLayout tilSignupPasswordConfirm = findViewById(R.id.tilSignupPasswordConfirm);
     MaterialButton btnSignup = findViewById(R.id.btnSignup);
-    TextView tvPasswordStrength = findViewById(R.id.tvPasswordStrength);
     findViewById(R.id.btnBackFromSignup).setOnClickListener(v -> {
       if (isBackTransitionPending) {
         return;
@@ -408,24 +417,22 @@ public class LoginActivity extends AppCompatActivity {
         String p1 = etSignupPassword.getText() != null ? etSignupPassword.getText().toString() : "";
         String p2 = etSignupPasswordConfirm.getText() != null ? etSignupPasswordConfirm.getText().toString() : "";
 
-        if (p1.length() == 0) {
-          tvPasswordStrength.setText("비밀번호 강도: -");
-          btnSignup.setEnabled(false);
-          return;
+        if (p1.length() >= 6) {
+          tilSignupPassword.setErrorEnabled(false);
+          tilSignupPassword.setError(null);
+        } else if (tilSignupPassword.getError() != null) {
+          // If the error was already shown by the button, keep updating the user if it's still invalid
+          tilSignupPassword.setError("비밀번호는 6자리 이상이어야 합니다.");
         }
-
-        if (p1.length() >= 8 && p1.matches(".*[a-zA-Z]+.*") && p1.matches(".*[0-9]+.*")) {
-          tvPasswordStrength.setText("비밀번호 강도: 강함");
-          tvPasswordStrength.setTextColor(Color.parseColor("#4DD9AC"));
-        } else if (p1.length() >= 6) {
-          tvPasswordStrength.setText("비밀번호 강도: 보통");
-          tvPasswordStrength.setTextColor(ContextCompat.getColor(LoginActivity.this, R.color.color_sub_text));
-        } else {
-          tvPasswordStrength.setText("비밀번호 강도: 약함 (6자 이상)");
-          tvPasswordStrength.setTextColor(Color.parseColor("#E53935"));
+        
+        if (p1.equals(p2)) {
+          tilSignupPasswordConfirm.setErrorEnabled(false);
+          tilSignupPasswordConfirm.setError(null);
+        } else if (tilSignupPasswordConfirm.getError() != null || p2.length() > 0) {
+           // Show error if they don't match, but only if they've started typing in the confirm box 
+           // or if the button was already clicked (which sets the error initially)
+           tilSignupPasswordConfirm.setError("비밀번호가 일치하지 않습니다.");
         }
-
-        btnSignup.setEnabled(p1.length() >= 6 && p1.equals(p2));
       }
 
       @Override
@@ -438,11 +445,23 @@ public class LoginActivity extends AppCompatActivity {
 
     btnSignup.setOnClickListener(v -> {
       String password = etSignupPassword.getText() != null ? etSignupPassword.getText().toString() : "";
+      String passwordConfirm = etSignupPasswordConfirm.getText() != null ? etSignupPasswordConfirm.getText().toString()
+          : "";
       TextView tvDisplaySignupEmail = findViewById(R.id.tvDisplaySignupEmail);
       String email = tvDisplaySignupEmail != null ? tvDisplaySignupEmail.getText().toString() : "";
 
-      if (email.isEmpty() || password.isEmpty()) {
-        Toast.makeText(this, "이메일 또는 비밀번호가 유효하지 않아요", Toast.LENGTH_SHORT).show();
+      if (password.length() < 6) {
+        tilSignupPassword.setError("비밀번호는 6자리 이상이어야 합니다.");
+        return;
+      }
+
+      if (!password.equals(passwordConfirm)) {
+        tilSignupPasswordConfirm.setError("비밀번호가 일치하지 않습니다.");
+        return;
+      }
+
+      if (email.isEmpty()) {
+        Toast.makeText(this, "이메일 정보가 유효하지 않아요", Toast.LENGTH_SHORT).show();
         return;
       }
 

@@ -23,6 +23,7 @@
     <color name="color_sub_text_on_fixed_bg">#CCFFFFFF</color>
     <color name="color_feedback_highlight_bg">#FFF3CD</color>
     <color name="color_feedback_highlight_text">#5D4300</color>
+    <color name="color_error_et">#ED3939</color>
 
     <color name="color_toolbar_icon">@color/color_sub_text</color>
     <color name="color_bottom_sheet_handle">#C9D1DB</color>
