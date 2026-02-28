@@ -14,6 +14,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatButton;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
+import androidx.navigation.fragment.NavHostFragment;
 import com.google.android.gms.ads.AdError;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.FullScreenContentCallback;
@@ -703,6 +705,7 @@ public class SettingFragment extends Fragment
 
     View layoutContent = dialogView.findViewById(R.id.layout_content);
     View layoutLoading = dialogView.findViewById(R.id.layout_loading);
+    AppCompatButton btnGoToCreditStore = dialogView.findViewById(R.id.btn_go_to_credit_store);
     AppCompatButton btnCancel = dialogView.findViewById(R.id.btn_charge_cancel);
     AppCompatButton btnAd = dialogView.findViewById(R.id.btn_charge_ad);
 
@@ -725,6 +728,21 @@ public class SettingFragment extends Fragment
         });
 
     btnCancel.setOnClickListener(v -> chargeCreditDialog.dismiss());
+    btnGoToCreditStore.setOnClickListener(
+        v -> {
+          if (!isAdded()) {
+            return;
+          }
+
+          NavController navController = NavHostFragment.findNavController(this);
+          if (navController.getCurrentDestination() != null
+              && navController.getCurrentDestination().getId() == R.id.creditStoreFragment) {
+            return;
+          }
+
+          chargeCreditDialog.dismiss();
+          navController.navigate(R.id.action_settingFragment_to_creditStoreFragment);
+        });
     btnAd.setOnClickListener(
         v -> {
           if (rewardedAd != null && isAdded()) {

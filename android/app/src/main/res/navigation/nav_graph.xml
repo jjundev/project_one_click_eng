@@ -23,7 +23,15 @@
         android:id="@+id/scriptSelectFragment"
         android:name="com.jjundev.oneclickeng.fragment.DialogueSelectFragment"
         android:label="ScriptSelectFragment"
-        tools:layout="@layout/fragment_dialogue_select" />
+        tools:layout="@layout/fragment_dialogue_select">
+        <action
+            android:id="@+id/action_scriptSelectFragment_to_creditStoreFragment"
+            app:destination="@id/creditStoreFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
 
     <fragment
         android:id="@+id/dialogueSummaryFragment"
@@ -53,6 +61,20 @@
         android:id="@+id/settingFragment"
         android:name="com.jjundev.oneclickeng.fragment.SettingFragment"
         android:label="SettingFragment"
-        tools:layout="@layout/fragment_setting" />
+        tools:layout="@layout/fragment_setting">
+        <action
+            android:id="@+id/action_settingFragment_to_creditStoreFragment"
+            app:destination="@id/creditStoreFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/creditStoreFragment"
+        android:name="com.jjundev.oneclickeng.fragment.CreditStoreFragment"
+        android:label="CreditStoreFragment"
+        tools:layout="@layout/fragment_credit_store" />
 
 </navigation>
