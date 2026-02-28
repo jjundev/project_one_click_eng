@@ -24,8 +24,9 @@ android {
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         
-        // BuildConfig에 GEMINI_API_KEY 추가
+        // BuildConfig에 API Key 및 AdMob ID 추가
         buildConfigField "String", "GEMINI_API_KEY", "\"${localProperties.getProperty('GEMINI_API_KEY', '')}\""
+        buildConfigField "String", "ADMOB_REWARDED_AD_UNIT_ID", "\"${localProperties.getProperty('ADMOB_REWARDED_AD_UNIT_ID', '')}\""
 
         ndk {
             // 지원하는 아키텍처만 포함하여 용량 절감

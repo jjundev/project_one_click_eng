@@ -717,7 +717,10 @@ public class SettingFragment extends Fragment
 
   private void loadRewardedAd() {
     AdRequest adRequest = new AdRequest.Builder().build();
-    RewardedAd.load(requireContext(), "ca-app-pub-3940256099942544/5224354917",
+    String adUnitId = BuildConfig.DEBUG ? "ca-app-pub-3940256099942544/5224354917"
+        : BuildConfig.ADMOB_REWARDED_AD_UNIT_ID;
+    logDebug("Loading rewarded ad with Unit ID: " + adUnitId);
+    RewardedAd.load(requireContext(), adUnitId,
         adRequest, new RewardedAdLoadCallback() {
           @Override
           public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
