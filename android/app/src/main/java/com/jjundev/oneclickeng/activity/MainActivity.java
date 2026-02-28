@@ -12,9 +12,11 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.navigation.NavController;
+import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -27,6 +29,8 @@ public class MainActivity extends AppCompatActivity {
   private static final String KEY_PERMISSION_REQUESTED = "post_notifications_requested";
 
   private long backPressedTime = 0;
+  @Nullable private BottomNavigationView bottomNavigation;
+  @Nullable private NavController navController;
 
   @NonNull
   private final ActivityResultLauncher<String> notificationPermissionLauncher =
@@ -41,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
     setContentView(R.layout.activity_main);
     requestNotificationPermissionIfNeeded();
 
-    BottomNavigationView bottomNavigation = findViewById(R.id.bottom_navigation);
+    bottomNavigation = findViewById(R.id.bottom_navigation);
     NavHostFragment navHostFragment =
         (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_container);
 
@@ -50,28 +54,54 @@ public class MainActivity extends AppCompatActivity {
       return;
     }
 
-    NavController navController = navHostFragment.getNavController();
+    navController = navHostFragment.getNavController();
     NavigationUI.setupWithNavController(bottomNavigation, navController);
 
     bottomNavigation.setOnItemSelectedListener(
         item -> {
-          String selectedName = getResources().getResourceEntryName(item.getItemId());
-          logDebug("Tab selected: " + selectedName + " (" + item.getItemId() + ")");
-          return NavigationUI.onNavDestinationSelected(item, navController);
+          int itemId = item.getItemId();
+          String selectedName = getResources().getResourceEntryName(itemId);
+          logDebug("Tab selected: " + selectedName + " (" + itemId + ")");
+
+          NavController controller = navController;
+          if (controller == null) {
+            return false;
+          }
+
+          int currentDestinationId =
+              controller.getCurrentDestination() != null
+                  ? controller.getCurrentDestination().getId()
+                  : -1;
+          if (currentDestinationId == R.id.creditStoreFragment) {
+            if (itemId == R.id.settingFragment) {
+              return navigateToSettingFromCreditStore(controller);
+            }
+            return navigateFromCreditStoreToBottomTab(itemId, controller);
+          }
+
+          return NavigationUI.onNavDestinationSelected(item, controller);
         });
 
     bottomNavigation.setOnItemReselectedListener(
         item -> {
           int itemId = item.getItemId();
-          int currentDestinationId =
-              navController.getCurrentDestination() != null
-                  ? navController.getCurrentDestination().getId()
-                  : -1;
+          String selectedName = getResources().getResourceEntryName(itemId);
+          logDebug("Tab reselected: " + selectedName + " (" + itemId + ")");
+          NavController controller = navController;
+          if (controller == null) {
+            return;
+          }
 
-          if (currentDestinationId != itemId) {
-            String selectedName = getResources().getResourceEntryName(itemId);
-            logDebug("Tab reselected: Popping to " + selectedName);
-            navController.popBackStack(itemId, false);
+          int currentDestinationId =
+              controller.getCurrentDestination() != null
+                  ? controller.getCurrentDestination().getId()
+                  : -1;
+          if (currentDestinationId == R.id.creditStoreFragment) {
+            if (itemId == R.id.settingFragment) {
+              navigateToSettingFromCreditStore(controller);
+              return;
+            }
+            navigateFromCreditStoreToBottomTab(itemId, controller);
           }
         });
 
@@ -83,10 +113,13 @@ public class MainActivity extends AppCompatActivity {
           if (destinationId == R.id.scriptSelectFragment
               || destinationId == R.id.dialogueSummaryFragment) {
             menuId = R.id.studyModeSelectFragment;
+          } else if (destinationId == R.id.creditStoreFragment) {
+            menuId = R.id.settingFragment;
           }
 
-          if (bottomNavigation.getMenu().findItem(menuId) != null) {
-            bottomNavigation.getMenu().findItem(menuId).setChecked(true);
+          BottomNavigationView navigationView = bottomNavigation;
+          if (navigationView != null && navigationView.getMenu().findItem(menuId) != null) {
+            navigationView.getMenu().findItem(menuId).setChecked(true);
           }
 
           String destinationName = getResources().getResourceEntryName(destinationId);
@@ -99,9 +132,15 @@ public class MainActivity extends AppCompatActivity {
             new OnBackPressedCallback(true) {
               @Override
               public void handleOnBackPressed() {
+                NavController controller = navController;
+                if (controller == null) {
+                  finish();
+                  return;
+                }
+
                 int currentDestId =
-                    navController.getCurrentDestination() != null
-                        ? navController.getCurrentDestination().getId()
+                    controller.getCurrentDestination() != null
+                        ? controller.getCurrentDestination().getId()
                         : -1;
 
                 if (currentDestId == R.id.studyModeSelectFragment) {
@@ -115,12 +154,88 @@ public class MainActivity extends AppCompatActivity {
                   }
                 } else {
                   // 다른 Fragment에서는 이전 화면으로 돌아가기
-                  if (!navController.popBackStack()) {
+                  if (!controller.popBackStack()) {
                     finish();
                   }
                 }
               }
             });
+  }
+
+  private boolean navigateToSettingFromCreditStore(@NonNull NavController controller) {
+    logDebug("Navigating from CreditStore to Setting via bottom tab.");
+    if (controller.popBackStack(R.id.settingFragment, false)) {
+      return true;
+    }
+
+    int startDestinationId = controller.getGraph().getStartDestinationId();
+    NavOptions navOptions =
+        new NavOptions.Builder()
+            .setLaunchSingleTop(true)
+            .setRestoreState(false)
+            .setPopUpTo(startDestinationId, false, false)
+            .build();
+    try {
+      controller.navigate(R.id.settingFragment, null, navOptions);
+      return true;
+    } catch (IllegalArgumentException | IllegalStateException exception) {
+      logDebug(
+          "Failed to navigate from CreditStore to Setting via bottom navigation."
+              + " destinationId="
+              + R.id.settingFragment
+              + ", message="
+              + exception.getMessage());
+      return recoverToStartDestination(controller, "setting-navigation-fallback");
+    }
+  }
+
+  private boolean navigateFromCreditStoreToBottomTab(int menuId, @NonNull NavController controller) {
+    String destinationName = getResources().getResourceEntryName(menuId);
+    logDebug("Navigating from CreditStore to tab: " + destinationName + " (" + menuId + ")");
+    controller.popBackStack(R.id.creditStoreFragment, true);
+
+    int startDestinationId = controller.getGraph().getStartDestinationId();
+    NavOptions navOptions =
+        new NavOptions.Builder()
+            .setLaunchSingleTop(true)
+            .setRestoreState(false)
+            .setPopUpTo(startDestinationId, false, false)
+            .build();
+    try {
+      controller.navigate(menuId, null, navOptions);
+      return true;
+    } catch (IllegalArgumentException | IllegalStateException exception) {
+      logDebug(
+          "Failed to navigate from CreditStore via bottom navigation."
+              + " destinationId="
+              + menuId
+              + ", message="
+              + exception.getMessage());
+      return recoverToStartDestination(controller, "credit-store-tab-fallback");
+    }
+  }
+
+  private boolean recoverToStartDestination(
+      @NonNull NavController controller, @NonNull String recoveryReason) {
+    int startDestinationId = controller.getGraph().getStartDestinationId();
+    try {
+      controller.navigate(startDestinationId);
+      logDebug(
+          "Recovered navigation by moving to start destination. reason="
+              + recoveryReason
+              + ", startDestination="
+              + startDestinationId);
+      return true;
+    } catch (IllegalArgumentException | IllegalStateException recoveryException) {
+      logDebug(
+          "Failed to recover to start destination. reason="
+              + recoveryReason
+              + ", startDestination="
+              + startDestinationId
+              + ", message="
+              + recoveryException.getMessage());
+      return false;
+    }
   }
 
   private void requestNotificationPermissionIfNeeded() {

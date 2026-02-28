@@ -2,6 +2,8 @@ package com.jjundev.oneclickeng.billing;
 
 import android.app.Activity;
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import com.android.billingclient.api.BillingClient;
@@ -24,12 +26,17 @@ import java.util.Map;
 /** Thin wrapper around BillingClient for one-time INAPP credit products. */
 public final class PlayBillingManager {
   @NonNull private final BillingClient billingClient;
+  @NonNull private final Handler mainHandler;
 
   public PlayBillingManager(
       @NonNull Context context, @NonNull PurchasesUpdatedListener purchaseUpdateListener) {
+    mainHandler = new Handler(Looper.getMainLooper());
     billingClient =
         BillingClient.newBuilder(context.getApplicationContext())
-            .setListener(purchaseUpdateListener)
+            .setListener(
+                (billingResult, purchases) ->
+                    dispatchOnMain(
+                        () -> purchaseUpdateListener.onPurchasesUpdated(billingResult, purchases)))
             .enablePendingPurchases(
                 PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
             .build();
@@ -41,7 +48,7 @@ public final class PlayBillingManager {
 
   public void startConnection(@NonNull ConnectionListener listener) {
     if (billingClient.isReady()) {
-      listener.onBillingReady();
+      dispatchOnMain(listener::onBillingReady);
       return;
     }
 
@@ -50,15 +57,15 @@ public final class PlayBillingManager {
           @Override
           public void onBillingSetupFinished(@NonNull BillingResult billingResult) {
             if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-              listener.onBillingReady();
+              dispatchOnMain(listener::onBillingReady);
               return;
             }
-            listener.onBillingUnavailable(billingResult);
+            dispatchOnMain(() -> listener.onBillingUnavailable(billingResult));
           }
 
           @Override
           public void onBillingServiceDisconnected() {
-            listener.onBillingDisconnected();
+            dispatchOnMain(listener::onBillingDisconnected);
           }
         });
   }
@@ -70,7 +77,7 @@ public final class PlayBillingManager {
   public void queryInAppProductDetails(
       @NonNull List<String> productIds, @NonNull ProductDetailsListener listener) {
     if (!billingClient.isReady()) {
-      listener.onFailed(buildNotReadyResult("BillingClient not ready"));
+      dispatchOnMain(() -> listener.onFailed(buildNotReadyResult("BillingClient not ready")));
       return;
     }
 
@@ -88,7 +95,7 @@ public final class PlayBillingManager {
     }
 
     if (products.isEmpty()) {
-      listener.onFailed(buildNotReadyResult("No product ids"));
+      dispatchOnMain(() -> listener.onFailed(buildNotReadyResult("No product ids")));
       return;
     }
 
@@ -98,7 +105,7 @@ public final class PlayBillingManager {
         params,
         (billingResult, productDetailsResult) -> {
           if (billingResult.getResponseCode() != BillingClient.BillingResponseCode.OK) {
-            listener.onFailed(billingResult);
+            dispatchOnMain(() -> listener.onFailed(billingResult));
             return;
           }
           Map<String, ProductDetails> byProductId = new LinkedHashMap<>();
@@ -109,19 +116,23 @@ public final class PlayBillingManager {
               byProductId.put(details.getProductId(), details);
             }
           }
-          listener.onLoaded(byProductId);
+          dispatchOnMain(() -> listener.onLoaded(byProductId));
         });
   }
 
   public void queryInAppPurchases(@NonNull InAppPurchasesListener listener) {
     if (!billingClient.isReady()) {
-      listener.onResult(buildNotReadyResult("BillingClient not ready"), Collections.emptyList());
+      dispatchOnMain(
+          () ->
+              listener.onResult(
+                  buildNotReadyResult("BillingClient not ready"), Collections.emptyList()));
       return;
     }
 
     QueryPurchasesParams params =
         QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.INAPP).build();
-    billingClient.queryPurchasesAsync(params, listener::onResult);
+    billingClient.queryPurchasesAsync(
+        params, (billingResult, purchases) -> dispatchOnMain(() -> listener.onResult(billingResult, purchases)));
   }
 
   @NonNull
@@ -146,20 +157,35 @@ public final class PlayBillingManager {
   public void consumePurchase(
       @NonNull String purchaseToken, @NonNull ConsumeResultListener consumeResultListener) {
     if (!billingClient.isReady()) {
-      consumeResultListener.onConsumeResult(
-          buildNotReadyResult("BillingClient not ready"), purchaseToken);
+      dispatchOnMain(
+          () ->
+              consumeResultListener.onConsumeResult(
+                  buildNotReadyResult("BillingClient not ready"), purchaseToken));
       return;
     }
 
     String safeToken = purchaseToken.trim();
     if (safeToken.isEmpty()) {
-      consumeResultListener.onConsumeResult(buildNotReadyResult("Empty purchase token"), purchaseToken);
+      dispatchOnMain(
+          () ->
+              consumeResultListener.onConsumeResult(
+                  buildNotReadyResult("Empty purchase token"), purchaseToken));
       return;
     }
 
     ConsumeParams params = ConsumeParams.newBuilder().setPurchaseToken(safeToken).build();
     billingClient.consumeAsync(
-        params, (billingResult, outToken) -> consumeResultListener.onConsumeResult(billingResult, outToken));
+        params,
+        (billingResult, outToken) ->
+            dispatchOnMain(() -> consumeResultListener.onConsumeResult(billingResult, outToken)));
+  }
+
+  private void dispatchOnMain(@NonNull Runnable action) {
+    if (Looper.myLooper() == Looper.getMainLooper()) {
+      action.run();
+      return;
+    }
+    mainHandler.post(action);
   }
 
   @NonNull

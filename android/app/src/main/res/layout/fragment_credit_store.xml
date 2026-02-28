@@ -16,9 +16,21 @@
         android:paddingBottom="100dp">
 
         <!-- ===== 헤더 섹션 ===== -->
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="-10dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/content_desc_back"
+            android:src="@drawable/ic_arrow_back"
+            android:scaleType="centerInside"
+            app:tint="@color/color_toolbar_icon" />
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:text="크레딧 상점"
             android:textColor="@color/color_primary_text"
             android:textSize="28sp"

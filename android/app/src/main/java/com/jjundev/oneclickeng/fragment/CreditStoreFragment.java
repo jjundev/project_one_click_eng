@@ -8,9 +8,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
+import androidx.navigation.NavOptions;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.android.billingclient.api.BillingClient;
@@ -67,6 +71,20 @@ public class CreditStoreFragment extends Fragment {
     super.onViewCreated(view, savedInstanceState);
     initializeProducts();
 
+    View btnBack = view.findViewById(R.id.btn_back);
+    btnBack.setOnClickListener(v -> navigateBackFromCreditStore());
+
+    requireActivity()
+        .getOnBackPressedDispatcher()
+        .addCallback(
+            getViewLifecycleOwner(),
+            new OnBackPressedCallback(true) {
+              @Override
+              public void handleOnBackPressed() {
+                navigateBackFromCreditStore();
+              }
+            });
+
     purchaseStore = new CreditPurchaseStore(requireContext());
     purchaseVerifier = new CreditPurchaseVerifier(BuildConfig.CREDIT_BILLING_VERIFY_URL);
 
@@ -100,7 +118,7 @@ public class CreditStoreFragment extends Fragment {
             notifyAdapterChanged();
             if (!billingUnavailableNotified) {
               billingUnavailableNotified = true;
-              showToastSafe("결제 서비스를 사용할 수 없어요. 잠시 후 다시 시도해주세요.");
+              showToastSafe("잠시 후 다시 시도해주세요");
             }
             logDebug(
                 "Billing unavailable: "
@@ -200,7 +218,7 @@ public class CreditStoreFragment extends Fragment {
     }
 
     if (!billingReady || billingManager == null) {
-      showToastSafe("결제 서비스를 준비 중이에요.");
+      showToastSafe("결제 서비스를 준비 중이에요");
       return;
     }
 
@@ -226,7 +244,7 @@ public class CreditStoreFragment extends Fragment {
             + responseCode
             + " / "
             + launchResult.getDebugMessage());
-    showToastSafe("결제를 시작하지 못했어요. 잠시 후 다시 시도해주세요.");
+    showToastSafe("결제를 시작하지 못했어요");
   }
 
   private void onPurchasesUpdated(
@@ -241,7 +259,7 @@ public class CreditStoreFragment extends Fragment {
     }
 
     if (responseCode == BillingClient.BillingResponseCode.USER_CANCELED) {
-      showToastSafe("결제가 취소되었어요.");
+      showToastSafe("결제가 취소되었어요");
       return;
     }
 
@@ -255,7 +273,7 @@ public class CreditStoreFragment extends Fragment {
             + responseCode
             + " / "
             + billingResult.getDebugMessage());
-    showToastSafe("결제 처리 중 오류가 발생했어요.");
+    showToastSafe("결제 처리 중 오류가 발생했어요");
   }
 
   private void recoverOwnedPurchasesAndProcessPending() {
@@ -286,7 +304,7 @@ public class CreditStoreFragment extends Fragment {
     if (state == Purchase.PurchaseState.PENDING) {
       enqueuePendingPurchase(purchase);
       if (fromUserFlow) {
-        showToastSafe("결제가 승인 대기 중이에요. 승인 완료 후 자동으로 반영돼요.");
+        showToastSafe("결제 승인 대기 중이에요");
       }
       return;
     }
@@ -366,7 +384,7 @@ public class CreditStoreFragment extends Fragment {
       case REJECTED:
       case INVALID:
         verificationInFlightTokens.remove(token);
-        showToastSafe("결제 검증에 실패했어요. 고객센터로 문의해주세요.");
+        showToastSafe("결제 검증에 실패했어요");
         logDebug(
             "Verification rejected for token="
                 + maskToken(token)
@@ -440,6 +458,33 @@ public class CreditStoreFragment extends Fragment {
       return;
     }
     Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+  }
+
+  private void navigateBackFromCreditStore() {
+    if (!isAdded()) {
+      return;
+    }
+
+    NavController navController = NavHostFragment.findNavController(this);
+    if (navController.popBackStack()) {
+      return;
+    }
+
+    int startDestinationId = navController.getGraph().getStartDestinationId();
+    NavOptions navOptions =
+        new NavOptions.Builder()
+            .setLaunchSingleTop(true)
+            .setRestoreState(true)
+            .setPopUpTo(startDestinationId, false, true)
+            .build();
+
+    try {
+      navController.navigate(R.id.studyModeSelectFragment, null, navOptions);
+    } catch (IllegalArgumentException exception) {
+      logDebug(
+          "Failed to navigate to fallback destination from CreditStore: "
+              + exception.getMessage());
+    }
   }
 
   private void logDebug(@NonNull String message) {
