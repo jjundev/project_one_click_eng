@@ -1,5 +1,6 @@
 [versions]
 agp = "8.13.2"
+billing = "8.3.0"
 credentials = "1.5.0"
 dynamicanimation = "1.1.0"
 firebaseBom = "34.9.0"
@@ -27,6 +28,7 @@ firebaseFirestore = "26.1.0"
 viewpager2 = "1.1.0"
 
 [libraries]
+billing = { module = "com.android.billingclient:billing", version.ref = "billing" }
 credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
 credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
 dynamicanimation = { module = "androidx.dynamicanimation:dynamicanimation", version.ref = "dynamicanimation" }
