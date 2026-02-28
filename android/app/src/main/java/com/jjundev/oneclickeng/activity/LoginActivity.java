@@ -59,6 +59,7 @@ public class LoginActivity extends AppCompatActivity {
   private View currentStepLayout;
   private Runnable imeHidePollRunnable;
   private boolean isBackTransitionPending;
+  private Runnable onSlideCollapsedAction;
 
   @Override
   protected void onStart() {
@@ -86,30 +87,45 @@ public class LoginActivity extends AppCompatActivity {
     // Prevent hiding bottom sheet completely by user drag
     bottomSheetBehavior.setHideable(false);
 
-    bottomSheet.post(
-        () -> {
-          int sheetHeight = bottomSheet.getHeight();
-          // Start it pushed down by its height
-          bottomSheet.setTranslationY(sheetHeight);
+    bottomSheet.getViewTreeObserver()
+        .addOnGlobalLayoutListener(
+            new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+              @Override
+              public void onGlobalLayout() {
+                bottomSheet.getViewTreeObserver().removeOnGlobalLayoutListener(this);
 
-          // Show it after 200ms delay with a powerful spring-like/decelerate animation
-          bottomSheet.postDelayed(
-              () -> {
+                View rootView = findViewById(android.R.id.content);
+                int fragmentHeight = rootView.getHeight();
+                int maxHeight = (int) (fragmentHeight * 0.8f);
+                int minHeight = (int) (fragmentHeight * 0.3f);
+
+                android.view.ViewGroup.LayoutParams params = bottomSheet.getLayoutParams();
+                params.height = android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+                bottomSheet.setLayoutParams(params);
+
+                bottomSheetBehavior.setPeekHeight(minHeight);
+                bottomSheetBehavior.setMaxHeight(maxHeight);
+
+                // Start hidden by pushing it down by its own height
                 bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                bottomSheet.post(() -> {
+                  int sheetHeight = bottomSheet.getHeight();
+                  bottomSheet.setTranslationY(sheetHeight);
 
-                bottomSheet
-                    .animate()
-                    .translationY(0f)
-                    .setDuration(600) // 600ms for a long smooth feel
-                    .setInterpolator(
-                        new android.view.animation.DecelerateInterpolator(
-                            2.0f)) // Strong deceleration
-                    // (starts fast/"힘있게",
-                    // ends soft/"부드럽게")
-                    .start();
-              },
-              200);
-        });
+                  bottomSheet.postDelayed(
+                      () -> {
+                        bottomSheet
+                            .animate()
+                            .translationY(0f)
+                            .setDuration(600)
+                            .setInterpolator(
+                                new android.view.animation.DecelerateInterpolator(2.0f))
+                            .start();
+                      },
+                      200);
+                });
+              }
+            });
 
     // Add callback to keep bottom sheet expanded
     bottomSheetBehavior.addBottomSheetCallback(
@@ -117,24 +133,22 @@ public class LoginActivity extends AppCompatActivity {
           @Override
           public void onStateChanged(
               @androidx.annotation.NonNull View bottomSheetView, int newState) {
-            // If the user drags and it tries to collapse, force it back to expanded
             if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
-              bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+              if (onSlideCollapsedAction != null) {
+                onSlideCollapsedAction.run();
+                onSlideCollapsedAction = null;
+              }
+              // If the user drags and it tries to collapse, force it back to expanded
+              if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+              }
             }
           }
 
           @Override
           public void onSlide(
               @androidx.annotation.NonNull View bottomSheetView, float slideOffset) {
-            // We can add a slight overshoot/spring effect by scaling the view slightly when
-            // dragged down
-            // If slideOffset < 1.0 (meaning it's being dragged down)
-            if (slideOffset >= 0f && slideOffset < 1f) {
-              float scale = 1f + (1f - slideOffset) * 0.05f; // Slightly stretch it up to 5% larger
-              bottomSheetView.setScaleY(scale);
-            } else {
-              bottomSheetView.setScaleY(1f);
-            }
+            // Removed the bounce scale effect to match the new behavior correctly
           }
         });
 
@@ -174,36 +188,64 @@ public class LoginActivity extends AppCompatActivity {
     finish();
   }
 
+  private View preLoadingStepLayout;
+
   private void setLoadingState(boolean isLoading) {
     if (isLoading) {
-      if (currentStepLayout != null)
-        currentStepLayout.setVisibility(View.GONE);
-      if (layoutLoginLoading != null)
-        layoutLoginLoading.setVisibility(View.VISIBLE);
+      if (layoutLoginLoading != null && currentStepLayout != null && currentStepLayout != layoutLoginLoading) {
+        preLoadingStepLayout = currentStepLayout;
+        showStep(layoutLoginLoading, currentStepLayout, false);
+      }
     } else {
-      if (currentStepLayout != null)
-        currentStepLayout.setVisibility(View.VISIBLE);
-      if (layoutLoginLoading != null)
-        layoutLoginLoading.setVisibility(View.GONE);
+      if (layoutLoginLoading != null && preLoadingStepLayout != null) {
+        showStep(preLoadingStepLayout, layoutLoginLoading, true);
+        preLoadingStepLayout = null; // Reset
+      }
     }
   }
 
   private void showStep(View nextView, View currentView, boolean isBack) {
+    if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+      swapViews(nextView, currentView);
+      bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+    } else {
+      onSlideCollapsedAction = () -> {
+        swapViews(nextView, currentView);
+      };
+      bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+    }
+  }
+
+  private void swapViews(View nextView, View currentView) {
+    if (layoutLoginContent != null && layoutLoginContent != nextView)
+      layoutLoginContent.setVisibility(View.GONE);
+    if (layoutEmailStep != null && layoutEmailStep != nextView)
+      layoutEmailStep.setVisibility(View.GONE);
+    if (layoutPasswordStep != null && layoutPasswordStep != nextView)
+      layoutPasswordStep.setVisibility(View.GONE);
+    if (layoutSignupStep != null && layoutSignupStep != nextView)
+      layoutSignupStep.setVisibility(View.GONE);
+    if (layoutLoginLoading != null && layoutLoginLoading != nextView)
+      layoutLoginLoading.setVisibility(View.GONE);
+
     if (currentView != null) {
       currentView.setVisibility(View.GONE);
-      if (isBack) {
-        currentView.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_out_right));
-      } else {
-        currentView.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_out_left));
-      }
+      currentView.clearAnimation();
     }
     if (nextView != null) {
       nextView.setVisibility(View.VISIBLE);
+      nextView.clearAnimation();
       currentStepLayout = nextView;
-      if (isBack) {
-        nextView.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_in_left));
-      } else {
-        nextView.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_in_right));
+    }
+
+    // Normalize height to wrap content
+    LinearLayout bottomSheet = findViewById(R.id.bottomSheetLogin);
+    if (bottomSheet != null) {
+      android.view.ViewGroup.LayoutParams params = bottomSheet.getLayoutParams();
+      if (params != null) {
+        params.height = android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+        bottomSheet.setLayoutParams(params);
+        bottomSheet.requestLayout();
       }
     }
   }
@@ -421,17 +463,19 @@ public class LoginActivity extends AppCompatActivity {
           tilSignupPassword.setErrorEnabled(false);
           tilSignupPassword.setError(null);
         } else if (tilSignupPassword.getError() != null) {
-          // If the error was already shown by the button, keep updating the user if it's still invalid
+          // If the error was already shown by the button, keep updating the user if it's
+          // still invalid
           tilSignupPassword.setError("비밀번호는 6자리 이상이어야 합니다.");
         }
-        
+
         if (p1.equals(p2)) {
           tilSignupPasswordConfirm.setErrorEnabled(false);
           tilSignupPasswordConfirm.setError(null);
         } else if (tilSignupPasswordConfirm.getError() != null || p2.length() > 0) {
-           // Show error if they don't match, but only if they've started typing in the confirm box 
-           // or if the button was already clicked (which sets the error initially)
-           tilSignupPasswordConfirm.setError("비밀번호가 일치하지 않습니다.");
+          // Show error if they don't match, but only if they've started typing in the
+          // confirm box
+          // or if the button was already clicked (which sets the error initially)
+          tilSignupPasswordConfirm.setError("비밀번호가 일치하지 않습니다.");
         }
       }
 
