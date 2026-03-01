@@ -39,11 +39,12 @@ public class RecordingAudioPlayer {
     final long requestToken;
     final int resolvedSampleRate = sampleRateHz > 0 ? sampleRateHz : DEFAULT_SAMPLE_RATE;
 
+    // Stop previous playback first so the new request token remains valid.
+    stop();
     synchronized (trackLock) {
       requestToken = ++playbackToken;
       playbackCallback = resolvedCallback;
     }
-    stop();
 
     if (pcmData == null || pcmData.length == 0) {
       if (resolvedCallback != null) {

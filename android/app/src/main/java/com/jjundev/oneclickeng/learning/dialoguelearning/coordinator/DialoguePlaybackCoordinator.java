@@ -323,6 +323,7 @@ public final class DialoguePlaybackCoordinator {
                     if (!isSessionCurrent(sessionToken)) {
                       return;
                     }
+                    loggerDelegate.trace("TRACE_TTS_FLOW source=gemini_message_playback_completed");
                     onTtsTerminal(false);
                   }
 
@@ -385,6 +386,7 @@ public final class DialoguePlaybackCoordinator {
                     if (!isSessionCurrent(sessionToken)) {
                       return;
                     }
+                    loggerDelegate.trace("TRACE_TTS_FLOW source=gemini_script_playback_completed");
                     onTtsTerminal(false);
                   }
 
