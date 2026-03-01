@@ -8,6 +8,8 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -28,6 +30,8 @@ public class QuizFragment extends Fragment {
   private static final long SHOW_CHOICES_DELAY_MS = 500L;
   private static final long AUTO_CHECK_DELAY_MS = 200L;
   private static final long SHOW_NEXT_BUTTON_DELAY_MS = 500L;
+  private static final float BOTTOM_SHEET_MAX_HEIGHT_RATIO = 0.8f;
+  private static final float BOTTOM_SHEET_MIN_HEIGHT_RATIO = 0.2f;
 
   private enum BottomSheetUiStage {
     HIDDEN,
@@ -65,6 +69,8 @@ public class QuizFragment extends Fragment {
   private int lastLoggedQuestionIndex = -1;
   private boolean autoCheckPending = false;
   private boolean showNextButtonScheduled = false;
+  private boolean isProgrammaticHideInProgress = false;
+  @Nullable private BottomSheetBehavior.BottomSheetCallback bottomSheetCallback;
 
   public QuizFragment() {
     super(R.layout.fragment_dialogue_quiz);
@@ -88,12 +94,14 @@ public class QuizFragment extends Fragment {
   public void onDestroyView() {
     cancelPendingBottomSheetTasks();
     hideNextQuestionLoadingNotice();
+    detachBottomSheetCallback();
     hideBottomSheet();
     bottomSheetUiStage = BottomSheetUiStage.HIDDEN;
     renderedBottomSheetQuestionIndex = -1;
     lastLoggedQuestionIndex = -1;
     autoCheckPending = false;
     showNextButtonScheduled = false;
+    isProgrammaticHideInProgress = false;
     clearViewRefs();
     super.onDestroyView();
   }
@@ -119,10 +127,13 @@ public class QuizFragment extends Fragment {
 
     if (bottomSheetView != null) {
       bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetView);
+      bottomSheetBehavior.setFitToContents(true);
       bottomSheetBehavior.setHideable(true);
-      bottomSheetBehavior.setSkipCollapsed(true);
-      bottomSheetBehavior.setDraggable(false);
+      bottomSheetBehavior.setSkipCollapsed(false);
+      bottomSheetBehavior.setDraggable(true);
       bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+      attachBottomSheetCallback();
+      setupBottomSheetHeightBounds(root);
     }
   }
 
@@ -488,6 +499,7 @@ public class QuizFragment extends Fragment {
     if (bottomSheetView == null) {
       return;
     }
+    isProgrammaticHideInProgress = false;
     bottomSheetView.setVisibility(View.VISIBLE);
     if (bottomSheetBehavior != null) {
       bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
@@ -496,12 +508,91 @@ public class QuizFragment extends Fragment {
 
   private void hideBottomSheet() {
     if (bottomSheetBehavior != null) {
+      isProgrammaticHideInProgress = true;
       bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
       return;
     }
+    isProgrammaticHideInProgress = false;
     if (bottomSheetView != null) {
       bottomSheetView.setVisibility(View.GONE);
     }
+  }
+
+  private void setupBottomSheetHeightBounds(@NonNull View root) {
+    ViewTreeObserver viewTreeObserver = root.getViewTreeObserver();
+    viewTreeObserver.addOnGlobalLayoutListener(
+        new ViewTreeObserver.OnGlobalLayoutListener() {
+          @Override
+          public void onGlobalLayout() {
+            if (!root.getViewTreeObserver().isAlive()) {
+              return;
+            }
+            root.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+            if (bottomSheetBehavior == null || bottomSheetView == null) {
+              return;
+            }
+
+            int rootHeight = root.getHeight();
+            if (rootHeight <= 0) {
+              return;
+            }
+
+            int maxHeight = (int) (rootHeight * BOTTOM_SHEET_MAX_HEIGHT_RATIO);
+            int minHeight = (int) (rootHeight * BOTTOM_SHEET_MIN_HEIGHT_RATIO);
+            ViewGroup.LayoutParams params = bottomSheetView.getLayoutParams();
+            if (params != null) {
+              params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+              bottomSheetView.setLayoutParams(params);
+            }
+            bottomSheetBehavior.setPeekHeight(minHeight);
+            bottomSheetBehavior.setMaxHeight(maxHeight);
+            logDebug(
+                "quiz bottom sheet bounds updated: maxHeight="
+                    + maxHeight
+                    + ", minHeight="
+                    + minHeight);
+          }
+        });
+  }
+
+  private void attachBottomSheetCallback() {
+    if (bottomSheetBehavior == null || bottomSheetCallback != null) {
+      return;
+    }
+    bottomSheetCallback =
+        new BottomSheetBehavior.BottomSheetCallback() {
+          @Override
+          public void onStateChanged(@NonNull View bottomSheet, int newState) {
+            BottomSheetBehavior<View> behavior = bottomSheetBehavior;
+            if (behavior == null) {
+              return;
+            }
+
+            if (newState == BottomSheetBehavior.STATE_HIDDEN && isProgrammaticHideInProgress) {
+              isProgrammaticHideInProgress = false;
+              return;
+            }
+
+            if (newState == BottomSheetBehavior.STATE_COLLAPSED
+                || newState == BottomSheetBehavior.STATE_HIDDEN) {
+              isProgrammaticHideInProgress = false;
+              behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+            }
+          }
+
+          @Override
+          public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+            // No-op: spring-like restoration is handled in onStateChanged.
+          }
+        };
+    bottomSheetBehavior.addBottomSheetCallback(bottomSheetCallback);
+  }
+
+  private void detachBottomSheetCallback() {
+    if (bottomSheetBehavior != null && bottomSheetCallback != null) {
+      bottomSheetBehavior.removeBottomSheetCallback(bottomSheetCallback);
+    }
+    bottomSheetCallback = null;
   }
 
   private void cancelPendingBottomSheetTasks() {
@@ -583,6 +674,7 @@ public class QuizFragment extends Fragment {
     tvExplanation = null;
     btnPrimary = null;
     tvNextQuestionLoadingNotice = null;
+    bottomSheetCallback = null;
   }
 
   private void logDebug(@NonNull String message) {
