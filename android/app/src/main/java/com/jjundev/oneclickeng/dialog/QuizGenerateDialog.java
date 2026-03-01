@@ -1,4 +1,4 @@
-package com.jjundev.oneclickeng.fragment.history;
+package com.jjundev.oneclickeng.dialog;
 
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -18,9 +18,9 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 import com.jjundev.oneclickeng.R;
 
-public class HistoryQuizConfigDialog extends DialogFragment {
+public class QuizGenerateDialog extends DialogFragment {
 
-  private static final long LOADING_MESSAGE_ROTATION_INTERVAL_MS = 3000L;
+  private static final long LOADING_MESSAGE_ROTATION_INTERVAL_MS = 2500L;
   private static final long LOADING_MESSAGE_FADE_DURATION_MS = 300L;
 
   public static final String REQUEST_KEY = "history_quiz_config_request";
@@ -34,7 +34,6 @@ public class HistoryQuizConfigDialog extends DialogFragment {
 
   @Nullable private View loadingContainer;
   @Nullable private View configContainer;
-  @Nullable private Button btnCancel;
   @Nullable private Button btnStart;
   @Nullable private TextView tvLoadingMessage;
   @Nullable private Runnable loadingMessageRunnable;
@@ -52,7 +51,7 @@ public class HistoryQuizConfigDialog extends DialogFragment {
       getDialog().getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
       getDialog().getWindow().requestFeature(Window.FEATURE_NO_TITLE);
     }
-    return inflater.inflate(R.layout.dialog_history_quiz_config, container, false);
+    return inflater.inflate(R.layout.dialog_quiz_generate, container, false);
   }
 
   @Override
@@ -61,7 +60,6 @@ public class HistoryQuizConfigDialog extends DialogFragment {
 
     configContainer = view.findViewById(R.id.layout_quiz_config_content);
     loadingContainer = view.findViewById(R.id.layout_quiz_loading);
-    btnCancel = (Button) view.findViewById(R.id.btn_quiz_cancel);
     btnStart = (Button) view.findViewById(R.id.btn_quiz_start);
     RadioGroup rgPeriod = view.findViewById(R.id.rg_quiz_period);
     SeekBar sbQuestionCount = view.findViewById(R.id.sb_question_count);
@@ -84,10 +82,6 @@ public class HistoryQuizConfigDialog extends DialogFragment {
           @Override
           public void onStopTrackingTouch(SeekBar seekBar) {}
         });
-
-    if (btnCancel != null) {
-      btnCancel.setOnClickListener(v -> dismiss());
-    }
 
     if (btnStart != null) {
       btnStart.setOnClickListener(
@@ -136,7 +130,6 @@ public class HistoryQuizConfigDialog extends DialogFragment {
     stopLoadingMessageRotation(false);
     configContainer = null;
     loadingContainer = null;
-    btnCancel = null;
     btnStart = null;
     tvLoadingMessage = null;
     loadingMessages = new String[0];
@@ -155,10 +148,6 @@ public class HistoryQuizConfigDialog extends DialogFragment {
     }
     if (loadingContainer == null && root != null) {
       loadingContainer = root.findViewById(R.id.layout_quiz_loading);
-    }
-    if (btnCancel == null && root != null) {
-      View view = root.findViewById(R.id.btn_quiz_cancel);
-      btnCancel = view instanceof Button ? (Button) view : null;
     }
     if (btnStart == null && root != null) {
       View view = root.findViewById(R.id.btn_quiz_start);
@@ -198,9 +187,6 @@ public class HistoryQuizConfigDialog extends DialogFragment {
   }
 
   private void setButtonsEnabled(boolean enabled) {
-    if (btnCancel != null) {
-      btnCancel.setEnabled(enabled);
-    }
     if (btnStart != null) {
       btnStart.setEnabled(enabled);
     }

@@ -11,15 +11,30 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.AppCompatButton;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavController;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.gms.ads.AdError;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.FullScreenContentCallback;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.rewarded.RewardedAd;
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.android.material.tabs.TabLayout;
 import com.google.gson.Gson;
 import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.activity.QuizActivity;
+import com.jjundev.oneclickeng.dialog.QuizGenerateDialog;
 import com.jjundev.oneclickeng.learning.dialoguelearning.di.LearningDependencyProvider;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IQuizGenerationManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.QuizData;
@@ -35,17 +50,23 @@ import java.util.Set;
 public class LearningHistoryFragment extends Fragment {
 
   private static final String TAG = "LearningHistoryFrag";
-  private static final String TAG_HISTORY_QUIZ_CONFIG_DIALOG = "HistoryQuizConfigDialog";
+  private static final String TAG_HISTORY_QUIZ_CONFIG_DIALOG = "QuizGenerateDialog";
 
   private LearningHistoryViewModel viewModel;
   private LearningHistoryAdapter adapter;
   private TabLayout tabLayout;
   private RecyclerView recyclerView;
   private View emptyStateLayout;
-  @Nullable private HistoryQuizConfigDialog pendingConfigDialog;
+  @Nullable private QuizGenerateDialog pendingConfigDialog;
   @Nullable private String pendingQuizSessionId;
   @Nullable private QuizStreamingSessionStore.Listener pendingQuizSessionListener;
+  @Nullable private RewardedAd rewardedAd;
+  @Nullable private android.app.Dialog chargeCreditDialog;
+  private boolean isRewardEarned = false;
+  private boolean isWaitingForAd = false;
+  private int adRetryAttempt = 0;
   @NonNull private final Handler uiHandler = new Handler(Looper.getMainLooper());
+  @NonNull private final Handler adRetryHandler = new Handler(Looper.getMainLooper());
   private long quizPreparationRequestId = 0L;
 
   @Nullable
@@ -64,11 +85,21 @@ public class LearningHistoryFragment extends Fragment {
     initViewModel();
     initViews(view);
     observeViewModel();
+    loadRewardedAd();
   }
 
   @Override
   public void onDestroyView() {
     clearPendingQuizSession(true);
+    adRetryHandler.removeCallbacksAndMessages(null);
+    if (chargeCreditDialog != null && chargeCreditDialog.isShowing()) {
+      chargeCreditDialog.dismiss();
+    }
+    chargeCreditDialog = null;
+    rewardedAd = null;
+    isRewardEarned = false;
+    isWaitingForAd = false;
+    adRetryAttempt = 0;
     pendingConfigDialog = null;
     quizPreparationRequestId = 0L;
     super.onDestroyView();
@@ -121,7 +152,7 @@ public class LearningHistoryFragment extends Fragment {
     if (btnQuiz != null) {
       btnQuiz.setOnClickListener(
           v -> {
-            HistoryQuizConfigDialog dialog = new HistoryQuizConfigDialog();
+            QuizGenerateDialog dialog = new QuizGenerateDialog();
             pendingConfigDialog = dialog;
             dialog.show(getChildFragmentManager(), TAG_HISTORY_QUIZ_CONFIG_DIALOG);
           });
@@ -129,15 +160,15 @@ public class LearningHistoryFragment extends Fragment {
 
     getChildFragmentManager()
         .setFragmentResultListener(
-            HistoryQuizConfigDialog.REQUEST_KEY,
+            QuizGenerateDialog.REQUEST_KEY,
             getViewLifecycleOwner(),
             (requestKey, result) -> {
               clearPendingQuizSession(true);
               long requestId = ++quizPreparationRequestId;
-              int periodBucket = result.getInt(HistoryQuizConfigDialog.BUNDLE_KEY_PERIOD_BUCKET);
-              int questionCount = result.getInt(HistoryQuizConfigDialog.BUNDLE_KEY_QUESTION_COUNT);
+              int periodBucket = result.getInt(QuizGenerateDialog.BUNDLE_KEY_PERIOD_BUCKET);
+              int questionCount = result.getInt(QuizGenerateDialog.BUNDLE_KEY_QUESTION_COUNT);
               int currentTab = tabLayout != null ? tabLayout.getSelectedTabPosition() : 0;
-              HistoryQuizConfigDialog dialog = resolveConfigDialog();
+              QuizGenerateDialog dialog = resolveConfigDialog();
 
               if (dialog == null) {
                 return;
@@ -148,94 +179,7 @@ public class LearningHistoryFragment extends Fragment {
                 dialog.setLoadingState(false);
                 return;
               }
-
-              SummaryData seed = viewModel.generateQuizSeed(periodBucket, currentTab);
-              if (seed == null) {
-                finishQuizPreparation(dialog, requestId);
-                showToast(R.string.history_quiz_err_no_items);
-                return;
-              }
-
-              AppSettings settings = new AppSettingsStore(requireContext()).getSettings();
-              IQuizGenerationManager quizManager =
-                  LearningDependencyProvider.provideQuizGenerationManager(
-                      requireContext(),
-                      settings.resolveEffectiveApiKey(BuildConfig.GEMINI_API_KEY),
-                      settings.getLlmModelSummary());
-              QuizStreamingSessionStore sessionStore =
-                  LearningDependencyProvider.provideQuizStreamingSessionStore();
-
-              final boolean[] completed = {false};
-              final SummaryData finalSeed = seed;
-              String sessionId = sessionStore.startSession(quizManager, finalSeed, questionCount);
-
-              QuizStreamingSessionStore.Listener listener =
-                  new QuizStreamingSessionStore.Listener() {
-                    @Override
-                    public void onQuestion(@NonNull QuizData.QuizQuestion question) {
-                      runOnMainThread(
-                          () -> {
-                            if (requestId != quizPreparationRequestId || completed[0]) {
-                              return;
-                            }
-                            if (!isValidQuestionReadyForStart(question)) {
-                              return;
-                            }
-                            completed[0] = true;
-                            startPreparedQuiz(dialog, requestId, finalSeed, questionCount, sessionId);
-                          });
-                    }
-
-                    @Override
-                    public void onComplete(@Nullable String warningMessage) {
-                      runOnMainThread(
-                          () -> {
-                            if (requestId != quizPreparationRequestId || completed[0]) {
-                              return;
-                            }
-                            completed[0] = true;
-                            showPreparationError(dialog, requestId, warningMessage);
-                          });
-                    }
-
-                    @Override
-                    public void onFailure(@NonNull String error) {
-                      runOnMainThread(
-                          () -> {
-                            if (requestId != quizPreparationRequestId || completed[0]) {
-                              return;
-                            }
-                            completed[0] = true;
-                            showPreparationError(dialog, requestId, error);
-                          });
-                    }
-                  };
-              pendingQuizSessionId = sessionId;
-              pendingQuizSessionListener = listener;
-
-              QuizStreamingSessionStore.Snapshot snapshot =
-                  sessionStore.attach(sessionId, listener);
-              if (snapshot == null) {
-                completed[0] = true;
-                showPreparationError(dialog, requestId, null);
-                return;
-              }
-              if (hasStartableQuestion(snapshot.getBufferedQuestions())) {
-                completed[0] = true;
-                startPreparedQuiz(dialog, requestId, finalSeed, questionCount, sessionId);
-                return;
-              }
-
-              String snapshotFailure = trimToNull(snapshot.getFailureMessage());
-              if (snapshotFailure != null) {
-                completed[0] = true;
-                showPreparationError(dialog, requestId, snapshotFailure);
-                return;
-              }
-              if (snapshot.isCompleted()) {
-                completed[0] = true;
-                showPreparationError(dialog, requestId, snapshot.getWarningMessage());
-              }
+              verifyCreditAndPrepareQuiz(dialog, requestId, periodBucket, questionCount, currentTab);
             });
   }
 
@@ -301,8 +245,152 @@ public class LearningHistoryFragment extends Fragment {
     }
   }
 
+  private void verifyCreditAndPrepareQuiz(
+      @NonNull QuizGenerateDialog dialog,
+      long requestId,
+      int periodBucket,
+      int questionCount,
+      int currentTab) {
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+    if (user == null) {
+      finishQuizPreparation(dialog, requestId);
+      showToast("로그인이 필요합니다.");
+      return;
+    }
+
+    FirebaseFirestore.getInstance()
+        .collection("users")
+        .document(user.getUid())
+        .get()
+        .addOnCompleteListener(
+            task -> {
+              if (!isAdded() || requestId != quizPreparationRequestId) {
+                return;
+              }
+
+              if (!task.isSuccessful() || task.getResult() == null) {
+                finishQuizPreparation(dialog, requestId);
+                showToast("크레딧 정보를 불러오지 못했어요.");
+                return;
+              }
+
+              DocumentSnapshot doc = task.getResult();
+              Long creditObj = doc.getLong("credit");
+              long credit = creditObj != null ? creditObj : 0L;
+              if (credit <= 0L) {
+                finishQuizPreparation(dialog, requestId);
+                if (dialog.isAdded()) {
+                  dialog.dismiss();
+                }
+                showToast("크레딧이 부족해요");
+                showChargeCreditDialog();
+                return;
+              }
+
+              prepareQuizGeneration(dialog, requestId, periodBucket, questionCount, currentTab);
+            });
+  }
+
+  private void prepareQuizGeneration(
+      @NonNull QuizGenerateDialog dialog,
+      long requestId,
+      int periodBucket,
+      int questionCount,
+      int currentTab) {
+    if (requestId != quizPreparationRequestId) {
+      return;
+    }
+
+    SummaryData seed = viewModel.generateQuizSeed(periodBucket, currentTab);
+    if (seed == null) {
+      finishQuizPreparation(dialog, requestId);
+      showToast(R.string.history_quiz_err_no_items);
+      return;
+    }
+
+    AppSettings settings = new AppSettingsStore(requireContext()).getSettings();
+    IQuizGenerationManager quizManager =
+        LearningDependencyProvider.provideQuizGenerationManager(
+            requireContext(),
+            settings.resolveEffectiveApiKey(BuildConfig.GEMINI_API_KEY),
+            settings.getLlmModelSummary());
+    QuizStreamingSessionStore sessionStore =
+        LearningDependencyProvider.provideQuizStreamingSessionStore();
+
+    final boolean[] completed = {false};
+    final SummaryData finalSeed = seed;
+    String sessionId = sessionStore.startSession(quizManager, finalSeed, questionCount);
+
+    QuizStreamingSessionStore.Listener listener =
+        new QuizStreamingSessionStore.Listener() {
+          @Override
+          public void onQuestion(@NonNull QuizData.QuizQuestion question) {
+            runOnMainThread(
+                () -> {
+                  if (requestId != quizPreparationRequestId || completed[0]) {
+                    return;
+                  }
+                  if (!isValidQuestionReadyForStart(question)) {
+                    return;
+                  }
+                  completed[0] = true;
+                  startPreparedQuiz(dialog, requestId, finalSeed, questionCount, sessionId);
+                });
+          }
+
+          @Override
+          public void onComplete(@Nullable String warningMessage) {
+            runOnMainThread(
+                () -> {
+                  if (requestId != quizPreparationRequestId || completed[0]) {
+                    return;
+                  }
+                  completed[0] = true;
+                  showPreparationError(dialog, requestId, warningMessage);
+                });
+          }
+
+          @Override
+          public void onFailure(@NonNull String error) {
+            runOnMainThread(
+                () -> {
+                  if (requestId != quizPreparationRequestId || completed[0]) {
+                    return;
+                  }
+                  completed[0] = true;
+                  showPreparationError(dialog, requestId, error);
+                });
+          }
+        };
+    pendingQuizSessionId = sessionId;
+    pendingQuizSessionListener = listener;
+
+    QuizStreamingSessionStore.Snapshot snapshot = sessionStore.attach(sessionId, listener);
+    if (snapshot == null) {
+      completed[0] = true;
+      showPreparationError(dialog, requestId, null);
+      return;
+    }
+    if (hasStartableQuestion(snapshot.getBufferedQuestions())) {
+      completed[0] = true;
+      startPreparedQuiz(dialog, requestId, finalSeed, questionCount, sessionId);
+      return;
+    }
+
+    String snapshotFailure = trimToNull(snapshot.getFailureMessage());
+    if (snapshotFailure != null) {
+      completed[0] = true;
+      showPreparationError(dialog, requestId, snapshotFailure);
+      return;
+    }
+    if (snapshot.isCompleted()) {
+      completed[0] = true;
+      showPreparationError(dialog, requestId, snapshot.getWarningMessage());
+    }
+  }
+
   private void startPreparedQuiz(
-      @NonNull HistoryQuizConfigDialog dialog,
+      @NonNull QuizGenerateDialog dialog,
       long requestId,
       @NonNull SummaryData seed,
       int questionCount,
@@ -316,7 +404,7 @@ public class LearningHistoryFragment extends Fragment {
   }
 
   private void showPreparationError(
-      @NonNull HistoryQuizConfigDialog dialog, long requestId, @Nullable String detailMessage) {
+          @NonNull QuizGenerateDialog dialog, long requestId, @Nullable String detailMessage) {
     clearPendingQuizSession(true);
     finishQuizPreparation(dialog, requestId);
     if (!isAdded()) {
@@ -334,7 +422,7 @@ public class LearningHistoryFragment extends Fragment {
         .show();
   }
 
-  private void finishQuizPreparation(@NonNull HistoryQuizConfigDialog dialog, long requestId) {
+  private void finishQuizPreparation(@NonNull QuizGenerateDialog dialog, long requestId) {
     dialog.setLoadingState(false);
     if (requestId == quizPreparationRequestId) {
       quizPreparationRequestId = 0L;
@@ -390,11 +478,25 @@ public class LearningHistoryFragment extends Fragment {
       if (getActivity() != null) {
         getActivity().overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
       }
+      decrementCreditOnQuizStart();
     } catch (Exception e) {
       LearningDependencyProvider.provideQuizStreamingSessionStore().release(sessionId);
       logDebug("Activity start failed: " + e.getMessage());
       showToast("퀴즈 이동 중 오류가 발생했어요.");
     }
+  }
+
+  private void decrementCreditOnQuizStart() {
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+    if (user == null) {
+      return;
+    }
+
+    FirebaseFirestore.getInstance()
+        .collection("users")
+        .document(user.getUid())
+        .update("credit", FieldValue.increment(-1))
+        .addOnFailureListener(e -> logDebug("Failed to decrement credit: " + e.getMessage()));
   }
 
   private boolean isValidQuestionReadyForStart(@Nullable QuizData.QuizQuestion question) {
@@ -449,6 +551,190 @@ public class LearningHistoryFragment extends Fragment {
     return result.size() >= 2 ? result : null;
   }
 
+  private void showChargeCreditDialog() {
+    if (!isAdded()) {
+      return;
+    }
+
+    View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_charge_credit, null);
+    View layoutContent = dialogView.findViewById(R.id.layout_content);
+    View layoutLoading = dialogView.findViewById(R.id.layout_loading);
+    AppCompatButton btnGoToCreditStore = dialogView.findViewById(R.id.btn_go_to_credit_store);
+    AppCompatButton btnCancel = dialogView.findViewById(R.id.btn_charge_cancel);
+    AppCompatButton btnAd = dialogView.findViewById(R.id.btn_charge_ad);
+
+    chargeCreditDialog = new android.app.Dialog(requireContext());
+    chargeCreditDialog.setContentView(dialogView);
+    if (chargeCreditDialog.getWindow() != null) {
+      chargeCreditDialog
+          .getWindow()
+          .setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0));
+      android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+      int width = (int) (metrics.widthPixels * 0.9f);
+      chargeCreditDialog.getWindow().setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT);
+    }
+
+    chargeCreditDialog.setOnDismissListener(
+        d -> {
+          isWaitingForAd = false;
+          chargeCreditDialog = null;
+        });
+
+    btnCancel.setOnClickListener(v -> chargeCreditDialog.dismiss());
+    btnGoToCreditStore.setOnClickListener(
+        v -> {
+          if (!isAdded()) {
+            return;
+          }
+
+          NavController navController = NavHostFragment.findNavController(this);
+          if (navController.getCurrentDestination() != null
+              && navController.getCurrentDestination().getId() == R.id.creditStoreFragment) {
+            return;
+          }
+
+          chargeCreditDialog.dismiss();
+          navController.navigate(R.id.action_learningHistoryFragment_to_creditStoreFragment);
+        });
+
+    btnAd.setOnClickListener(
+        v -> {
+          if (rewardedAd != null && isAdded()) {
+            chargeCreditDialog.dismiss();
+            isRewardEarned = false;
+            rewardedAd.show(
+                requireActivity(),
+                rewardItem -> {
+                  isRewardEarned = true;
+                  increaseCredit();
+                });
+          } else {
+            isWaitingForAd = true;
+            layoutContent.setVisibility(View.GONE);
+            layoutLoading.setVisibility(View.VISIBLE);
+            chargeCreditDialog.setCancelable(false);
+
+            if (adRetryAttempt == 0) {
+              loadRewardedAd();
+            }
+          }
+        });
+
+    chargeCreditDialog.show();
+  }
+
+  private void loadRewardedAd() {
+    if (!isAdded()) {
+      return;
+    }
+
+    AdRequest adRequest = new AdRequest.Builder().build();
+    String adUnitId =
+        BuildConfig.DEBUG
+            ? "ca-app-pub-3940256099942544/5224354917"
+            : BuildConfig.ADMOB_REWARDED_AD_UNIT_ID;
+    logDebug("Loading rewarded ad with Unit ID: " + adUnitId);
+    RewardedAd.load(
+        requireContext(),
+        adUnitId,
+        adRequest,
+        new RewardedAdLoadCallback() {
+          @Override
+          public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+            logDebug("Failed to load rewarded ad: " + loadAdError.getMessage());
+            rewardedAd = null;
+            adRetryAttempt++;
+            long retryDelayMillis = (long) Math.pow(2, Math.min(6, adRetryAttempt)) * 1000L;
+            if (adRetryAttempt <= 5) {
+              if (isWaitingForAd) {
+                logDebug("Retrying ad load in " + retryDelayMillis + "ms (Attempt " + adRetryAttempt + ")");
+              }
+              adRetryHandler.postDelayed(() -> loadRewardedAd(), retryDelayMillis);
+            } else {
+              if (isWaitingForAd) {
+                isWaitingForAd = false;
+                if (chargeCreditDialog != null && chargeCreditDialog.isShowing()) {
+                  chargeCreditDialog.dismiss();
+                }
+                if (isAdded()) {
+                  Toast.makeText(getContext(), "광고를 불러오는 데 실패했어요. 나중에 다시 시도해주세요.", Toast.LENGTH_SHORT)
+                      .show();
+                }
+              }
+            }
+          }
+
+          @Override
+          public void onAdLoaded(@NonNull RewardedAd ad) {
+            logDebug("Rewarded ad loaded.");
+            rewardedAd = ad;
+            adRetryAttempt = 0;
+            setFullScreenContentCallback();
+
+            if (isWaitingForAd && isAdded()) {
+              isWaitingForAd = false;
+              if (chargeCreditDialog != null && chargeCreditDialog.isShowing()) {
+                chargeCreditDialog.dismiss();
+              }
+              isRewardEarned = false;
+              rewardedAd.show(
+                  requireActivity(),
+                  rewardItem -> {
+                    isRewardEarned = true;
+                    increaseCredit();
+                  });
+            }
+          }
+        });
+  }
+
+  private void setFullScreenContentCallback() {
+    if (rewardedAd == null) {
+      return;
+    }
+    rewardedAd.setFullScreenContentCallback(
+        new FullScreenContentCallback() {
+          @Override
+          public void onAdShowedFullScreenContent() {
+            rewardedAd = null;
+          }
+
+          @Override
+          public void onAdFailedToShowFullScreenContent(@NonNull AdError adError) {
+            logDebug("Ad failed to show: " + adError.getMessage());
+          }
+
+          @Override
+          public void onAdDismissedFullScreenContent() {
+            logDebug("Ad dismissed");
+            if (!isRewardEarned && isAdded()) {
+              Toast.makeText(getContext(), "광고 시청을 완료하지 않아 크레딧이 지급되지 않았어요", Toast.LENGTH_SHORT)
+                  .show();
+            }
+            loadRewardedAd();
+          }
+        });
+  }
+
+  private void increaseCredit() {
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+    if (user == null) {
+      showToast("로그인 정보를 확인할 수 없어요");
+      return;
+    }
+
+    FirebaseFirestore.getInstance()
+        .collection("users")
+        .document(user.getUid())
+        .update("credit", FieldValue.increment(1))
+        .addOnSuccessListener(aVoid -> showToast("1 크레딧이 충전되었어요"))
+        .addOnFailureListener(
+            e -> {
+              logDebug("Failed to add credit: " + e.getMessage());
+              showToast("크레딧 충전에 실패했어요");
+            });
+  }
+
   private void showToast(int messageResId) {
     if (isAdded()) {
       Toast.makeText(requireContext(), messageResId, Toast.LENGTH_SHORT).show();
@@ -475,11 +761,11 @@ public class LearningHistoryFragment extends Fragment {
     return value == null ? "" : value.trim().toLowerCase();
   }
 
-  private HistoryQuizConfigDialog resolveConfigDialog() {
+  private QuizGenerateDialog resolveConfigDialog() {
     androidx.fragment.app.Fragment dialogFragment =
         getChildFragmentManager().findFragmentByTag(TAG_HISTORY_QUIZ_CONFIG_DIALOG);
-    if (dialogFragment instanceof HistoryQuizConfigDialog) {
-      return (HistoryQuizConfigDialog) dialogFragment;
+    if (dialogFragment instanceof QuizGenerateDialog) {
+      return (QuizGenerateDialog) dialogFragment;
     }
     return pendingConfigDialog;
   }

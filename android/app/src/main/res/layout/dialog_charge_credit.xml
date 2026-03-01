@@ -35,7 +35,7 @@
                 android:layout_marginBottom="24dp"
                 style="@style/DialogButtonPrimary"
                 android:layout_width="match_parent"
-                android:text="빠르게 크레딧 충전하기" />
+                android:text="1초 만에 스토어로 이동하기" />
 
             <LinearLayout
                 android:layout_width="match_parent"

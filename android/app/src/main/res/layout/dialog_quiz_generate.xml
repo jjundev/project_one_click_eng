@@ -149,30 +149,12 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <LinearLayout
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btn_quiz_start"
+                style="@style/DialogButtonPrimary"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/dialog_action_top_margin"
-                android:orientation="horizontal">
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btn_quiz_cancel"
-                    style="@style/DialogButtonSecondary"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:text="@string/history_quiz_config_cancel" />
-
-                <Space
-                    android:layout_width="@dimen/dialog_action_gap"
-                    android:layout_height="0dp" />
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btn_quiz_start"
-                    style="@style/DialogButtonPrimary"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:text="@string/history_quiz_config_confirm" />
-            </LinearLayout>
+                android:text="@string/history_quiz_config_confirm" />
         </LinearLayout>
     </ScrollView>
 

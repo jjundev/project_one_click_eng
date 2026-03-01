@@ -3,6 +3,8 @@ package com.jjundev.oneclickeng.fragment.history;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
+
+import com.jjundev.oneclickeng.dialog.QuizGenerateDialog;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.SummaryData;
 import java.util.ArrayList;
 import java.util.List;
@@ -122,15 +124,15 @@ public class LearningHistoryViewModel extends ViewModel {
     long startTime = 0;
     long endTime = now;
 
-    if (periodBucket == HistoryQuizConfigDialog.PERIOD_1W) {
+    if (periodBucket == QuizGenerateDialog.PERIOD_1W) {
       startTime = now - oneWeek;
-    } else if (periodBucket == HistoryQuizConfigDialog.PERIOD_2W) {
+    } else if (periodBucket == QuizGenerateDialog.PERIOD_2W) {
       startTime = now - 2 * oneWeek;
       endTime = now - oneWeek;
-    } else if (periodBucket == HistoryQuizConfigDialog.PERIOD_3W) {
+    } else if (periodBucket == QuizGenerateDialog.PERIOD_3W) {
       startTime = now - 3 * oneWeek;
       endTime = now - 2 * oneWeek;
-    } else if (periodBucket == HistoryQuizConfigDialog.PERIOD_OLDER) {
+    } else if (periodBucket == QuizGenerateDialog.PERIOD_OLDER) {
       endTime = now - 3 * oneWeek;
     }
 
