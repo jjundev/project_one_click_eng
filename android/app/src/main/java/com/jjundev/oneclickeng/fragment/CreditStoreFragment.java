@@ -41,29 +41,36 @@ public class CreditStoreFragment extends Fragment {
   private static final String PRODUCT_CREDIT_10 = "credit_10";
   private static final String PRODUCT_CREDIT_20 = "credit_20";
   private static final String PRODUCT_CREDIT_50 = "credit_50";
-  private static final List<String> CREDIT_PRODUCT_IDS =
-      Arrays.asList(PRODUCT_CREDIT_10, PRODUCT_CREDIT_20, PRODUCT_CREDIT_50);
+  private static final List<String> CREDIT_PRODUCT_IDS = Arrays.asList(PRODUCT_CREDIT_10, PRODUCT_CREDIT_20,
+      PRODUCT_CREDIT_50);
 
   private static final String PRICE_LOADING = "가격 확인 중...";
   private static final String PRICE_UNAVAILABLE = "구매 준비 중";
-  private static final String MESSAGE_PRECHECK_CONFIG =
-      "결제 설정에 문제가 있어요. 잠시 후 다시 시도해주세요.";
+  private static final String MESSAGE_PRECHECK_CONFIG = "결제 설정에 문제가 있어요. 잠시 후 다시 시도해주세요.";
   private static final String MESSAGE_PRECHECK_AUTH = "로그인 후 결제를 진행해주세요.";
   private static final String MESSAGE_PRECHECK_BILLING = "결제 서비스를 준비 중이에요";
   private static final String MESSAGE_PRECHECK_PRODUCT = "상품 정보를 불러오는 중이에요.";
-  private static final String MESSAGE_VERIFICATION_RETRYABLE =
-      "결제 확인이 지연되고 있어요. 잠시 후 자동으로 다시 시도할게요.";
+  private static final String MESSAGE_VERIFICATION_RETRYABLE = "결제 확인이 지연되고 있어요. 잠시 후 자동으로 다시 시도할게요.";
 
-  @Nullable private RecyclerView rvProducts;
-  @Nullable private CreditStoreAdapter adapter;
-  @Nullable private PlayBillingManager billingManager;
-  @Nullable private CreditPurchaseStore purchaseStore;
-  @Nullable private CreditPurchaseVerifier purchaseVerifier;
+  @Nullable
+  private RecyclerView rvProducts;
+  @Nullable
+  private CreditStoreAdapter adapter;
+  @Nullable
+  private PlayBillingManager billingManager;
+  @Nullable
+  private CreditPurchaseStore purchaseStore;
+  @Nullable
+  private CreditPurchaseVerifier purchaseVerifier;
 
-  @NonNull private final List<CreditProduct> products = new ArrayList<>();
-  @NonNull private final Set<String> verificationInFlightTokens = new HashSet<>();
-  @NonNull private final Set<String> consumptionInFlightTokens = new HashSet<>();
-  @NonNull private final Set<String> retryableFailureNotifiedTokens = new HashSet<>();
+  @NonNull
+  private final List<CreditProduct> products = new ArrayList<>();
+  @NonNull
+  private final Set<String> verificationInFlightTokens = new HashSet<>();
+  @NonNull
+  private final Set<String> consumptionInFlightTokens = new HashSet<>();
+  @NonNull
+  private final Set<String> retryableFailureNotifiedTokens = new HashSet<>();
 
   private boolean billingReady;
   private boolean billingUnavailableNotified;
@@ -220,8 +227,7 @@ public class CreditStoreFragment extends Fragment {
     if (productDetails == null) {
       return fallbackPrice;
     }
-    ProductDetails.OneTimePurchaseOfferDetails oneTimeOffer =
-        productDetails.getOneTimePurchaseOfferDetails();
+    ProductDetails.OneTimePurchaseOfferDetails oneTimeOffer = productDetails.getOneTimePurchaseOfferDetails();
     if (oneTimeOffer == null) {
       return fallbackPrice;
     }
@@ -282,13 +288,11 @@ public class CreditStoreFragment extends Fragment {
   private void updateProductCardStates(boolean signedIn) {
     boolean billingAvailable = billingReady && billingManager != null;
     for (CreditProduct product : products) {
-      product.canAttemptPurchase =
-          getPreflightBlockMessage(
-                  BuildConfig.CREDIT_BILLING_VERIFY_URL,
-                  signedIn,
-                  billingAvailable,
-                  product.productDetails != null)
-              == null;
+      product.canAttemptPurchase = getPreflightBlockMessage(
+          BuildConfig.CREDIT_BILLING_VERIFY_URL,
+          signedIn,
+          billingAvailable,
+          product.productDetails != null) == null;
     }
   }
 
@@ -302,12 +306,11 @@ public class CreditStoreFragment extends Fragment {
       return;
     }
 
-    String preflightBlockMessage =
-        getPreflightBlockMessage(
-            BuildConfig.CREDIT_BILLING_VERIFY_URL,
-            isUserSignedIn(),
-            billingReady && billingManager != null,
-            product.productDetails != null);
+    String preflightBlockMessage = getPreflightBlockMessage(
+        BuildConfig.CREDIT_BILLING_VERIFY_URL,
+        isUserSignedIn(),
+        billingReady && billingManager != null,
+        product.productDetails != null);
     if (preflightBlockMessage != null) {
       showPreflightBlockToast(preflightBlockMessage);
       return;
@@ -417,7 +420,6 @@ public class CreditStoreFragment extends Fragment {
 
     if (state == Purchase.PurchaseState.PURCHASED) {
       enqueuePendingPurchase(purchase);
-      consumePurchaseImmediately(purchase.getPurchaseToken());
       if (fromUserFlow) {
         showToastSafe("구매를 확인하고 있어요...");
       }
@@ -444,15 +446,14 @@ public class CreditStoreFragment extends Fragment {
       if (safeProductId.isEmpty()) {
         continue;
       }
-      CreditPurchaseStore.PendingPurchase pendingPurchase =
-          new CreditPurchaseStore.PendingPurchase(
-              packageName,
-              safeProductId,
-              purchase.getPurchaseToken(),
-              purchase.getOrderId(),
-              purchase.getPurchaseTime(),
-              purchase.getQuantity(),
-              purchase.getPurchaseState());
+      CreditPurchaseStore.PendingPurchase pendingPurchase = new CreditPurchaseStore.PendingPurchase(
+          packageName,
+          safeProductId,
+          purchase.getPurchaseToken(),
+          purchase.getOrderId(),
+          purchase.getPurchaseTime(),
+          purchase.getQuantity(),
+          purchase.getPurchaseState());
       store.upsertPendingPurchase(pendingPurchase);
     }
   }
@@ -461,27 +462,38 @@ public class CreditStoreFragment extends Fragment {
     CreditPurchaseStore store = purchaseStore;
     CreditPurchaseVerifier verifier = purchaseVerifier;
     if (store == null || verifier == null) {
+      logDebug("processPendingPurchases: store or verifier is null, skipping.");
       return;
     }
     List<CreditPurchaseStore.PendingPurchase> pendingPurchases = store.getPendingPurchases();
+    logDebug("processPendingPurchases: pendingCount=" + pendingPurchases.size());
     if (pendingPurchases.isEmpty()) {
       return;
     }
 
     if (!isVerifyUrlConfigured) {
+      logDebug("processPendingPurchases: verifyUrl not configured, blocking.");
       showPreflightBlockToast(MESSAGE_PRECHECK_CONFIG);
       return;
     }
     if (!isUserSignedIn()) {
+      logDebug("processPendingPurchases: user not signed in, blocking.");
       showPreflightBlockToast(MESSAGE_PRECHECK_AUTH);
       return;
     }
     for (CreditPurchaseStore.PendingPurchase pendingPurchase : pendingPurchases) {
       String token = pendingPurchase.getPurchaseToken();
-      if (token.isEmpty() || verificationInFlightTokens.contains(token)) {
+      if (token.isEmpty()) {
+        logDebug("processPendingPurchases: skipping empty token.");
+        continue;
+      }
+      if (verificationInFlightTokens.contains(token)) {
+        logDebug("processPendingPurchases: skipping in-flight token=" + maskToken(token));
         continue;
       }
       verificationInFlightTokens.add(token);
+      logDebug("processPendingPurchases: dispatching verification for token=" + maskToken(token)
+          + ", productId=" + pendingPurchase.getProductId());
       verifier.verifyPurchase(
           pendingPurchase, result -> handleVerificationResult(pendingPurchase, result));
     }
@@ -503,6 +515,7 @@ public class CreditStoreFragment extends Fragment {
     switch (verificationResult.status) {
       case GRANTED:
       case ALREADY_GRANTED:
+        consumePurchaseImmediately(token);
         showToastSafe("크레딧이 충전되었어요.");
         return;
       case PENDING:
@@ -603,6 +616,7 @@ public class CreditStoreFragment extends Fragment {
                   + responseCode
                   + ", message="
                   + billingResult.getDebugMessage());
+          showToastSafe("크레딧은 충전되었지만 구매 정리가 지연되고 있어요. 잠시 후 자동으로 재시도할게요.");
         });
   }
 
@@ -631,12 +645,11 @@ public class CreditStoreFragment extends Fragment {
     }
 
     int startDestinationId = navController.getGraph().getStartDestinationId();
-    NavOptions navOptions =
-        new NavOptions.Builder()
-            .setLaunchSingleTop(true)
-            .setRestoreState(true)
-            .setPopUpTo(startDestinationId, false, true)
-            .build();
+    NavOptions navOptions = new NavOptions.Builder()
+        .setLaunchSingleTop(true)
+        .setRestoreState(true)
+        .setPopUpTo(startDestinationId, false, true)
+        .build();
 
     try {
       navController.navigate(R.id.studyModeSelectFragment, null, navOptions);
@@ -665,8 +678,10 @@ public class CreditStoreFragment extends Fragment {
   private static class CreditStoreAdapter
       extends RecyclerView.Adapter<CreditStoreAdapter.CreditStoreViewHolder> {
 
-    @NonNull private final OnProductClickListener clickListener;
-    @NonNull private final List<CreditProduct> items;
+    @NonNull
+    private final OnProductClickListener clickListener;
+    @NonNull
+    private final List<CreditProduct> items;
 
     CreditStoreAdapter(
         @NonNull List<CreditProduct> items, @NonNull OnProductClickListener clickListener) {
@@ -677,9 +692,8 @@ public class CreditStoreFragment extends Fragment {
     @NonNull
     @Override
     public CreditStoreViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-      View view =
-          LayoutInflater.from(parent.getContext())
-              .inflate(R.layout.item_credit_store_product, parent, false);
+      View view = LayoutInflater.from(parent.getContext())
+          .inflate(R.layout.item_credit_store_product, parent, false);
       return new CreditStoreViewHolder(view);
     }
 
@@ -699,10 +713,14 @@ public class CreditStoreFragment extends Fragment {
     }
 
     static class CreditStoreViewHolder extends RecyclerView.ViewHolder {
-      @NonNull private final View card;
-      @NonNull private final TextView tvProductName;
-      @NonNull private final TextView tvProductId;
-      @NonNull private final TextView tvPrice;
+      @NonNull
+      private final View card;
+      @NonNull
+      private final TextView tvProductName;
+      @NonNull
+      private final TextView tvProductId;
+      @NonNull
+      private final TextView tvPrice;
 
       CreditStoreViewHolder(@NonNull View itemView) {
         super(itemView);
@@ -719,11 +737,16 @@ public class CreditStoreFragment extends Fragment {
   }
 
   private static class CreditProduct {
-    @NonNull private final String productName;
-    @NonNull private final String productId;
-    @NonNull private final String fallbackPriceText;
-    @Nullable private ProductDetails productDetails;
-    @NonNull private String priceText;
+    @NonNull
+    private final String productName;
+    @NonNull
+    private final String productId;
+    @NonNull
+    private final String fallbackPriceText;
+    @Nullable
+    private ProductDetails productDetails;
+    @NonNull
+    private String priceText;
     private boolean canAttemptPurchase;
 
     CreditProduct(
