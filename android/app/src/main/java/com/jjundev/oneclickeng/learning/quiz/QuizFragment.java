@@ -244,7 +244,8 @@ public class QuizFragment extends Fragment {
     if (questionState.isChecked()) {
       autoCheckPending = false;
       if (bottomSheetUiStage != BottomSheetUiStage.NEXT_BUTTON_ONLY && !showNextButtonScheduled) {
-        scheduleShowNextButton(state.getCurrentQuestionIndex(), state.isLastQuestion());
+        scheduleShowNextButton(
+            state.getCurrentQuestionIndex(), state.isLastQuestion(), questionState.isCorrect());
       }
     } else {
       if (questionChanged) {
@@ -440,7 +441,7 @@ public class QuizFragment extends Fragment {
     uiHandler.postDelayed(runnable, AUTO_CHECK_DELAY_MS);
   }
 
-  private void scheduleShowNextButton(int questionIndex, boolean lastQuestion) {
+  private void scheduleShowNextButton(int questionIndex, boolean lastQuestion, boolean isCorrect) {
     if (showNextButtonRunnable != null) {
       uiHandler.removeCallbacks(showNextButtonRunnable);
       showNextButtonRunnable = null;
@@ -453,7 +454,7 @@ public class QuizFragment extends Fragment {
           if (!isAdded() || getView() == null || renderedBottomSheetQuestionIndex != questionIndex) {
             return;
           }
-          showBottomSheetNextButton(lastQuestion);
+          showBottomSheetNextButton(lastQuestion, isCorrect);
         };
     showNextButtonRunnable = runnable;
     uiHandler.postDelayed(runnable, SHOW_NEXT_BUTTON_DELAY_MS);
@@ -475,7 +476,7 @@ public class QuizFragment extends Fragment {
     expandBottomSheet();
   }
 
-  private void showBottomSheetNextButton(boolean lastQuestion) {
+  private void showBottomSheetNextButton(boolean lastQuestion, boolean isCorrect) {
     bottomSheetUiStage = BottomSheetUiStage.NEXT_BUTTON_ONLY;
     autoCheckPending = false;
     if (choiceContainer != null) {
@@ -485,7 +486,11 @@ public class QuizFragment extends Fragment {
       inputAnswerLayout.setVisibility(View.GONE);
     }
     if (btnPrimary != null) {
-      btnPrimary.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.card_purple_start));
+      int buttonColor =
+          ContextCompat.getColor(
+              requireContext(),
+              isCorrect ? R.color.expression_natural_accent : R.color.expression_precise_accent);
+      btnPrimary.setBackgroundColor(buttonColor);
       btnPrimary.setTextColor(ContextCompat.getColor(requireContext(), R.color.color_text_on_fixed_bg));
       btnPrimary.setVisibility(View.VISIBLE);
       btnPrimary.setEnabled(true);
