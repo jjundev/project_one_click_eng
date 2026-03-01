@@ -2601,27 +2601,19 @@ public class DialogueLearningFragment extends Fragment {
   }
 
   private void logGate(@NonNull String key) {
-    if (BuildConfig.DEBUG) {
-      Log.d(TAG, key);
-    }
+    Log.d(TAG, key);
   }
 
   private void logTrace(@NonNull String key) {
-    if (BuildConfig.DEBUG) {
-      Log.d(TAG, "[TRACE] s=" + traceSessionId + " seq=" + (++traceSeq) + " " + key);
-    }
+    Log.d(TAG, "[TRACE] s=" + traceSessionId + " seq=" + (++traceSeq) + " " + key);
   }
 
   private void logJobDebug(@NonNull String message) {
-    if (BuildConfig.DEBUG) {
-      Log.d(JOB_TAG, message);
-    }
+    Log.d(JOB_TAG, message);
   }
 
   private void logDebugJob003(@NonNull String message) {
-    if (BuildConfig.DEBUG) {
-      Log.d("JOB_J-20260217-003", message);
-    }
+    Log.d("JOB_J-20260217-003", message);
   }
 
   private void logUx(@NonNull String key, @Nullable String fields) {

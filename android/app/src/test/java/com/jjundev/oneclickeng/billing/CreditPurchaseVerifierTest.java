@@ -10,8 +10,10 @@ import okhttp3.OkHttpClient;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 
 @RunWith(RobolectricTestRunner.class)
+@Config(application = android.app.Application.class)
 public class CreditPurchaseVerifierTest {
 
   @Test
@@ -41,4 +43,3 @@ public class CreditPurchaseVerifierTest {
     assertEquals(CreditPurchaseVerifier.VerificationStatus.AUTH_ERROR, result.status);
   }
 }
-

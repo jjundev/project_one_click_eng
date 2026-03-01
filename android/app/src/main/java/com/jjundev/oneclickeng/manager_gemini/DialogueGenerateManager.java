@@ -910,9 +910,7 @@ public class DialogueGenerateManager implements IDialogueGenerateManager {
   }
 
   private void logStream(@NonNull String message) {
-    if (BuildConfig.DEBUG) {
-      Log.d(TAG, "[DL_STREAM] " + message);
-    }
+    Log.d(TAG, "[DL_STREAM] " + message);
   }
 
   @NonNull

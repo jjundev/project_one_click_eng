@@ -20,7 +20,6 @@ import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
 
 public class MainActivity extends AppCompatActivity {
@@ -258,8 +257,6 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private void logDebug(String message) {
-    if (BuildConfig.DEBUG) {
-      Log.d(TAG, message);
-    }
+    Log.d(TAG, message);
   }
 }

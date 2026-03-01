@@ -1313,8 +1313,6 @@ public class SettingFragment extends Fragment
   }
 
   private void logDebug(@NonNull String message) {
-    if (BuildConfig.DEBUG) {
-      Log.d(TAG, message);
-    }
+    Log.d(TAG, message);
   }
 }

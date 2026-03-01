@@ -20,10 +20,6 @@ public final class UxGateLogger {
   }
 
   public void log(@NonNull String key, @Nullable String fields) {
-    if (!BuildConfig.DEBUG) {
-      return;
-    }
-
     String safeKey = key == null ? "" : key.trim();
     if (safeKey.isEmpty()) {
       return;

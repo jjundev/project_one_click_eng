@@ -238,8 +238,6 @@ public class DialogueLearningActivity extends LearningActivity
   }
 
   private void logDebug(String message) {
-    if (BuildConfig.DEBUG) {
-      Log.d(TAG, message);
-    }
+    Log.d(TAG, message);
   }
 }

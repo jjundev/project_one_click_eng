@@ -808,9 +808,7 @@ public class LearningHistoryFragment extends Fragment {
   }
 
   private void logDebug(String message) {
-    if (BuildConfig.DEBUG) {
-      Log.d(TAG, message);
-    }
+    Log.d(TAG, message);
   }
 
   private void runOnMainThread(@NonNull Runnable action) {
