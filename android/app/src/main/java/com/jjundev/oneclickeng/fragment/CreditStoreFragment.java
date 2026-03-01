@@ -359,6 +359,8 @@ public class CreditStoreFragment extends Fragment {
   private void onPurchasesUpdated(
       @NonNull BillingResult billingResult, @Nullable List<Purchase> purchases) {
     int responseCode = billingResult.getResponseCode();
+    logDebug("onPurchasesUpdated: responseCode=" + responseCode
+        + ", purchaseCount=" + (purchases != null ? purchases.size() : "null"));
     if (responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
       for (Purchase purchase : purchases) {
         handleIncomingPurchase(purchase, true);
@@ -410,6 +412,9 @@ public class CreditStoreFragment extends Fragment {
 
   private void handleIncomingPurchase(@NonNull Purchase purchase, boolean fromUserFlow) {
     int state = purchase.getPurchaseState();
+    logDebug("handleIncomingPurchase: state=" + state
+        + ", token=" + maskToken(purchase.getPurchaseToken())
+        + ", products=" + purchase.getProducts());
     if (state == Purchase.PurchaseState.PENDING) {
       enqueuePendingPurchase(purchase);
       if (fromUserFlow) {
@@ -432,11 +437,13 @@ public class CreditStoreFragment extends Fragment {
   private void enqueuePendingPurchase(@NonNull Purchase purchase) {
     CreditPurchaseStore store = purchaseStore;
     if (store == null) {
+      logDebug("enqueuePendingPurchase: store is null, skipping.");
       return;
     }
 
     List<String> productIds = purchase.getProducts();
     if (productIds == null || productIds.isEmpty()) {
+      logDebug("enqueuePendingPurchase: productIds is null/empty, skipping.");
       return;
     }
 
@@ -661,9 +668,7 @@ public class CreditStoreFragment extends Fragment {
   }
 
   private void logDebug(@NonNull String message) {
-    if (BuildConfig.DEBUG) {
-      Log.d(TAG, message);
-    }
+    Log.d(TAG, message);
   }
 
   @NonNull

@@ -41,14 +41,18 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
+import com.jjundev.oneclickeng.billing.BillingStartupDiagnostics;
 
 public class LoginActivity extends AppCompatActivity {
 
   private static final long IME_HIDE_TIMEOUT_MS = 300L;
   private static final long IME_POLL_INTERVAL_MS = 16L;
+  private static final String BILLING_DIAG_TAG = "BillingStartupDiag";
   private VideoView videoViewBackground;
   private BottomSheetBehavior<LinearLayout> bottomSheetBehavior;
   private static final String TAG = "LoginActivity";
@@ -69,8 +73,18 @@ public class LoginActivity extends AppCompatActivity {
   @Override
   protected void onStart() {
     super.onStart();
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+    Log.i(
+        BILLING_DIAG_TAG,
+        BillingStartupDiagnostics.buildStartupLogPayload(
+            BuildConfig.CREDIT_BILLING_VERIFY_URL,
+            BuildConfig.DEBUG,
+            BuildConfig.VERSION_CODE,
+            BuildConfig.VERSION_NAME,
+            user != null,
+            user != null ? user.getUid() : null));
     // Check if user is already signed in
-    if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+    if (user != null) {
       navigateToMain();
     }
   }
