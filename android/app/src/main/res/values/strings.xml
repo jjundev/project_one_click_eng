@@ -232,18 +232,36 @@
     <string name="learning_history_header_title">학습 기록</string>
     <string name="learning_history_header_subtitle">지금까지 학습한 내용을 확인해 보세요</string>
 
+    <!-- Dialogue Generate Loading -->
+    <string name="dialogue_generate_loading">AI가 대본을 생성하고 있어요...</string>
+    <string-array name="dialogue_generate_loading_messages">
+        <item>@string/dialogue_generate_loading</item>
+        <item>대화 흐름을 구성하고 있어요...</item>
+        <item>문장 표현을 다듬고 있어요...</item>
+        <item>거의 준비됐어요. 잠시만 기다려 주세요!</item>
+    </string-array>
+
     <!-- History Quiz -->
     <string name="history_quiz_btn_word">단어 퀴즈 풀기</string>
     <string name="history_quiz_btn_expression">표현 퀴즈 풀기</string>
     <string name="history_quiz_btn_sentence">문장 퀴즈 풀기</string>
     <string name="history_quiz_config_title">퀴즈 설정</string>
+    <string name="history_quiz_config_subtitle">학습 기록을 바탕으로 퀴즈를 생성해요</string>
     <string name="history_quiz_config_period">출제 범위 (기간)</string>
     <string name="history_quiz_period_1w">최근 1주</string>
     <string name="history_quiz_period_2w">1~2주 전</string>
     <string name="history_quiz_period_3w">2~3주 전</string>
     <string name="history_quiz_period_older">3주 이상</string>
     <string name="history_quiz_config_count">문제 수</string>
+    <string name="history_quiz_config_count_prompt">몇 개의 문제를 만들어볼까요?</string>
+    <string name="history_quiz_config_count_value_format">%1$d문제</string>
     <string name="history_quiz_config_loading">문제를 준비하고 있어요...</string>
+    <string-array name="history_quiz_config_loading_messages">
+        <item>@string/history_quiz_config_loading</item>
+        <item>학습 기록을 분석하고 있어요...</item>
+        <item>출제할 문제를 정리하고 있어요...</item>
+        <item>거의 준비됐어요. 잠시만 기다려 주세요!</item>
+    </string-array>
     <string name="history_quiz_config_cancel">취소</string>
     <string name="history_quiz_config_confirm">시작하기</string>
     <string name="history_quiz_err_no_items">해당 기간에 학습한 항목이 없어요.</string>

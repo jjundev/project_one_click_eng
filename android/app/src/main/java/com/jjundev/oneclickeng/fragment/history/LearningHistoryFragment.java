@@ -2,6 +2,8 @@ package com.jjundev.oneclickeng.fragment.history;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -43,6 +45,7 @@ public class LearningHistoryFragment extends Fragment {
   @Nullable private HistoryQuizConfigDialog pendingConfigDialog;
   @Nullable private String pendingQuizSessionId;
   @Nullable private QuizStreamingSessionStore.Listener pendingQuizSessionListener;
+  @NonNull private final Handler uiHandler = new Handler(Looper.getMainLooper());
   private long quizPreparationRequestId = 0L;
 
   @Nullable
@@ -170,32 +173,41 @@ public class LearningHistoryFragment extends Fragment {
                   new QuizStreamingSessionStore.Listener() {
                     @Override
                     public void onQuestion(@NonNull QuizData.QuizQuestion question) {
-                      if (requestId != quizPreparationRequestId || completed[0]) {
-                        return;
-                      }
-                      if (!isValidQuestionReadyForStart(question)) {
-                        return;
-                      }
-                      completed[0] = true;
-                      startPreparedQuiz(dialog, requestId, finalSeed, questionCount, sessionId);
+                      runOnMainThread(
+                          () -> {
+                            if (requestId != quizPreparationRequestId || completed[0]) {
+                              return;
+                            }
+                            if (!isValidQuestionReadyForStart(question)) {
+                              return;
+                            }
+                            completed[0] = true;
+                            startPreparedQuiz(dialog, requestId, finalSeed, questionCount, sessionId);
+                          });
                     }
 
                     @Override
                     public void onComplete(@Nullable String warningMessage) {
-                      if (requestId != quizPreparationRequestId || completed[0]) {
-                        return;
-                      }
-                      completed[0] = true;
-                      showPreparationError(dialog, requestId, warningMessage);
+                      runOnMainThread(
+                          () -> {
+                            if (requestId != quizPreparationRequestId || completed[0]) {
+                              return;
+                            }
+                            completed[0] = true;
+                            showPreparationError(dialog, requestId, warningMessage);
+                          });
                     }
 
                     @Override
                     public void onFailure(@NonNull String error) {
-                      if (requestId != quizPreparationRequestId || completed[0]) {
-                        return;
-                      }
-                      completed[0] = true;
-                      showPreparationError(dialog, requestId, error);
+                      runOnMainThread(
+                          () -> {
+                            if (requestId != quizPreparationRequestId || completed[0]) {
+                              return;
+                            }
+                            completed[0] = true;
+                            showPreparationError(dialog, requestId, error);
+                          });
                     }
                   };
               pendingQuizSessionId = sessionId;
@@ -476,5 +488,13 @@ public class LearningHistoryFragment extends Fragment {
     if (BuildConfig.DEBUG) {
       Log.d(TAG, message);
     }
+  }
+
+  private void runOnMainThread(@NonNull Runnable action) {
+    if (Looper.myLooper() == Looper.getMainLooper()) {
+      action.run();
+      return;
+    }
+    uiHandler.post(action);
   }
 }

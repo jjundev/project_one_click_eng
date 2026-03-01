@@ -2,6 +2,8 @@ package com.jjundev.oneclickeng.dialog;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,6 +20,8 @@ import androidx.fragment.app.DialogFragment;
 import com.jjundev.oneclickeng.R;
 
 public class DialogueGenerateDialog extends DialogFragment {
+  private static final long LOADING_MESSAGE_ROTATION_INTERVAL_MS = 2000L;
+  private static final long LOADING_MESSAGE_FADE_DURATION_MS = 300L;
   private static final String ARG_TOPIC = "arg_topic";
 
   public static DialogueGenerateDialog newInstance(String topic) {
@@ -35,7 +39,12 @@ public class DialogueGenerateDialog extends DialogFragment {
   private TextView tvLevelDescription;
   private android.widget.SeekBar sbLength;
   private TextView tvLengthValue;
+  private TextView tvLoadingMessage;
   private AppCompatButton btnConfirm;
+  @Nullable private Runnable loadingMessageRunnable;
+  @NonNull private String[] loadingMessages = new String[0];
+  private int loadingMessageIndex = 0;
+  @NonNull private final Handler uiHandler = new Handler(Looper.getMainLooper());
   private OnScriptParamsSelectedListener listener;
 
   public interface OnScriptParamsSelectedListener {
@@ -81,6 +90,8 @@ public class DialogueGenerateDialog extends DialogFragment {
     tvLevelDescription = view.findViewById(R.id.tv_level_description);
     sbLength = view.findViewById(R.id.sb_length);
     tvLengthValue = view.findViewById(R.id.tv_length_value);
+    tvLoadingMessage = view.findViewById(R.id.tv_dialogue_loading_message);
+    loadingMessages = getResources().getStringArray(R.array.dialogue_generate_loading_messages);
     btnConfirm = view.findViewById(R.id.btn_confirm_generate);
 
     setupDropdowns();
@@ -100,6 +111,22 @@ public class DialogueGenerateDialog extends DialogFragment {
       int width = (int) (getResources().getDisplayMetrics().widthPixels * 0.90);
       getDialog().getWindow().setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT);
     }
+  }
+
+  @Override
+  public void onDestroyView() {
+    stopLoadingMessageRotation(false);
+    layoutInputForm = null;
+    layoutLoading = null;
+    etTopic = null;
+    spinnerLevel = null;
+    tvLevelDescription = null;
+    sbLength = null;
+    tvLengthValue = null;
+    tvLoadingMessage = null;
+    btnConfirm = null;
+    loadingMessages = new String[0];
+    super.onDestroyView();
   }
 
   private void setupDropdowns() {
@@ -173,15 +200,147 @@ public class DialogueGenerateDialog extends DialogFragment {
   }
 
   public void showLoading(boolean loading) {
-    if (loading) {
-      layoutInputForm.setVisibility(View.GONE);
-      layoutLoading.setVisibility(View.VISIBLE);
-      setCancelable(false);
-    } else {
-      layoutInputForm.setVisibility(View.VISIBLE);
-      layoutLoading.setVisibility(View.GONE);
-      setCancelable(true);
+    if (Looper.myLooper() != Looper.getMainLooper()) {
+      uiHandler.post(() -> showLoading(loading));
+      return;
     }
+
+    View root = getView();
+    if (layoutInputForm == null && root != null) {
+      layoutInputForm = root.findViewById(R.id.layout_input_form);
+    }
+    if (layoutLoading == null && root != null) {
+      layoutLoading = root.findViewById(R.id.layout_loading);
+    }
+    if (tvLoadingMessage == null && root != null) {
+      tvLoadingMessage = root.findViewById(R.id.tv_dialogue_loading_message);
+    }
+    ensureLoadingMessages();
+
+    if (loading) {
+      if (layoutInputForm != null) {
+        layoutInputForm.setVisibility(View.GONE);
+      }
+      if (layoutLoading != null) {
+        layoutLoading.setVisibility(View.VISIBLE);
+      }
+      setCancelable(false);
+      startLoadingMessageRotation();
+    } else {
+      if (layoutInputForm != null) {
+        layoutInputForm.setVisibility(View.VISIBLE);
+      }
+      if (layoutLoading != null) {
+        layoutLoading.setVisibility(View.GONE);
+      }
+      setCancelable(true);
+      stopLoadingMessageRotation(true);
+    }
+  }
+
+  private void ensureLoadingMessages() {
+    if (loadingMessages.length == 0 && isAdded()) {
+      loadingMessages = getResources().getStringArray(R.array.dialogue_generate_loading_messages);
+    }
+  }
+
+  private void startLoadingMessageRotation() {
+    ensureLoadingMessages();
+    if (tvLoadingMessage == null) {
+      return;
+    }
+
+    stopLoadingMessageRotation(false);
+    loadingMessageIndex = 0;
+    tvLoadingMessage.setAlpha(1f);
+    if (loadingMessages.length > 0) {
+      tvLoadingMessage.setText(loadingMessages[0]);
+    } else {
+      tvLoadingMessage.setText(R.string.dialogue_generate_loading);
+    }
+
+    if (loadingMessages.length <= 1) {
+      return;
+    }
+
+    loadingMessageRunnable =
+        new Runnable() {
+          @Override
+          public void run() {
+            if (!isAdded()
+                || tvLoadingMessage == null
+                || layoutLoading == null
+                || layoutLoading.getVisibility() != View.VISIBLE) {
+              return;
+            }
+            if (loadingMessageIndex >= loadingMessages.length - 1) {
+              loadingMessageRunnable = null;
+              return;
+            }
+            loadingMessageIndex = loadingMessageIndex + 1;
+            changeMessageWithFade(loadingMessages[loadingMessageIndex]);
+            if (loadingMessageIndex < loadingMessages.length - 1) {
+              uiHandler.postDelayed(this, LOADING_MESSAGE_ROTATION_INTERVAL_MS);
+            } else {
+              loadingMessageRunnable = null;
+            }
+          }
+        };
+    uiHandler.postDelayed(loadingMessageRunnable, LOADING_MESSAGE_ROTATION_INTERVAL_MS);
+  }
+
+  private void stopLoadingMessageRotation(boolean resetMessage) {
+    if (loadingMessageRunnable != null) {
+      uiHandler.removeCallbacks(loadingMessageRunnable);
+      loadingMessageRunnable = null;
+    }
+
+    if (tvLoadingMessage == null) {
+      if (resetMessage) {
+        loadingMessageIndex = 0;
+      }
+      return;
+    }
+
+    tvLoadingMessage.animate().cancel();
+    tvLoadingMessage.setAlpha(1f);
+    if (!resetMessage) {
+      return;
+    }
+
+    loadingMessageIndex = 0;
+    ensureLoadingMessages();
+    if (loadingMessages.length > 0) {
+      tvLoadingMessage.setText(loadingMessages[0]);
+    } else {
+      tvLoadingMessage.setText(R.string.dialogue_generate_loading);
+    }
+  }
+
+  private void changeMessageWithFade(@NonNull String newMessage) {
+    if (tvLoadingMessage == null) {
+      return;
+    }
+    TextView messageView = tvLoadingMessage;
+    messageView.animate().cancel();
+    messageView
+        .animate()
+        .alpha(0f)
+        .setDuration(LOADING_MESSAGE_FADE_DURATION_MS)
+        .withEndAction(
+            () -> {
+              TextView currentView = tvLoadingMessage;
+              if (currentView == null) {
+                return;
+              }
+              currentView.setText(newMessage);
+              currentView
+                  .animate()
+                  .alpha(1f)
+                  .setDuration(LOADING_MESSAGE_FADE_DURATION_MS)
+                  .start();
+            })
+        .start();
   }
 
   private void hideKeyboard() {

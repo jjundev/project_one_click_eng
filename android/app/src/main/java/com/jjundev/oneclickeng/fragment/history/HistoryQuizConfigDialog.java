@@ -3,6 +3,8 @@ package com.jjundev.oneclickeng.fragment.history;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,6 +20,9 @@ import com.jjundev.oneclickeng.R;
 
 public class HistoryQuizConfigDialog extends DialogFragment {
 
+  private static final long LOADING_MESSAGE_ROTATION_INTERVAL_MS = 3000L;
+  private static final long LOADING_MESSAGE_FADE_DURATION_MS = 300L;
+
   public static final String REQUEST_KEY = "history_quiz_config_request";
   public static final String BUNDLE_KEY_PERIOD_BUCKET = "bundle_key_period_bucket";
   public static final String BUNDLE_KEY_QUESTION_COUNT = "bundle_key_question_count";
@@ -31,6 +36,11 @@ public class HistoryQuizConfigDialog extends DialogFragment {
   @Nullable private View configContainer;
   @Nullable private Button btnCancel;
   @Nullable private Button btnStart;
+  @Nullable private TextView tvLoadingMessage;
+  @Nullable private Runnable loadingMessageRunnable;
+  @NonNull private String[] loadingMessages = new String[0];
+  private int loadingMessageIndex = 0;
+  @NonNull private final Handler uiHandler = new Handler(Looper.getMainLooper());
 
   @Nullable
   @Override
@@ -56,13 +66,16 @@ public class HistoryQuizConfigDialog extends DialogFragment {
     RadioGroup rgPeriod = view.findViewById(R.id.rg_quiz_period);
     SeekBar sbQuestionCount = view.findViewById(R.id.sb_question_count);
     TextView tvQuizCountValue = view.findViewById(R.id.tv_quiz_count_value);
+    tvLoadingMessage = view.findViewById(R.id.tv_quiz_loading_message);
+    loadingMessages = getResources().getStringArray(R.array.history_quiz_config_loading_messages);
+    updateQuestionCountText(tvQuizCountValue, sbQuestionCount.getProgress() + 1);
 
     sbQuestionCount.setOnSeekBarChangeListener(
         new SeekBar.OnSeekBarChangeListener() {
           @Override
           public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
             int count = progress + 1;
-            tvQuizCountValue.setText(count + "문제");
+            updateQuestionCountText(tvQuizCountValue, count);
           }
 
           @Override
@@ -120,14 +133,22 @@ public class HistoryQuizConfigDialog extends DialogFragment {
 
   @Override
   public void onDestroyView() {
-    super.onDestroyView();
+    stopLoadingMessageRotation(false);
     configContainer = null;
     loadingContainer = null;
     btnCancel = null;
     btnStart = null;
+    tvLoadingMessage = null;
+    loadingMessages = new String[0];
+    super.onDestroyView();
   }
 
   public void setLoadingState(boolean loading) {
+    if (Looper.myLooper() != Looper.getMainLooper()) {
+      uiHandler.post(() -> setLoadingState(loading));
+      return;
+    }
+
     View root = getView();
     if (configContainer == null && root != null) {
       configContainer = root.findViewById(R.id.layout_quiz_config_content);
@@ -143,6 +164,11 @@ public class HistoryQuizConfigDialog extends DialogFragment {
       View view = root.findViewById(R.id.btn_quiz_start);
       btnStart = view instanceof Button ? (Button) view : null;
     }
+    if (tvLoadingMessage == null && root != null) {
+      View view = root.findViewById(R.id.tv_quiz_loading_message);
+      tvLoadingMessage = view instanceof TextView ? (TextView) view : null;
+    }
+    ensureLoadingMessages();
 
     if (configContainer != null) {
       configContainer.setVisibility(loading ? View.GONE : View.VISIBLE);
@@ -158,6 +184,12 @@ public class HistoryQuizConfigDialog extends DialogFragment {
 
     if (getDialog() != null) {
       getDialog().setCancelable(!loading);
+    }
+
+    if (loading) {
+      startLoadingMessageRotation();
+    } else {
+      stopLoadingMessageRotation(true);
     }
   }
 
@@ -189,5 +221,111 @@ public class HistoryQuizConfigDialog extends DialogFragment {
     if (sbQuestionCount != null) {
       sbQuestionCount.setEnabled(enabled);
     }
+  }
+
+  private void updateQuestionCountText(@NonNull TextView textView, int count) {
+    textView.setText(getString(R.string.history_quiz_config_count_value_format, count));
+  }
+
+  private void ensureLoadingMessages() {
+    if (loadingMessages.length == 0 && isAdded()) {
+      loadingMessages = getResources().getStringArray(R.array.history_quiz_config_loading_messages);
+    }
+  }
+
+  private void startLoadingMessageRotation() {
+    ensureLoadingMessages();
+    if (tvLoadingMessage == null) {
+      return;
+    }
+
+    stopLoadingMessageRotation(false);
+    loadingMessageIndex = 0;
+    tvLoadingMessage.setAlpha(1f);
+    if (loadingMessages.length > 0) {
+      tvLoadingMessage.setText(loadingMessages[0]);
+    } else {
+      tvLoadingMessage.setText(R.string.history_quiz_config_loading);
+    }
+
+    if (loadingMessages.length <= 1) {
+      return;
+    }
+
+    loadingMessageRunnable =
+        new Runnable() {
+          @Override
+          public void run() {
+            if (!isAdded() || tvLoadingMessage == null || !isLoadingState()) {
+              return;
+            }
+            if (loadingMessageIndex >= loadingMessages.length - 1) {
+              loadingMessageRunnable = null;
+              return;
+            }
+            loadingMessageIndex = loadingMessageIndex + 1;
+            changeMessageWithFade(loadingMessages[loadingMessageIndex]);
+            if (loadingMessageIndex < loadingMessages.length - 1) {
+              uiHandler.postDelayed(this, LOADING_MESSAGE_ROTATION_INTERVAL_MS);
+            } else {
+              loadingMessageRunnable = null;
+            }
+          }
+        };
+    uiHandler.postDelayed(loadingMessageRunnable, LOADING_MESSAGE_ROTATION_INTERVAL_MS);
+  }
+
+  private void stopLoadingMessageRotation(boolean resetMessage) {
+    if (loadingMessageRunnable != null) {
+      uiHandler.removeCallbacks(loadingMessageRunnable);
+      loadingMessageRunnable = null;
+    }
+
+    if (tvLoadingMessage == null) {
+      if (resetMessage) {
+        loadingMessageIndex = 0;
+      }
+      return;
+    }
+
+    tvLoadingMessage.animate().cancel();
+    tvLoadingMessage.setAlpha(1f);
+    if (!resetMessage) {
+      return;
+    }
+
+    loadingMessageIndex = 0;
+    ensureLoadingMessages();
+    if (loadingMessages.length > 0) {
+      tvLoadingMessage.setText(loadingMessages[0]);
+    } else {
+      tvLoadingMessage.setText(R.string.history_quiz_config_loading);
+    }
+  }
+
+  private void changeMessageWithFade(@NonNull String newMessage) {
+    if (tvLoadingMessage == null) {
+      return;
+    }
+    TextView messageView = tvLoadingMessage;
+    messageView.animate().cancel();
+    messageView
+        .animate()
+        .alpha(0f)
+        .setDuration(LOADING_MESSAGE_FADE_DURATION_MS)
+        .withEndAction(
+            () -> {
+              TextView currentView = tvLoadingMessage;
+              if (currentView == null) {
+                return;
+              }
+              currentView.setText(newMessage);
+              currentView
+                  .animate()
+                  .alpha(1f)
+                  .setDuration(LOADING_MESSAGE_FADE_DURATION_MS)
+                  .start();
+            })
+        .start();
   }
 }

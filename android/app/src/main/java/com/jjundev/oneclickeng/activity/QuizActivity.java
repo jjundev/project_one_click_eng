@@ -206,7 +206,7 @@ public class QuizActivity extends AppCompatActivity implements QuizResultFragmen
       tvHeader.setText("퀴즈 종료");
     }
     if (tvMessage != null) {
-      tvMessage.setText("현재 진행 중인 퀴즈 내역이 저장되지 않아요.\n정말 종료할까요?");
+      tvMessage.setText("현재 진행 중인 퀴즈 내역이 저장되지 않아요.");
     }
 
     View btnCancel = dialog.findViewById(R.id.btn_cancel);
