@@ -5,6 +5,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IDialogueGenerateManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IExtraQuestionManager;
+import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IGeminiTtsManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IQuizGenerationManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISentenceFeedbackManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.ISessionSummaryLlmManager;
@@ -16,6 +17,7 @@ import com.jjundev.oneclickeng.learning.quiz.session.InMemoryQuizStreamingSessio
 import com.jjundev.oneclickeng.learning.quiz.session.QuizStreamingSessionStore;
 import com.jjundev.oneclickeng.manager_gemini.DialogueGenerateManager;
 import com.jjundev.oneclickeng.manager_gemini.ExtraQuestionManager;
+import com.jjundev.oneclickeng.manager_gemini.GeminiTtsManager;
 import com.jjundev.oneclickeng.manager_gemini.QuizGenerateManager;
 import com.jjundev.oneclickeng.manager_gemini.SentenceFeedbackManager;
 import com.jjundev.oneclickeng.manager_gemini.SpeakingFeedbackManager;
@@ -59,6 +61,11 @@ public final class LearningDependencyProvider {
   public static IDialogueGenerateManager provideDialogueGenerateManager(
       @NonNull Context appContext, @NonNull String apiKey, @NonNull String modelName) {
     return new DialogueGenerateManager(appContext, apiKey, modelName);
+  }
+
+  @NonNull
+  public static IGeminiTtsManager provideGeminiTtsManager(@NonNull String apiKey) {
+    return new GeminiTtsManager(apiKey);
   }
 
   @NonNull

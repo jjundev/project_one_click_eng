@@ -236,6 +236,10 @@ public class DialogueLearningFragment extends Fragment {
     playbackCoordinator = coordinatorBundle.playbackCoordinator;
     speakingCoordinator = coordinatorBundle.speakingCoordinator;
     feedbackCoordinator = coordinatorBundle.feedbackCoordinator;
+    if (playbackCoordinator != null) {
+      playbackCoordinator.setGeminiTtsManager(
+          LearningDependencyProvider.provideGeminiTtsManager(effectiveApiKey));
+    }
     micPermissionCoordinator = new MicPermissionCoordinator(buildMicPermissionCoordinatorHost());
     speakingSceneCoordinator = new SpeakingSceneCoordinator(buildSpeakingSceneCoordinatorHost());
     restoreTransientUiState(savedInstanceState);
@@ -2388,7 +2392,8 @@ public class DialogueLearningFragment extends Fragment {
     if (settings == null) {
       return;
     }
-    playbackCoordinator.applyTtsSettings(settings.getTtsSpeechRate(), settings.getTtsLocaleTag());
+    playbackCoordinator.applyTtsSettings(
+        settings.getTtsProvider(), settings.getTtsSpeechRate(), settings.getTtsLocaleTag());
     logJobDebug("Applied TTS settings from runtime store.");
   }
 

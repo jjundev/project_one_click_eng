@@ -10,6 +10,9 @@ import android.widget.ImageView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import com.jjundev.oneclickeng.R;
+import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.GeminiTtsAudio;
+import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IGeminiTtsManager;
+import com.jjundev.oneclickeng.settings.AppSettings;
 import com.jjundev.oneclickeng.tool.RecordingAudioPlayer;
 import java.util.Locale;
 import java.util.Set;
@@ -17,6 +20,8 @@ import java.util.Set;
 public final class DialoguePlaybackCoordinator {
   private static final float DEFAULT_TTS_SPEECH_RATE = 1.00f;
   @NonNull private static final Locale DEFAULT_TTS_LOCALE = Locale.US;
+  private static final long SCRIPT_TTS_WATCHDOG_ANDROID_MS = 7000L;
+  private static final long SCRIPT_TTS_WATCHDOG_GEMINI_MS = 30000L;
 
   public interface LoggerDelegate {
     void trace(@NonNull String key);
@@ -40,13 +45,18 @@ public final class DialoguePlaybackCoordinator {
   @Nullable private TextToSpeech tts;
   private boolean isTtsReady;
   @Nullable private RecordingAudioPlayer recordingAudioPlayer;
+  @Nullable private RecordingAudioPlayer geminiPcmPlayer;
+  @Nullable private IGeminiTtsManager geminiTtsManager;
   @Nullable private ImageView currentlyPlayingSpeakerBtn;
   @Nullable private Runnable ttsWatchdogRunnable;
   @Nullable private Runnable currentTtsOnDoneCallback;
   @Nullable private String currentTtsSource;
+  @Nullable private String currentUtteranceId;
   private boolean isPlaybackStopInProgress;
   private float ttsSpeechRate = DEFAULT_TTS_SPEECH_RATE;
   @NonNull private Locale ttsLocale = DEFAULT_TTS_LOCALE;
+  @NonNull private String ttsProvider = AppSettings.DEFAULT_TTS_PROVIDER;
+  private long ttsSessionToken = 0L;
 
   public DialoguePlaybackCoordinator(
       @NonNull Handler mainHandler, @NonNull LoggerDelegate loggerDelegate) {
@@ -54,9 +64,14 @@ public final class DialoguePlaybackCoordinator {
     this.loggerDelegate = loggerDelegate;
   }
 
+  public void setGeminiTtsManager(@Nullable IGeminiTtsManager geminiTtsManager) {
+    this.geminiTtsManager = geminiTtsManager;
+  }
+
   public void initialize(@NonNull Context context, @NonNull OnTtsInitializedListener listener) {
     release();
     recordingAudioPlayer = new RecordingAudioPlayer();
+    geminiPcmPlayer = new RecordingAudioPlayer();
     tts =
         new TextToSpeech(
             context,
@@ -78,13 +93,13 @@ public final class DialoguePlaybackCoordinator {
 
             @Override
             public void onDone(String utteranceId) {
-              onTtsTerminal(false);
+              onAndroidUtteranceTerminal(utteranceId, false);
             }
 
             @Override
             @SuppressWarnings("deprecation")
             public void onError(String utteranceId) {
-              onTtsTerminal(true);
+              onAndroidUtteranceTerminal(utteranceId, true);
             }
 
             @Override
@@ -96,12 +111,6 @@ public final class DialoguePlaybackCoordinator {
   }
 
   public void release() {
-    if (ttsWatchdogRunnable != null) {
-      mainHandler.removeCallbacks(ttsWatchdogRunnable);
-      ttsWatchdogRunnable = null;
-    }
-    currentTtsOnDoneCallback = null;
-    currentTtsSource = null;
     isTtsReady = false;
     stopAllPlayback("release");
     if (tts != null) {
@@ -112,6 +121,10 @@ public final class DialoguePlaybackCoordinator {
       recordingAudioPlayer.stop();
       recordingAudioPlayer = null;
     }
+    if (geminiPcmPlayer != null) {
+      geminiPcmPlayer.stop();
+      geminiPcmPlayer = null;
+    }
     resetSpeakerButton();
   }
 
@@ -121,11 +134,25 @@ public final class DialoguePlaybackCoordinator {
     }
     isPlaybackStopInProgress = true;
     try {
+      ttsSessionToken++;
+      currentUtteranceId = null;
+      currentTtsOnDoneCallback = null;
+      currentTtsSource = null;
+      if (ttsWatchdogRunnable != null) {
+        mainHandler.removeCallbacks(ttsWatchdogRunnable);
+        ttsWatchdogRunnable = null;
+      }
+      if (geminiTtsManager != null) {
+        geminiTtsManager.cancelActiveRequest();
+      }
       if (tts != null && tts.isSpeaking()) {
         tts.stop();
       }
       if (recordingAudioPlayer != null) {
         recordingAudioPlayer.stop();
+      }
+      if (geminiPcmPlayer != null) {
+        geminiPcmPlayer.stop();
       }
       resetSpeakerButton();
     } finally {
@@ -133,7 +160,9 @@ public final class DialoguePlaybackCoordinator {
     }
   }
 
-  public void applyTtsSettings(float speechRate, @Nullable String localeTag) {
+  public void applyTtsSettings(
+      @Nullable String provider, float speechRate, @Nullable String localeTag) {
+    ttsProvider = normalizeProvider(provider);
     ttsSpeechRate = clamp(speechRate, 0.5f, 1.5f);
     ttsLocale = resolveLocale(localeTag);
     if (tts == null) {
@@ -141,6 +170,10 @@ public final class DialoguePlaybackCoordinator {
     }
     applyConfiguredTtsLanguage();
     tts.setSpeechRate(ttsSpeechRate);
+  }
+
+  public void applyTtsSettings(float speechRate, @Nullable String localeTag) {
+    applyTtsSettings(ttsProvider, speechRate, localeTag);
   }
 
   public void playMessageTts(
@@ -154,14 +187,7 @@ public final class DialoguePlaybackCoordinator {
     }
 
     stopAllPlayback("playMessageTts_start");
-
-    if (!isTtsReady || tts == null) {
-      loggerDelegate.ux("UX_TTS_DONE", "source=message_error");
-      if (errorListener != null) {
-        errorListener.onError("TTS unavailable");
-      }
-      return;
-    }
+    long sessionToken = ttsSessionToken;
 
     if (speakerBtn != null) {
       currentlyPlayingSpeakerBtn = speakerBtn;
@@ -173,13 +199,11 @@ public final class DialoguePlaybackCoordinator {
     currentTtsOnDoneCallback = null;
     loggerDelegate.ux("UX_TTS_START", "source=message");
 
-    applyConfiguredTtsLanguage();
-    if (shouldApplyGenderVoiceSelection()) {
-      setTtsVoice(gender);
+    if (shouldAttemptGeminiSynthesis(ttsProvider, geminiTtsManager != null)) {
+      playMessageWithGemini(text, gender, sessionToken, errorListener);
+      return;
     }
-    Bundle params = new Bundle();
-    tts.setSpeechRate(ttsSpeechRate);
-    tts.speak(text, TextToSpeech.QUEUE_FLUSH, params, "tts_utterance");
+    playMessageWithAndroidTts(text, gender, sessionToken, errorListener);
   }
 
   public void playRecordedAudio(
@@ -241,29 +265,182 @@ public final class DialoguePlaybackCoordinator {
     loggerDelegate.trace("TRACE_TTS_FLOW source=playScriptTts textLen=" + text.length());
 
     stopAllPlayback("playScriptTts_start");
+    long sessionToken = ttsSessionToken;
 
     if (activateLatestAiSpeaker != null) {
       activateLatestAiSpeaker.run();
     }
 
-    if (ttsWatchdogRunnable != null) {
-      mainHandler.removeCallbacks(ttsWatchdogRunnable);
-    }
-    ttsWatchdogRunnable =
-        () -> {
-          Log.w("DialoguePlaybackCoordinator", "TTS Watchdog triggered - forcing next step");
-          loggerDelegate.trace("TRACE_TTS_FLOW source=watchdog");
-          loggerDelegate.gate("M1_TTS_DONE source=watchdog");
-          loggerDelegate.ux("UX_TTS_DONE", "source=watchdog");
-          currentTtsOnDoneCallback = null;
-          currentTtsSource = null;
-          onComplete.run();
-        };
-    mainHandler.postDelayed(ttsWatchdogRunnable, 7000);
-
     currentTtsSource = "script";
     currentTtsOnDoneCallback = onComplete;
 
+    long watchdogMs =
+        shouldAttemptGeminiSynthesis(ttsProvider, geminiTtsManager != null)
+            ? SCRIPT_TTS_WATCHDOG_GEMINI_MS
+            : SCRIPT_TTS_WATCHDOG_ANDROID_MS;
+    scheduleScriptWatchdog(sessionToken, onComplete, watchdogMs);
+
+    if (shouldAttemptGeminiSynthesis(ttsProvider, geminiTtsManager != null)) {
+      playScriptWithGemini(text, gender, sessionToken, onComplete);
+      return;
+    }
+    playScriptWithAndroidTts(text, gender, sessionToken, onComplete);
+  }
+
+  private void playMessageWithGemini(
+      @NonNull String text,
+      @Nullable String gender,
+      long sessionToken,
+      @Nullable PlaybackErrorListener errorListener) {
+    IGeminiTtsManager manager = geminiTtsManager;
+    if (manager == null) {
+      playMessageWithAndroidTts(text, gender, sessionToken, errorListener);
+      return;
+    }
+    String voiceName = resolveGeminiVoiceName(gender);
+    manager.synthesize(
+        text,
+        ttsLocale.toLanguageTag(),
+        ttsSpeechRate,
+        voiceName,
+        new IGeminiTtsManager.SynthesisCallback() {
+          @Override
+          public void onSuccess(@NonNull GeminiTtsAudio audio) {
+            if (!isSessionCurrent(sessionToken)) {
+              return;
+            }
+            RecordingAudioPlayer player = geminiPcmPlayer;
+            if (player == null) {
+              playMessageWithAndroidTts(text, gender, sessionToken, errorListener);
+              return;
+            }
+            player.play(
+                audio.getPcmData(),
+                audio.getSampleRateHz(),
+                new RecordingAudioPlayer.PlaybackCallback() {
+                  @Override
+                  public void onPlaybackCompleted() {
+                    if (!isSessionCurrent(sessionToken)) {
+                      return;
+                    }
+                    onTtsTerminal(false);
+                  }
+
+                  @Override
+                  public void onPlaybackError(String error) {
+                    if (!isSessionCurrent(sessionToken)) {
+                      return;
+                    }
+                    loggerDelegate.trace("TRACE_TTS_FLOW source=gemini_message_playback_error");
+                    playMessageWithAndroidTts(text, gender, sessionToken, errorListener);
+                  }
+                });
+          }
+
+          @Override
+          public void onError(@NonNull String errorMessage) {
+            if (!isSessionCurrent(sessionToken)) {
+              return;
+            }
+            loggerDelegate.trace("TRACE_TTS_FLOW source=gemini_message_error");
+            playMessageWithAndroidTts(text, gender, sessionToken, errorListener);
+          }
+        });
+  }
+
+  private void playScriptWithGemini(
+      @NonNull String text, @Nullable String gender, long sessionToken, @NonNull Runnable onComplete) {
+    IGeminiTtsManager manager = geminiTtsManager;
+    if (manager == null) {
+      playScriptWithAndroidTts(text, gender, sessionToken, onComplete);
+      return;
+    }
+    loggerDelegate.trace("TRACE_TTS_FLOW source=gemini_start");
+    loggerDelegate.gate("M1_TTS_START");
+    loggerDelegate.ux("UX_TTS_START", "source=script");
+
+    String voiceName = resolveGeminiVoiceName(gender);
+    manager.synthesize(
+        text,
+        ttsLocale.toLanguageTag(),
+        ttsSpeechRate,
+        voiceName,
+        new IGeminiTtsManager.SynthesisCallback() {
+          @Override
+          public void onSuccess(@NonNull GeminiTtsAudio audio) {
+            if (!isSessionCurrent(sessionToken)) {
+              return;
+            }
+            RecordingAudioPlayer player = geminiPcmPlayer;
+            if (player == null) {
+              playScriptWithAndroidTts(text, gender, sessionToken, onComplete);
+              return;
+            }
+            player.play(
+                audio.getPcmData(),
+                audio.getSampleRateHz(),
+                new RecordingAudioPlayer.PlaybackCallback() {
+                  @Override
+                  public void onPlaybackCompleted() {
+                    if (!isSessionCurrent(sessionToken)) {
+                      return;
+                    }
+                    onTtsTerminal(false);
+                  }
+
+                  @Override
+                  public void onPlaybackError(String error) {
+                    if (!isSessionCurrent(sessionToken)) {
+                      return;
+                    }
+                    loggerDelegate.trace("TRACE_TTS_FLOW source=gemini_script_playback_error");
+                    playScriptWithAndroidTts(text, gender, sessionToken, onComplete);
+                  }
+                });
+          }
+
+          @Override
+          public void onError(@NonNull String errorMessage) {
+            if (!isSessionCurrent(sessionToken)) {
+              return;
+            }
+            loggerDelegate.trace("TRACE_TTS_FLOW source=gemini_script_error");
+            playScriptWithAndroidTts(text, gender, sessionToken, onComplete);
+          }
+        });
+  }
+
+  private void playMessageWithAndroidTts(
+      @NonNull String text,
+      @Nullable String gender,
+      long sessionToken,
+      @Nullable PlaybackErrorListener errorListener) {
+    if (!isSessionCurrent(sessionToken)) {
+      return;
+    }
+    if (!isTtsReady || tts == null) {
+      loggerDelegate.ux("UX_TTS_DONE", "source=message_error");
+      if (errorListener != null) {
+        errorListener.onError("TTS unavailable");
+      }
+      return;
+    }
+
+    applyConfiguredTtsLanguage();
+    if (shouldApplyGenderVoiceSelection()) {
+      setTtsVoice(gender);
+    }
+    Bundle params = new Bundle();
+    tts.setSpeechRate(ttsSpeechRate);
+    currentUtteranceId = buildUtteranceId("tts_utterance", sessionToken);
+    tts.speak(text, TextToSpeech.QUEUE_FLUSH, params, currentUtteranceId);
+  }
+
+  private void playScriptWithAndroidTts(
+      @NonNull String text, @Nullable String gender, long sessionToken, @NonNull Runnable onComplete) {
+    if (!isSessionCurrent(sessionToken)) {
+      return;
+    }
     if (isTtsReady && tts != null) {
       loggerDelegate.trace("TRACE_TTS_FLOW source=tts_start");
       loggerDelegate.gate("M1_TTS_START");
@@ -274,7 +451,8 @@ public final class DialoguePlaybackCoordinator {
       }
       Bundle params = new Bundle();
       tts.setSpeechRate(ttsSpeechRate);
-      tts.speak(text, TextToSpeech.QUEUE_FLUSH, params, "script_tts_utterance");
+      currentUtteranceId = buildUtteranceId("script_tts_utterance", sessionToken);
+      tts.speak(text, TextToSpeech.QUEUE_FLUSH, params, currentUtteranceId);
       return;
     }
 
@@ -288,48 +466,92 @@ public final class DialoguePlaybackCoordinator {
     }
     currentTtsOnDoneCallback = null;
     currentTtsSource = null;
+    currentUtteranceId = null;
     onComplete.run();
   }
 
-  private void onTtsTerminal(boolean isError) {
-    mainHandler.post(
+  private void scheduleScriptWatchdog(
+      long sessionToken, @NonNull Runnable onComplete, long timeoutMillis) {
+    if (ttsWatchdogRunnable != null) {
+      mainHandler.removeCallbacks(ttsWatchdogRunnable);
+    }
+    ttsWatchdogRunnable =
         () -> {
-          resetSpeakerButton();
-          if (ttsWatchdogRunnable != null) {
-            mainHandler.removeCallbacks(ttsWatchdogRunnable);
-            ttsWatchdogRunnable = null;
-          }
-          String source = currentTtsSource;
-          Runnable callback = currentTtsOnDoneCallback;
-          currentTtsSource = null;
-          currentTtsOnDoneCallback = null;
-
-          if (isError && source != null) {
-            if ("script".equals(source)) {
-              loggerDelegate.trace("TRACE_TTS_FLOW source=tts_callback");
-              loggerDelegate.gate("M1_TTS_DONE source=tts_callback");
-              loggerDelegate.ux("UX_TTS_DONE", "source=script_error");
-              if (callback != null) {
-                callback.run();
-              }
-            } else if ("message".equals(source)) {
-              loggerDelegate.ux("UX_TTS_DONE", "source=message_error");
-            }
+          if (!isSessionCurrent(sessionToken)) {
             return;
           }
-
-          if ("script".equals(source)) {
-            loggerDelegate.trace("TRACE_TTS_FLOW source=tts_callback");
-            loggerDelegate.gate("M1_TTS_DONE source=tts_callback");
-            loggerDelegate.ux("UX_TTS_DONE", "source=script_callback");
-          } else if ("message".equals(source)) {
-            loggerDelegate.ux("UX_TTS_DONE", "source=message_callback");
+          Log.w("DialoguePlaybackCoordinator", "TTS Watchdog triggered - forcing next step");
+          loggerDelegate.trace("TRACE_TTS_FLOW source=watchdog");
+          loggerDelegate.gate("M1_TTS_DONE source=watchdog");
+          loggerDelegate.ux("UX_TTS_DONE", "source=watchdog");
+          currentTtsOnDoneCallback = null;
+          currentTtsSource = null;
+          currentUtteranceId = null;
+          if (tts != null && tts.isSpeaking()) {
+            tts.stop();
           }
-
-          if (callback != null) {
-            callback.run();
+          if (geminiTtsManager != null) {
+            geminiTtsManager.cancelActiveRequest();
           }
+          if (geminiPcmPlayer != null) {
+            geminiPcmPlayer.stop();
+          }
+          resetSpeakerButton();
+          onComplete.run();
+        };
+    mainHandler.postDelayed(ttsWatchdogRunnable, timeoutMillis);
+  }
+
+  private void onAndroidUtteranceTerminal(@Nullable String utteranceId, boolean isError) {
+    if (utteranceId == null) {
+      return;
+    }
+    mainHandler.post(
+        () -> {
+          if (currentUtteranceId == null || !currentUtteranceId.equals(utteranceId)) {
+            return;
+          }
+          onTtsTerminal(isError);
         });
+  }
+
+  private void onTtsTerminal(boolean isError) {
+    resetSpeakerButton();
+    if (ttsWatchdogRunnable != null) {
+      mainHandler.removeCallbacks(ttsWatchdogRunnable);
+      ttsWatchdogRunnable = null;
+    }
+    String source = currentTtsSource;
+    Runnable callback = currentTtsOnDoneCallback;
+    currentTtsSource = null;
+    currentTtsOnDoneCallback = null;
+    currentUtteranceId = null;
+
+    if (isError && source != null) {
+      if ("script".equals(source)) {
+        loggerDelegate.trace("TRACE_TTS_FLOW source=tts_callback");
+        loggerDelegate.gate("M1_TTS_DONE source=tts_callback");
+        loggerDelegate.ux("UX_TTS_DONE", "source=script_error");
+        if (callback != null) {
+          callback.run();
+        }
+      } else if ("message".equals(source)) {
+        loggerDelegate.ux("UX_TTS_DONE", "source=message_error");
+      }
+      return;
+    }
+
+    if ("script".equals(source)) {
+      loggerDelegate.trace("TRACE_TTS_FLOW source=tts_callback");
+      loggerDelegate.gate("M1_TTS_DONE source=tts_callback");
+      loggerDelegate.ux("UX_TTS_DONE", "source=script_callback");
+    } else if ("message".equals(source)) {
+      loggerDelegate.ux("UX_TTS_DONE", "source=message_callback");
+    }
+
+    if (callback != null) {
+      callback.run();
+    }
   }
 
   private void resetSpeakerButton() {
@@ -493,6 +715,46 @@ public final class DialoguePlaybackCoordinator {
           && fallbackResult != TextToSpeech.LANG_NOT_SUPPORTED;
     }
     return true;
+  }
+
+  @NonNull
+  private String buildUtteranceId(@NonNull String prefix, long sessionToken) {
+    return prefix + "_" + sessionToken;
+  }
+
+  private boolean isSessionCurrent(long sessionToken) {
+    return sessionToken == ttsSessionToken;
+  }
+
+  @NonNull
+  private static String normalizeProvider(@Nullable String provider) {
+    if (provider == null) {
+      return AppSettings.DEFAULT_TTS_PROVIDER;
+    }
+    String normalized = provider.trim().toLowerCase(Locale.US);
+    if (normalized.isEmpty()) {
+      return AppSettings.DEFAULT_TTS_PROVIDER;
+    }
+    if (AppSettings.TTS_PROVIDER_GOOGLE.equals(normalized)) {
+      return AppSettings.TTS_PROVIDER_GOOGLE;
+    }
+    return AppSettings.TTS_PROVIDER_ANDROID;
+  }
+
+  static boolean shouldUseGeminiProvider(@Nullable String provider) {
+    return AppSettings.TTS_PROVIDER_GOOGLE.equals(normalizeProvider(provider));
+  }
+
+  static boolean shouldAttemptGeminiSynthesis(@Nullable String provider, boolean hasGeminiManager) {
+    return shouldUseGeminiProvider(provider) && hasGeminiManager;
+  }
+
+  @NonNull
+  static String resolveGeminiVoiceName(@Nullable String gender) {
+    if ("male".equalsIgnoreCase(gender)) {
+      return "Puck";
+    }
+    return "Kore";
   }
 
   private float clamp(float value, float min, float max) {

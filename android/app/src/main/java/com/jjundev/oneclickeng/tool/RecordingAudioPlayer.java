@@ -11,7 +11,7 @@ import android.util.Log;
 public class RecordingAudioPlayer {
 
   private static final String TAG = "RecordingAudioPlayer";
-  private static final int SAMPLE_RATE = 16000;
+  private static final int DEFAULT_SAMPLE_RATE = 16000;
   private static final int CHANNEL_CONFIG = AudioFormat.CHANNEL_OUT_MONO;
   private static final int AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT;
 
@@ -30,8 +30,14 @@ public class RecordingAudioPlayer {
 
   /** PCM 오디오 재생 시작 (기존 재생 중이면 자동 중지) */
   public void play(byte[] pcmData, PlaybackCallback callback) {
+    play(pcmData, DEFAULT_SAMPLE_RATE, callback);
+  }
+
+  /** PCM 오디오 재생 시작 (샘플레이트 지정 가능) */
+  public void play(byte[] pcmData, int sampleRateHz, PlaybackCallback callback) {
     final PlaybackCallback resolvedCallback = callback;
     final long requestToken;
+    final int resolvedSampleRate = sampleRateHz > 0 ? sampleRateHz : DEFAULT_SAMPLE_RATE;
 
     synchronized (trackLock) {
       requestToken = ++playbackToken;
@@ -59,7 +65,7 @@ public class RecordingAudioPlayer {
               .setAudioFormat(
                   new AudioFormat.Builder()
                       .setEncoding(AUDIO_FORMAT)
-                      .setSampleRate(SAMPLE_RATE)
+                      .setSampleRate(resolvedSampleRate)
                       .setChannelMask(CHANNEL_CONFIG)
                       .build())
               .setBufferSizeInBytes(bufferSize)
