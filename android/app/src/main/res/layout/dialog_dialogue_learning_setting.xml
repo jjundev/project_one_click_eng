@@ -59,7 +59,12 @@
                         android:minHeight="40dp"
                         android:text="@string/settings_mute_all_playback"
                         android:textColor="@color/color_sub_text"
-                        android:textSize="14sp" />
+                        android:textSize="@dimen/dialog_helper_text_size"
+                        android:textStyle="bold"
+                        app:thumbTint="@color/selector_switch_mute_thumb"
+                        app:trackTint="@color/selector_switch_mute_track"
+                        app:useMaterialThemeColors="false" />
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -113,6 +118,14 @@
                             android:textColor="@color/color_sub_text"
                             android:textSize="14sp" />
                     </RadioGroup>
+
+                    <TextView
+                        android:id="@+id/tv_tts_provider_desc"
+                        style="@style/DialogTextHelper"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textColor="@color/color_sub_sub_text" />
 
                     <View
                         android:layout_width="match_parent"

@@ -198,7 +198,12 @@ public class DialogueSelectFragment extends Fragment
 
   @Override
   public void onScriptParamsSelected(
-      String level, String topic, String format, int length, DialogueGenerateDialog dialog) {
+      String level,
+      String topic,
+      String format,
+      int length,
+      int requiredCredit,
+      DialogueGenerateDialog dialog) {
     if (dialog != null) {
       dialog.showLoading(true);
     }
@@ -220,8 +225,10 @@ public class DialogueSelectFragment extends Fragment
                 DocumentSnapshot doc = task.getResult();
                 Long creditObj = doc.getLong("credit");
                 long credit = creditObj != null ? creditObj : 0L;
-                if (credit > 0) {
-                  generateScriptStreaming(level, topic, format, length, dialog);
+                int finalRequiredCredit = Math.max(1, requiredCredit);
+                if (credit >= finalRequiredCredit) {
+                  generateScriptStreaming(
+                      level, topic, format, length, finalRequiredCredit, dialog);
                 } else {
                   if (dialog != null) dialog.dismiss();
                   Toast.makeText(getContext(), "크레딧이 부족해요", Toast.LENGTH_SHORT).show();
@@ -239,6 +246,7 @@ public class DialogueSelectFragment extends Fragment
       @NonNull String topic,
       @NonNull String format,
       int length,
+      int requiredCredit,
       @Nullable DialogueGenerateDialog dialog) {
     logStream(
         "prepare start: level="
@@ -248,7 +256,9 @@ public class DialogueSelectFragment extends Fragment
             + ", format="
             + format
             + ", requestedLength="
-            + Math.max(1, length));
+            + Math.max(1, length)
+            + ", requiredCredit="
+            + Math.max(1, requiredCredit));
     clearPendingScriptSession(true);
     long requestId = ++scriptPreparationRequestId;
     DialogueScriptStreamingSessionStore sessionStore =
@@ -310,6 +320,7 @@ public class DialogueSelectFragment extends Fragment
                   requestId,
                   level,
                   Math.max(1, length),
+                  Math.max(1, requiredCredit),
                   userRequestedTopic,
                   sessionId);
             }
@@ -383,6 +394,7 @@ public class DialogueSelectFragment extends Fragment
           requestId,
           level,
           Math.max(1, length),
+          Math.max(1, requiredCredit),
           userRequestedTopic,
           sessionId);
       return;
@@ -404,6 +416,7 @@ public class DialogueSelectFragment extends Fragment
       long requestId,
       @NonNull String level,
       int requestedLength,
+      int requiredCredit,
       @NonNull String requestedTopic,
       @NonNull String sessionId) {
     logStream(
@@ -413,6 +426,8 @@ public class DialogueSelectFragment extends Fragment
             + level
             + ", requestedLength="
             + requestedLength
+            + ", requiredCredit="
+            + Math.max(1, requiredCredit)
             + ", topic="
             + safeText(requestedTopic)
             + ", sessionId="
@@ -422,7 +437,7 @@ public class DialogueSelectFragment extends Fragment
     if (dialog != null && dialog.isAdded()) {
       dialog.dismiss();
     }
-    startScriptStudyStreaming(level, requestedLength, requestedTopic, sessionId);
+    startScriptStudyStreaming(level, requestedLength, requiredCredit, requestedTopic, sessionId);
   }
 
   private void showScriptPreparationError(@Nullable DialogueGenerateDialog dialog, long requestId) {
@@ -471,6 +486,7 @@ public class DialogueSelectFragment extends Fragment
   private void startScriptStudyStreaming(
       @NonNull String level,
       int requestedLength,
+      int requiredCredit,
       @NonNull String requestedTopic,
       @NonNull String sessionId) {
     if (!isAdded() || getActivity() == null) {
@@ -478,6 +494,7 @@ public class DialogueSelectFragment extends Fragment
       LearningDependencyProvider.provideDialogueScriptStreamingSessionStore().release(sessionId);
       return;
     }
+    int creditToDeduct = Math.max(1, requiredCredit);
 
     Intent intent = new Intent(getActivity(), DialogueLearningActivity.class);
     intent.putExtra(DialogueLearningActivity.EXTRA_SCRIPT_LEVEL, level);
@@ -487,14 +504,20 @@ public class DialogueSelectFragment extends Fragment
     try {
       startActivity(intent);
 
-      // 크레딧 1 차감 로직
+      // 요청된 대본 길이에 맞춰 크레딧 차감(11줄부터 2)
       FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
       if (user != null) {
         FirebaseFirestore.getInstance()
             .collection("users")
             .document(user.getUid())
-            .update("credit", FieldValue.increment(-1))
-            .addOnFailureListener(e -> logStream("Failed to decrement credit: " + e.getMessage()));
+            .update("credit", FieldValue.increment(-creditToDeduct))
+            .addOnFailureListener(
+                e ->
+                    logStream(
+                        "Failed to decrement credit("
+                            + creditToDeduct
+                            + "): "
+                            + e.getMessage()));
       }
 
     } catch (Exception e) {
@@ -509,7 +532,11 @@ public class DialogueSelectFragment extends Fragment
       }
       return;
     }
-    logStream("start activity success: sessionId=" + shortSession(sessionId));
+    logStream(
+        "start activity success: sessionId="
+            + shortSession(sessionId)
+            + ", deductedCredit="
+            + creditToDeduct);
     hideKeyboard();
   }
 

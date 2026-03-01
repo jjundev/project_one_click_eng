@@ -182,6 +182,8 @@
     <string name="dialogue_learning_settings_section_mute">음소거</string>
     <string name="dialogue_learning_settings_section_mute_placeholder">다음 작업에서 음소거 토글이 연결돼요.</string>
     <string name="dialogue_learning_settings_section_tts">TTS 설정</string>
+    <string name="dialogue_learning_settings_tts_android_desc">기기 내장 음성 엔진으로 빠르게 재생해요.</string>
+    <string name="dialogue_learning_settings_tts_gemini_desc">서버 기반 음성으로 자연스러운 발음을 기대할 수 있어요.</string>
     <string name="dialogue_learning_settings_section_tts_placeholder">속도 및 로케일 컨트롤은 다음 작업에서 연결돼요.</string>
     <string name="dialogue_learning_settings_close">닫기</string>
 
@@ -234,6 +236,8 @@
 
     <!-- Dialogue Generate Loading -->
     <string name="dialogue_generate_loading">AI가 대본을 생성하고 있어요...</string>
+    <string name="dialogue_generate_confirm_credit_1">대본 생성하기 (1 크레딧)</string>
+    <string name="dialogue_generate_confirm_credit_2">대본 생성하기 (2 크레딧)</string>
     <string-array name="dialogue_generate_loading_messages">
         <item>@string/dialogue_generate_loading</item>
         <item>대화 흐름을 구성하고 있어요...</item>

@@ -20,8 +20,11 @@ import androidx.fragment.app.DialogFragment;
 import com.jjundev.oneclickeng.R;
 
 public class DialogueGenerateDialog extends DialogFragment {
-  private static final long LOADING_MESSAGE_ROTATION_INTERVAL_MS = 2000L;
+  private static final long LOADING_MESSAGE_ROTATION_INTERVAL_MS = 2500L;
   private static final long LOADING_MESSAGE_FADE_DURATION_MS = 300L;
+  private static final int CREDIT_THRESHOLD_LENGTH = 11;
+  private static final int CREDIT_COST_DEFAULT = 1;
+  private static final int CREDIT_COST_EXTENDED = 2;
   private static final String ARG_TOPIC = "arg_topic";
 
   public static DialogueGenerateDialog newInstance(String topic) {
@@ -49,7 +52,12 @@ public class DialogueGenerateDialog extends DialogFragment {
 
   public interface OnScriptParamsSelectedListener {
     void onScriptParamsSelected(
-        String level, String topic, String format, int length, DialogueGenerateDialog dialog);
+        String level,
+        String topic,
+        String format,
+        int length,
+        int requiredCredit,
+        DialogueGenerateDialog dialog);
   }
 
   @Override
@@ -185,7 +193,7 @@ public class DialogueGenerateDialog extends DialogFragment {
           public void onProgressChanged(
               android.widget.SeekBar seekBar, int progress, boolean fromUser) {
             int length = progress + 2;
-            tvLengthValue.setText(length + "줄");
+            updateLengthUi(length);
           }
 
           @Override
@@ -196,7 +204,21 @@ public class DialogueGenerateDialog extends DialogFragment {
         });
 
     // Initialize text
-    tvLengthValue.setText((sbLength.getProgress() + 2) + "줄");
+    updateLengthUi(sbLength.getProgress() + 2);
+  }
+
+  private void updateLengthUi(int length) {
+    tvLengthValue.setText(length + "줄");
+    int requiredCredit = calculateRequiredCredit(length);
+    int textResId =
+        requiredCredit == CREDIT_COST_EXTENDED
+            ? R.string.dialogue_generate_confirm_credit_2
+            : R.string.dialogue_generate_confirm_credit_1;
+    btnConfirm.setText(textResId);
+  }
+
+  private int calculateRequiredCredit(int length) {
+    return length >= CREDIT_THRESHOLD_LENGTH ? CREDIT_COST_EXTENDED : CREDIT_COST_DEFAULT;
   }
 
   public void showLoading(boolean loading) {
@@ -385,10 +407,11 @@ public class DialogueGenerateDialog extends DialogFragment {
 
     String format = "dialogue";
     int length = sbLength.getProgress() + 2;
+    int requiredCredit = calculateRequiredCredit(length);
 
     if (listener != null) {
       showLoading(true);
-      listener.onScriptParamsSelected(level, topic, format, length, this);
+      listener.onScriptParamsSelected(level, topic, format, length, requiredCredit, this);
     }
   }
 }

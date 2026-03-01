@@ -29,6 +29,7 @@ public class DialogueLearningSettingDialog extends DialogFragment {
   private SwitchMaterial switchMuteAll;
   private SeekBar seekTtsRate;
   private TextView tvTtsRateValue;
+  private TextView tvTtsProviderDesc;
   private RadioGroup rgTtsProvider;
   private View btnResetSpeed;
 
@@ -78,6 +79,7 @@ public class DialogueLearningSettingDialog extends DialogFragment {
     switchMuteAll = view.findViewById(R.id.switch_mute_all);
     seekTtsRate = view.findViewById(R.id.seek_tts_rate);
     tvTtsRateValue = view.findViewById(R.id.tv_tts_rate_value);
+    tvTtsProviderDesc = view.findViewById(R.id.tv_tts_provider_desc);
     rgTtsProvider = view.findViewById(R.id.rg_tts_provider);
     btnResetSpeed = view.findViewById(R.id.btn_reset_speed);
   }
@@ -123,6 +125,7 @@ public class DialogueLearningSettingDialog extends DialogFragment {
 
     rgTtsProvider.setOnCheckedChangeListener(
         (group, checkedId) -> {
+          updateTtsProviderDescription(checkedId);
           if (bindingState) return;
           AppSettingsStore store = appSettingsStore;
           if (store == null) return;
@@ -183,8 +186,29 @@ public class DialogueLearningSettingDialog extends DialogFragment {
     } else {
       rgTtsProvider.check(R.id.rb_provider_android);
     }
+    updateTtsProviderDescription(rgTtsProvider.getCheckedRadioButtonId());
 
     bindingState = false;
+  }
+
+  private void updateTtsProviderDescription(int checkedId) {
+    if (tvTtsProviderDesc == null) {
+      return;
+    }
+
+    int descriptionTextResId;
+    if (checkedId == R.id.rb_provider_android) {
+      descriptionTextResId = R.string.dialogue_learning_settings_tts_android_desc;
+    } else if (checkedId == R.id.rb_provider_gemini) {
+      descriptionTextResId = R.string.dialogue_learning_settings_tts_gemini_desc;
+    } else {
+      tvTtsProviderDesc.setText(null);
+      tvTtsProviderDesc.setVisibility(View.GONE);
+      return;
+    }
+
+    tvTtsProviderDesc.setVisibility(View.VISIBLE);
+    tvTtsProviderDesc.setText(descriptionTextResId);
   }
 
   private int speechRateToProgress(float speechRate) {
