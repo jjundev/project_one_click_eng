@@ -12,6 +12,16 @@
 - Auth: `Authorization: Bearer <firebase_id_token>`
 - Content-Type: `application/json`
 
+## Client Setup
+1. `local.properties`에 아래 키를 반드시 설정한다.
+   - `CREDIT_BILLING_VERIFY_URL=https://<your-host>/...`
+2. 누락 시 앱 동작:
+   - CreditStore 결제 진입이 차단됨.
+   - 검증 단계에서 `CONFIG_ERROR`가 반환되어 크레딧이 지급되지 않음.
+3. 확인 방법:
+   - `app/build.gradle`의 `BuildConfig.CREDIT_BILLING_VERIFY_URL` 주입 라인 확인.
+   - 앱 로그에서 `CREDIT_BILLING_VERIFY_URL is empty` 또는 config failure 키워드 확인.
+
 ## Request JSON
 ```json
 {

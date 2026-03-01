@@ -27,7 +27,12 @@ import androidx.credentials.CredentialManagerCallback;
 import androidx.credentials.CustomCredential;
 import androidx.credentials.GetCredentialRequest;
 import androidx.credentials.GetCredentialResponse;
+import androidx.credentials.exceptions.GetCredentialCancellationException;
 import androidx.credentials.exceptions.GetCredentialException;
+import androidx.credentials.exceptions.GetCredentialInterruptedException;
+import androidx.credentials.exceptions.GetCredentialProviderConfigurationException;
+import androidx.credentials.exceptions.GetCredentialUnsupportedException;
+import androidx.credentials.exceptions.NoCredentialException;
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
@@ -601,15 +606,14 @@ public class LoginActivity extends AppCompatActivity {
   }
 
   private void signInWithGoogle() {
-    GetGoogleIdOption googleIdOption =
-        new GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(false)
-            .setServerClientId(getString(R.string.default_web_client_id))
-            .setAutoSelectEnabled(true)
-            .build();
-
-    GetCredentialRequest request =
-        new GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build();
+    GetCredentialRequest request;
+    try {
+      request = createGoogleCredentialRequest();
+    } catch (IllegalStateException e) {
+      Log.e(TAG, "Google Sign-In setup failed", e);
+      handleGoogleSignInFailure(getString(R.string.login_google_error_provider_config));
+      return;
+    }
 
     CredentialManager credentialManager = CredentialManager.create(this);
     credentialManager.getCredentialAsync(
@@ -629,24 +633,75 @@ public class LoginActivity extends AppCompatActivity {
                   GoogleIdTokenCredential googleIdTokenCredential =
                       GoogleIdTokenCredential.createFrom(credential.getData());
                   String idToken = googleIdTokenCredential.getIdToken();
+                  if (idToken == null || idToken.isEmpty()) {
+                    Log.e(TAG, "Google Sign-In failed: empty ID token");
+                    handleGoogleSignInFailure(getString(R.string.login_google_error_generic));
+                    return;
+                  }
                   firebaseAuthWithGoogle(idToken);
+                  return;
                 }
+                Log.e(TAG, "Unexpected credential type: " + credential.getType());
+                handleGoogleSignInFailure(getString(R.string.login_google_error_unexpected_credential));
+                return;
               }
+              Log.e(TAG, "Unexpected credential class: " + result.getCredential().getClass().getName());
+              handleGoogleSignInFailure(getString(R.string.login_google_error_unexpected_credential));
             } catch (Exception e) {
               Log.e(TAG, "Parsing credential failed", e);
-              Toast.makeText(LoginActivity.this, "구글 로그인 중 오류 발생", Toast.LENGTH_SHORT).show();
-              setLoadingState(false);
+              handleGoogleSignInFailure(getString(R.string.login_google_error_parse));
             }
           }
 
           @Override
           public void onError(GetCredentialException e) {
-            Log.e(TAG, "Google Sign-In failed", e);
-            setLoadingState(false);
-            // Toast.makeText(LoginActivity.this, "구글 로그인 실패",
-            // Toast.LENGTH_SHORT).show();
+            handleGoogleCredentialError(e);
           }
         });
+  }
+
+  private GetCredentialRequest createGoogleCredentialRequest() {
+    String serverClientId = getString(R.string.default_web_client_id);
+    if (serverClientId == null || serverClientId.trim().isEmpty()) {
+      throw new IllegalStateException("default_web_client_id is empty");
+    }
+
+    Log.d(TAG, "Google Sign-In request initialized with web client id");
+    GetGoogleIdOption googleIdOption =
+        new GetGoogleIdOption.Builder()
+            .setFilterByAuthorizedAccounts(false)
+            .setServerClientId(serverClientId)
+            .setAutoSelectEnabled(false)
+            .build();
+    return new GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build();
+  }
+
+  private void handleGoogleCredentialError(GetCredentialException e) {
+    String errorType = e.getClass().getSimpleName();
+    Log.e(TAG, "Google Sign-In failed. type=" + errorType + ", message=" + e.getMessage(), e);
+    handleGoogleSignInFailure(getString(resolveGoogleCredentialErrorMessageRes(e)));
+  }
+
+  private int resolveGoogleCredentialErrorMessageRes(GetCredentialException e) {
+    if (e instanceof NoCredentialException) {
+      return R.string.login_google_error_no_credential;
+    }
+    if (e instanceof GetCredentialCancellationException) {
+      return R.string.login_google_error_canceled;
+    }
+    if (e instanceof GetCredentialInterruptedException) {
+      return R.string.login_google_error_interrupted;
+    }
+    if (e instanceof GetCredentialProviderConfigurationException
+        || e instanceof GetCredentialUnsupportedException) {
+      return R.string.login_google_error_provider_config;
+    }
+    return R.string.login_google_error_generic;
+  }
+
+  private void handleGoogleSignInFailure(String message) {
+    setLoadingState(false);
+    Toast.makeText(LoginActivity.this, message, Toast.LENGTH_SHORT).show();
   }
 
   private void firebaseAuthWithGoogle(String idToken) {

@@ -19,14 +19,15 @@ android {
         applicationId "com.jjundev.oneclickeng"
         minSdk 31
         targetSdk 36
-        versionCode 6
-        versionName "1.0.0"
+        versionCode 8
+        versionName "1.0.2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         
         // BuildConfig에 API Key 및 AdMob ID 추가
         buildConfigField "String", "GEMINI_API_KEY", "\"${localProperties.getProperty('GEMINI_API_KEY', '')}\""
         buildConfigField "String", "ADMOB_REWARDED_AD_UNIT_ID", "\"${localProperties.getProperty('ADMOB_REWARDED_AD_UNIT_ID', '')}\""
+        // 필수: 미설정 시 CreditStore에서 결제 시작이 차단되고 검증이 CONFIG_ERROR로 처리됨
         buildConfigField "String", "CREDIT_BILLING_VERIFY_URL", "\"${localProperties.getProperty('CREDIT_BILLING_VERIFY_URL', '')}\""
 
         ndk {
@@ -93,11 +94,11 @@ dependencies {
     implementation libs.firebase.firestore
 
     // AdMob
-    implementation 'com.google.android.gms:play-services-ads:23.0.0'
+    implementation libs.play.services.ads
 
     // ExoPlayer (Media3) — English Shorts 비디오 재생
-    implementation 'androidx.media3:media3-exoplayer:1.6.1'
-    implementation 'androidx.media3:media3-ui:1.6.1'
+    implementation libs.media3.exoplayer
+    implementation libs.media3.ui
 
     testImplementation libs.junit
     testImplementation libs.arch.core.testing

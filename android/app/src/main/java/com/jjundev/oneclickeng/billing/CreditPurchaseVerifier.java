@@ -43,15 +43,10 @@ public final class CreditPurchaseVerifier {
   public void verifyPurchase(
       @NonNull CreditPurchaseStore.PendingPurchase pendingPurchase,
       @NonNull VerificationCallback callback) {
-    if (verifyUrl.isEmpty()) {
-      callback.onResult(
-          VerificationResult.error(VerificationStatus.CONFIG_ERROR, "CREDIT_BILLING_VERIFY_URL is empty"));
-      return;
-    }
-
     FirebaseUser user = auth.getCurrentUser();
-    if (user == null) {
-      callback.onResult(VerificationResult.error(VerificationStatus.AUTH_ERROR, "User is not signed in"));
+    VerificationResult preconditionError = preconditionError(user);
+    if (preconditionError != null) {
+      callback.onResult(preconditionError);
       return;
     }
 
@@ -73,6 +68,18 @@ public final class CreditPurchaseVerifier {
                 callback.onResult(
                     VerificationResult.error(
                         VerificationStatus.AUTH_ERROR, "Failed to acquire Firebase ID token")));
+  }
+
+  @Nullable
+  VerificationResult preconditionError(@Nullable FirebaseUser user) {
+    if (verifyUrl.isEmpty()) {
+      return VerificationResult.error(
+          VerificationStatus.CONFIG_ERROR, "CREDIT_BILLING_VERIFY_URL is empty");
+    }
+    if (user == null) {
+      return VerificationResult.error(VerificationStatus.AUTH_ERROR, "User is not signed in");
+    }
+    return null;
   }
 
   private void executeVerifyRequest(

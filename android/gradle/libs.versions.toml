@@ -6,8 +6,11 @@ dynamicanimation = "1.1.0"
 firebaseBom = "34.9.0"
 flexbox = "3.0.0"
 googleid = "1.2.0"
+media3Exoplayer = "1.9.2"
+media3Ui = "1.9.2"
 navigationFragment = "2.9.7"
 navigationUi = "2.9.7"
+playServicesAds = "25.0.0"
 spotless = "6.25.0"
 junit = "4.13.2"
 junitVersion = "1.1.5"
@@ -46,8 +49,11 @@ appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "a
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3Exoplayer" }
+media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3Ui" }
 navigation-fragment = { module = "androidx.navigation:navigation-fragment", version.ref = "navigationFragment" }
 navigation-ui = { module = "androidx.navigation:navigation-ui", version.ref = "navigationUi" }
+play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
 preference = { group = "androidx.preference", name = "preference", version.ref = "preference" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }

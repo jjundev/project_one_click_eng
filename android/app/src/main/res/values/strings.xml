@@ -272,4 +272,13 @@
     <string name="history_quiz_config_confirm_credit_2">퀴즈 생성하기 (2 크레딧)</string>
     <string name="history_quiz_err_no_items">해당 기간에 학습한 항목이 없어요.</string>
     <string name="history_quiz_err_count_range">문제 수를 1~10 사이로 입력해 주세요.</string>
+
+    <!-- Login / Google Sign-In -->
+    <string name="login_google_error_generic">구글 로그인에 실패했어요. 다시 시도해 주세요.</string>
+    <string name="login_google_error_parse">구글 계정 정보를 처리하지 못했어요. 다시 시도해 주세요.</string>
+    <string name="login_google_error_no_credential">사용 가능한 구글 계정을 찾지 못했어요. 계정을 추가한 뒤 다시 시도해 주세요.</string>
+    <string name="login_google_error_canceled">구글 로그인이 취소되었어요.</string>
+    <string name="login_google_error_interrupted">구글 로그인 요청이 중단되었어요. 다시 시도해 주세요.</string>
+    <string name="login_google_error_provider_config">구글 로그인 설정이 올바르지 않아요. 앱을 업데이트한 뒤 다시 시도해 주세요.</string>
+    <string name="login_google_error_unexpected_credential">지원되지 않는 로그인 응답을 받았어요. 다시 시도해 주세요.</string>
 </resources>

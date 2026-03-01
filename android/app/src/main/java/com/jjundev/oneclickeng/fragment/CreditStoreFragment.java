@@ -21,6 +21,8 @@ import com.android.billingclient.api.BillingClient;
 import com.android.billingclient.api.BillingResult;
 import com.android.billingclient.api.ProductDetails;
 import com.android.billingclient.api.Purchase;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.billing.CreditPurchaseStore;
@@ -44,6 +46,13 @@ public class CreditStoreFragment extends Fragment {
 
   private static final String PRICE_LOADING = "가격 확인 중...";
   private static final String PRICE_UNAVAILABLE = "구매 준비 중";
+  private static final String MESSAGE_PRECHECK_CONFIG =
+      "결제 설정에 문제가 있어요. 잠시 후 다시 시도해주세요.";
+  private static final String MESSAGE_PRECHECK_AUTH = "로그인 후 결제를 진행해주세요.";
+  private static final String MESSAGE_PRECHECK_BILLING = "결제 서비스를 준비 중이에요";
+  private static final String MESSAGE_PRECHECK_PRODUCT = "상품 정보를 불러오는 중이에요.";
+  private static final String MESSAGE_VERIFICATION_RETRYABLE =
+      "결제 확인이 지연되고 있어요. 잠시 후 자동으로 다시 시도할게요.";
 
   @Nullable private RecyclerView rvProducts;
   @Nullable private CreditStoreAdapter adapter;
@@ -53,9 +62,14 @@ public class CreditStoreFragment extends Fragment {
 
   @NonNull private final List<CreditProduct> products = new ArrayList<>();
   @NonNull private final Set<String> verificationInFlightTokens = new HashSet<>();
+  @NonNull private final Set<String> consumptionInFlightTokens = new HashSet<>();
+  @NonNull private final Set<String> retryableFailureNotifiedTokens = new HashSet<>();
 
   private boolean billingReady;
   private boolean billingUnavailableNotified;
+  private boolean isVerifyUrlConfigured;
+  private boolean hasShownConfigErrorToast;
+  private boolean hasShownAuthErrorToast;
 
   @Nullable
   @Override
@@ -93,6 +107,7 @@ public class CreditStoreFragment extends Fragment {
     rvProducts.setLayoutManager(new GridLayoutManager(requireContext(), 2));
     rvProducts.setNestedScrollingEnabled(false);
     rvProducts.setAdapter(adapter);
+    refreshPurchaseEntryState();
 
     billingManager = new PlayBillingManager(requireContext(), this::onPurchasesUpdated);
     billingManager.startConnection(
@@ -101,6 +116,7 @@ public class CreditStoreFragment extends Fragment {
           public void onBillingReady() {
             billingReady = true;
             billingUnavailableNotified = false;
+            refreshPurchaseEntryState();
             requestProductDetails();
             recoverOwnedPurchasesAndProcessPending();
           }
@@ -108,14 +124,14 @@ public class CreditStoreFragment extends Fragment {
           @Override
           public void onBillingDisconnected() {
             billingReady = false;
-            notifyAdapterChanged();
+            refreshPurchaseEntryState();
             logDebug("Billing service disconnected.");
           }
 
           @Override
           public void onBillingUnavailable(@NonNull BillingResult billingResult) {
             billingReady = false;
-            notifyAdapterChanged();
+            refreshPurchaseEntryState();
             if (!billingUnavailableNotified) {
               billingUnavailableNotified = true;
               showToastSafe("잠시 후 다시 시도해주세요");
@@ -132,12 +148,16 @@ public class CreditStoreFragment extends Fragment {
   @Override
   public void onResume() {
     super.onResume();
+    refreshPurchaseEntryState();
     recoverOwnedPurchasesAndProcessPending();
   }
 
   @Override
   public void onDestroyView() {
     super.onDestroyView();
+    verificationInFlightTokens.clear();
+    consumptionInFlightTokens.clear();
+    retryableFailureNotifiedTokens.clear();
     rvProducts = null;
     adapter = null;
   }
@@ -174,7 +194,7 @@ public class CreditStoreFragment extends Fragment {
               product.productDetails = details;
               product.priceText = resolveFormattedPrice(details, product.fallbackPriceText);
             }
-            notifyAdapterChanged();
+            refreshPurchaseEntryState();
           }
 
           @Override
@@ -183,7 +203,7 @@ public class CreditStoreFragment extends Fragment {
               product.productDetails = null;
               product.priceText = PRICE_UNAVAILABLE;
             }
-            notifyAdapterChanged();
+            refreshPurchaseEntryState();
             logDebug(
                 "Failed to query product details: "
                     + billingResult.getResponseCode()
@@ -212,18 +232,84 @@ public class CreditStoreFragment extends Fragment {
     return formattedPrice.trim();
   }
 
+  @Nullable
+  static String getPreflightBlockMessage(
+      @Nullable String verifyUrl,
+      boolean userSignedIn,
+      boolean billingAvailable,
+      boolean productDetailsReady) {
+    if (!isVerifyUrlConfigured(verifyUrl)) {
+      return MESSAGE_PRECHECK_CONFIG;
+    }
+    if (!userSignedIn) {
+      return MESSAGE_PRECHECK_AUTH;
+    }
+    if (!billingAvailable) {
+      return MESSAGE_PRECHECK_BILLING;
+    }
+    if (!productDetailsReady) {
+      return MESSAGE_PRECHECK_PRODUCT;
+    }
+    return null;
+  }
+
+  static boolean shouldKeepPendingPurchase(
+      @NonNull CreditPurchaseVerifier.VerificationStatus status) {
+    return status == CreditPurchaseVerifier.VerificationStatus.PENDING
+        || status == CreditPurchaseVerifier.VerificationStatus.AUTH_ERROR
+        || status == CreditPurchaseVerifier.VerificationStatus.CONFIG_ERROR
+        || status == CreditPurchaseVerifier.VerificationStatus.NETWORK_ERROR
+        || status == CreditPurchaseVerifier.VerificationStatus.SERVER_ERROR;
+  }
+
+  private static boolean isVerifyUrlConfigured(@Nullable String verifyUrl) {
+    return verifyUrl != null && !verifyUrl.trim().isEmpty();
+  }
+
+  private void refreshPurchaseEntryState() {
+    isVerifyUrlConfigured = isVerifyUrlConfigured(BuildConfig.CREDIT_BILLING_VERIFY_URL);
+    if (isVerifyUrlConfigured) {
+      hasShownConfigErrorToast = false;
+    }
+    boolean signedIn = isUserSignedIn();
+    if (signedIn) {
+      hasShownAuthErrorToast = false;
+    }
+    updateProductCardStates(signedIn);
+    notifyAdapterChanged();
+  }
+
+  private void updateProductCardStates(boolean signedIn) {
+    boolean billingAvailable = billingReady && billingManager != null;
+    for (CreditProduct product : products) {
+      product.canAttemptPurchase =
+          getPreflightBlockMessage(
+                  BuildConfig.CREDIT_BILLING_VERIFY_URL,
+                  signedIn,
+                  billingAvailable,
+                  product.productDetails != null)
+              == null;
+    }
+  }
+
+  private boolean isUserSignedIn() {
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+    return user != null;
+  }
+
   private void onCreditProductClicked(@NonNull CreditProduct product) {
     if (!isAdded()) {
       return;
     }
 
-    if (!billingReady || billingManager == null) {
-      showToastSafe("결제 서비스를 준비 중이에요");
-      return;
-    }
-
-    if (product.productDetails == null) {
-      showToastSafe("상품 정보를 불러오는 중이에요.");
+    String preflightBlockMessage =
+        getPreflightBlockMessage(
+            BuildConfig.CREDIT_BILLING_VERIFY_URL,
+            isUserSignedIn(),
+            billingReady && billingManager != null,
+            product.productDetails != null);
+    if (preflightBlockMessage != null) {
+      showPreflightBlockToast(preflightBlockMessage);
       return;
     }
 
@@ -245,6 +331,26 @@ public class CreditStoreFragment extends Fragment {
             + " / "
             + launchResult.getDebugMessage());
     showToastSafe("결제를 시작하지 못했어요");
+  }
+
+  private void showPreflightBlockToast(@NonNull String message) {
+    if (MESSAGE_PRECHECK_CONFIG.equals(message)) {
+      if (!hasShownConfigErrorToast) {
+        hasShownConfigErrorToast = true;
+        showToastSafe(message);
+      }
+      logDebug("Purchase preflight blocked due to missing verify url.");
+      return;
+    }
+    if (MESSAGE_PRECHECK_AUTH.equals(message)) {
+      if (!hasShownAuthErrorToast) {
+        hasShownAuthErrorToast = true;
+        showToastSafe(message);
+      }
+      logDebug("Purchase preflight blocked due to signed-out state.");
+      return;
+    }
+    showToastSafe(message);
   }
 
   private void onPurchasesUpdated(
@@ -311,6 +417,7 @@ public class CreditStoreFragment extends Fragment {
 
     if (state == Purchase.PurchaseState.PURCHASED) {
       enqueuePendingPurchase(purchase);
+      consumePurchaseImmediately(purchase.getPurchaseToken());
       if (fromUserFlow) {
         showToastSafe("구매를 확인하고 있어요...");
       }
@@ -356,8 +463,19 @@ public class CreditStoreFragment extends Fragment {
     if (store == null || verifier == null) {
       return;
     }
-
     List<CreditPurchaseStore.PendingPurchase> pendingPurchases = store.getPendingPurchases();
+    if (pendingPurchases.isEmpty()) {
+      return;
+    }
+
+    if (!isVerifyUrlConfigured) {
+      showPreflightBlockToast(MESSAGE_PRECHECK_CONFIG);
+      return;
+    }
+    if (!isUserSignedIn()) {
+      showPreflightBlockToast(MESSAGE_PRECHECK_AUTH);
+      return;
+    }
     for (CreditPurchaseStore.PendingPurchase pendingPurchase : pendingPurchases) {
       String token = pendingPurchase.getPurchaseToken();
       if (token.isEmpty() || verificationInFlightTokens.contains(token)) {
@@ -373,17 +491,24 @@ public class CreditStoreFragment extends Fragment {
       @NonNull CreditPurchaseStore.PendingPurchase pendingPurchase,
       @NonNull CreditPurchaseVerifier.VerificationResult verificationResult) {
     String token = pendingPurchase.getPurchaseToken();
+    CreditPurchaseVerifier.VerificationStatus status = verificationResult.status;
+    verificationInFlightTokens.remove(token);
+
+    CreditPurchaseStore store = purchaseStore;
+    if (!shouldKeepPendingPurchase(status) && store != null) {
+      store.removeByPurchaseToken(token);
+      retryableFailureNotifiedTokens.remove(token);
+    }
+
     switch (verificationResult.status) {
       case GRANTED:
       case ALREADY_GRANTED:
-        consumeAfterVerifiedGrant(pendingPurchase, verificationResult);
+        showToastSafe("크레딧이 충전되었어요.");
         return;
       case PENDING:
-        verificationInFlightTokens.remove(token);
         return;
       case REJECTED:
       case INVALID:
-        verificationInFlightTokens.remove(token);
         showToastSafe("결제 검증에 실패했어요");
         logDebug(
             "Verification rejected for token="
@@ -394,11 +519,41 @@ public class CreditStoreFragment extends Fragment {
                 + verificationResult.message);
         return;
       case AUTH_ERROR:
+        if (!hasShownAuthErrorToast) {
+          hasShownAuthErrorToast = true;
+          showToastSafe(MESSAGE_PRECHECK_AUTH);
+        }
+        logDebug(
+            "Verification auth failure for token="
+                + maskToken(token)
+                + ", message="
+                + verificationResult.message);
+        return;
       case CONFIG_ERROR:
+        if (!hasShownConfigErrorToast) {
+          hasShownConfigErrorToast = true;
+          showToastSafe(MESSAGE_PRECHECK_CONFIG);
+        }
+        logDebug(
+            "Verification config failure for token="
+                + maskToken(token)
+                + ", message="
+                + verificationResult.message);
+        return;
       case NETWORK_ERROR:
       case SERVER_ERROR:
+        if (retryableFailureNotifiedTokens.add(token)) {
+          showToastSafe(MESSAGE_VERIFICATION_RETRYABLE);
+        }
+        logDebug(
+            "Verification retryable failure for token="
+                + maskToken(token)
+                + ", status="
+                + verificationResult.status
+                + ", message="
+                + verificationResult.message);
+        return;
       default:
-        verificationInFlightTokens.remove(token);
         logDebug(
             "Verification retryable failure for token="
                 + maskToken(token)
@@ -409,36 +564,41 @@ public class CreditStoreFragment extends Fragment {
     }
   }
 
-  private void consumeAfterVerifiedGrant(
-      @NonNull CreditPurchaseStore.PendingPurchase pendingPurchase,
-      @NonNull CreditPurchaseVerifier.VerificationResult verificationResult) {
+  private void consumePurchaseImmediately(@Nullable String purchaseToken) {
     PlayBillingManager manager = billingManager;
-    CreditPurchaseStore store = purchaseStore;
-    if (manager == null || store == null) {
-      verificationInFlightTokens.remove(pendingPurchase.getPurchaseToken());
+    if (manager == null || !billingReady) {
       return;
     }
 
+    String safeToken = purchaseToken == null ? "" : purchaseToken.trim();
+    if (safeToken.isEmpty() || consumptionInFlightTokens.contains(safeToken)) {
+      return;
+    }
+    consumptionInFlightTokens.add(safeToken);
+
     manager.consumePurchase(
-        pendingPurchase.getPurchaseToken(),
-        (billingResult, purchaseToken) -> {
-          verificationInFlightTokens.remove(purchaseToken);
+        safeToken,
+        (billingResult, consumedToken) -> {
+          String callbackToken = consumedToken == null ? "" : consumedToken.trim();
+          if (callbackToken.isEmpty()) {
+            consumptionInFlightTokens.remove(safeToken);
+          } else {
+            consumptionInFlightTokens.remove(callbackToken);
+          }
           int responseCode = billingResult.getResponseCode();
           if (responseCode == BillingClient.BillingResponseCode.OK
               || responseCode == BillingClient.BillingResponseCode.ITEM_NOT_OWNED) {
-            store.removeByPurchaseToken(purchaseToken);
-            long grantedCredits = verificationResult.grantedCredits;
-            if (grantedCredits > 0) {
-              showToastSafe(grantedCredits + " 크레딧이 충전되었어요.");
-            } else {
-              showToastSafe("크레딧이 충전되었어요.");
-            }
+            logDebug(
+                "consumePurchase completed: token="
+                    + maskToken(safeToken)
+                    + ", code="
+                    + responseCode);
             return;
           }
 
           logDebug(
               "consumePurchase failed: token="
-                  + maskToken(purchaseToken)
+                  + maskToken(safeToken)
                   + ", code="
                   + responseCode
                   + ", message="
@@ -530,7 +690,7 @@ public class CreditStoreFragment extends Fragment {
       holder.tvProductId.setText(item.productId);
       holder.tvPrice.setText(item.priceText);
       holder.card.setOnClickListener(v -> clickListener.onProductClicked(item));
-      holder.card.setAlpha(item.productDetails == null ? 0.8f : 1.0f);
+      holder.card.setAlpha(item.canAttemptPurchase ? 1.0f : 0.6f);
     }
 
     @Override
@@ -564,6 +724,7 @@ public class CreditStoreFragment extends Fragment {
     @NonNull private final String fallbackPriceText;
     @Nullable private ProductDetails productDetails;
     @NonNull private String priceText;
+    private boolean canAttemptPurchase;
 
     CreditProduct(
         @NonNull String productName,
@@ -574,6 +735,7 @@ public class CreditStoreFragment extends Fragment {
       this.productId = productId;
       this.fallbackPriceText = fallbackPriceText;
       this.priceText = initialPriceText;
+      this.canAttemptPurchase = false;
     }
   }
 }
