@@ -20,7 +20,7 @@
         android:id="@+id/tvLoginDescription"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="복잡한 가입 절차 없이 바로 학습을 시작하세요."
+        android:text="복잡한 가입 절차 없이 바로 학습을 시작하세요"
         android:textColor="@color/color_primary_text"
         android:textSize="15sp"
         android:layout_marginBottom="32dp" />

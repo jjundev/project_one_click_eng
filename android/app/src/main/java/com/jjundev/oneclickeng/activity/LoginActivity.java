@@ -57,6 +57,7 @@ public class LoginActivity extends AppCompatActivity {
   private View currentStepLayout;
   private Runnable imeHidePollRunnable;
   private boolean isBackTransitionPending;
+  private boolean hasSignupSubmitAttempted;
   private Runnable onSlideCollapsedAction;
   private long backPressedTime = 0L;
 
@@ -404,6 +405,18 @@ public class LoginActivity extends AppCompatActivity {
                 if (tvDisplaySignupEmail != null) tvDisplaySignupEmail.setText(email);
 
                 if (isNewUser) {
+                  hasSignupSubmitAttempted = false;
+                  TextInputLayout tilSignupPassword = findViewById(R.id.tilSignupPassword);
+                  TextInputLayout tilSignupPasswordConfirm =
+                      findViewById(R.id.tilSignupPasswordConfirm);
+                  if (tilSignupPassword != null) {
+                    tilSignupPassword.setErrorEnabled(false);
+                    tilSignupPassword.setError(null);
+                  }
+                  if (tilSignupPasswordConfirm != null) {
+                    tilSignupPasswordConfirm.setErrorEnabled(false);
+                    tilSignupPasswordConfirm.setError(null);
+                  }
                   showStep(layoutSignupStep, layoutEmailStep, false);
                 } else {
                   showStep(layoutPasswordStep, layoutEmailStep, false);
@@ -516,10 +529,8 @@ public class LoginActivity extends AppCompatActivity {
             if (p1.equals(p2)) {
               tilSignupPasswordConfirm.setErrorEnabled(false);
               tilSignupPasswordConfirm.setError(null);
-            } else if (tilSignupPasswordConfirm.getError() != null || p2.length() > 0) {
-              // Show error if they don't match, but only if they've started typing in the
-              // confirm box
-              // or if the button was already clicked (which sets the error initially)
+            } else if (hasSignupSubmitAttempted) {
+              // Keep mismatch feedback live after the first submit attempt.
               tilSignupPasswordConfirm.setError("비밀번호가 일치하지 않습니다.");
             }
           }
@@ -533,6 +544,7 @@ public class LoginActivity extends AppCompatActivity {
 
     btnSignup.setOnClickListener(
         v -> {
+          hasSignupSubmitAttempted = true;
           String password =
               etSignupPassword.getText() != null ? etSignupPassword.getText().toString() : "";
           String passwordConfirm =
@@ -568,7 +580,7 @@ public class LoginActivity extends AppCompatActivity {
                       Log.d(TAG, "createUserWithEmail:success");
                       if (task.getResult().getUser() != null) {
                         initializeUserCredit(
-                            task.getResult().getUser().getUid(), "회원가입 및 로그인 완료! (10 크레딧 지급)");
+                            task.getResult().getUser().getUid(), "회원가입 성공!\n10 크레딧이 지급되었어요");
                       } else {
                         setLoadingState(false);
                         Toast.makeText(LoginActivity.this, "회원가입 및 로그인 완료!", Toast.LENGTH_SHORT)
