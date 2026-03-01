@@ -106,7 +106,7 @@
                     android:layout_height="wrap_content"
                     android:text="직접 만든 대본으로 학습하면 효과가 2배!"
                     android:textSize="16sp"
-                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textColor="@color/color_sub_text"
                     android:layout_marginTop="6dp"
                     android:layout_marginBottom="16dp" />
 
@@ -193,7 +193,7 @@
                     android:layout_marginTop="16dp"
                     android:gravity="center"
                     android:text="아직 만든 대본이 없어요\n나만의 상황을 입력해 보세요"
-                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textColor="@color/color_sub_text"
                     android:textSize="16sp"
                     android:lineSpacingExtra="4dp" />
             </LinearLayout>

@@ -74,7 +74,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="오늘 10분만 학습해 볼까요?"
-                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textColor="@color/color_sub_text"
                     android:textSize="16sp" />
             </LinearLayout>
 
@@ -121,7 +121,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/study_time_total_label"
-                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textColor="@color/color_sub_text"
                                 android:textSize="12sp" />
 
                             <com.jjundev.oneclickeng.widget.SlotMachineTextGroupView
@@ -155,7 +155,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="획득 포인트"
-                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textColor="@color/color_sub_text"
                                 android:textSize="12sp" />
 
                             <com.jjundev.oneclickeng.widget.SlotMachineTextGroupView

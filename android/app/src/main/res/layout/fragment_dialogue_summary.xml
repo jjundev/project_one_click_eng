@@ -58,7 +58,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="4dp"
                         android:text="/100"
-                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textColor="@color/color_sub_text"
                         android:textSize="20sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -69,7 +69,7 @@
                     android:layout_marginTop="8dp"
                     android:lineSpacingMultiplier="1.4"
                     android:text="정말 훌륭한 결과예요! 🎉"
-                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textColor="@color/color_sub_text"
                     android:textSize="14sp" />
             </LinearLayout>
 
@@ -136,7 +136,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="100dp"
                             android:layout_marginBottom="8dp"
-                            app:cardBackgroundColor="?attr/colorSurfaceVariant"
+                            app:cardBackgroundColor="@color/color_background_2"
                             app:cardCornerRadius="16dp"
                             app:cardElevation="0dp"
                             app:strokeColor="@color/semantic_divider"
@@ -178,7 +178,7 @@
                     android:lineSpacingMultiplier="1.4"
                     android:padding="16dp"
                     android:text="@string/summary_expressions_load_error"
-                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textColor="@color/color_sub_text"
                     android:textSize="14sp"
                     android:visibility="gone" />
             </FrameLayout>
@@ -191,7 +191,7 @@
                 android:gravity="center"
                 android:paddingVertical="12dp"
                 android:text="더 보기"
-                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textColor="@color/color_sub_text"
                 android:textSize="14sp"
                 android:visibility="gone" />
 
@@ -241,7 +241,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="132dp"
                                 android:layout_marginBottom="12dp"
-                                app:cardBackgroundColor="?attr/colorSurfaceVariant"
+                                app:cardBackgroundColor="@color/color_background_2"
                                 app:cardCornerRadius="16dp"
                                 app:cardElevation="0dp"
                                 app:strokeColor="@color/semantic_divider"
@@ -281,7 +281,7 @@
                             <com.google.android.material.card.MaterialCardView
                                 android:layout_width="match_parent"
                                 android:layout_height="132dp"
-                                app:cardBackgroundColor="?attr/colorSurfaceVariant"
+                                app:cardBackgroundColor="@color/color_background_2"
                                 app:cardCornerRadius="16dp"
                                 app:cardElevation="0dp"
                                 app:strokeColor="@color/semantic_divider"
@@ -329,7 +329,7 @@
                         android:lineSpacingMultiplier="1.4"
                         android:padding="16dp"
                         android:text="@string/summary_words_load_error"
-                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textColor="@color/color_sub_text"
                         android:textSize="14sp"
                         android:visibility="gone" />
                 </FrameLayout>
@@ -359,7 +359,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="4dp"
                 android:text="@string/summary_empty_liked_sentences"
-                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textColor="@color/color_sub_text"
                 android:textSize="14sp"
                 android:visibility="gone" />
 
@@ -373,7 +373,7 @@
         android:id="@+id/card_finish_bottom_sheet"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:cardBackgroundColor="?attr/colorSurfaceVariant"
+        app:cardBackgroundColor="@color/color_background_2"
         app:cardCornerRadius="32dp"
         app:cardElevation="0dp"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
@@ -410,7 +410,7 @@
                 android:layout_marginTop="4dp"
                 android:lineSpacingMultiplier="1.4"
                 android:text="오늘의 성과가 저장되었습니다."
-                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textColor="@color/color_sub_text"
                 android:textSize="14sp" />
 
             <com.google.android.material.button.MaterialButton
@@ -423,7 +423,7 @@
                 android:textColor="@color/toss_blue"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                app:backgroundTint="?attr/colorSurfaceVariant"
+                app:backgroundTint="@color/color_background_2"
                 app:cornerRadius="16dp"
                 app:strokeColor="@color/toss_blue"
                 app:strokeWidth="1dp"

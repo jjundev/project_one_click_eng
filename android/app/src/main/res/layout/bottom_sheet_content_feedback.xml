@@ -1676,7 +1676,7 @@
                     android:layout_weight="1"
                     android:background="@drawable/input_field_background"
                     android:hint="질문을 입력하세요..."
-                    android:textColorHint="?attr/colorOnSurfaceVariant"
+                    android:textColorHint="@color/color_sub_text"
                     android:textSize="14sp"
                     android:textColor="@color/color_primary_text"
                     android:paddingStart="16dp"

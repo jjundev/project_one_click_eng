@@ -60,7 +60,7 @@
             android:layout_marginTop="4dp"
             android:layout_marginBottom="16dp"
             android:text="끈질긴, 집요한"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textColor="@color/color_sub_text"
             android:textSize="14sp" />
 
         <TextView
@@ -68,7 +68,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="Example:"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textColor="@color/color_sub_text"
             android:textSize="12sp"
             android:textStyle="bold" />
 
@@ -101,7 +101,7 @@
                     android:layout_marginTop="12dp"
                     android:lineSpacingMultiplier="1.4"
                     android:text="그녀는 진실을 찾는 데 끈질겼습니다."
-                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textColor="@color/color_sub_text"
                     android:textSize="13sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

@@ -35,7 +35,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:text="@string/learning_history_header_subtitle"
-                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textColor="@color/color_sub_text"
                 android:textSize="14sp" />
         </LinearLayout>
 
@@ -48,7 +48,7 @@
             app:tabIndicatorColor="@color/toss_blue"
             app:tabMode="scrollable"
             app:tabSelectedTextColor="@color/toss_blue"
-            app:tabTextColor="?attr/colorOnSurfaceVariant" />
+            app:tabTextColor="@color/color_sub_text" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -97,7 +97,7 @@
             android:gravity="center"
             android:lineSpacingExtra="4dp"
             android:text="새로운 문장이나 표현을 학습하고\n여기에 추가해 보세요"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textColor="@color/color_sub_text"
             android:textSize="15sp" />
     </LinearLayout>
 

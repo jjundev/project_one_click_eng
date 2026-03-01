@@ -130,7 +130,7 @@
                 android:progress="8"
                 android:paddingStart="8dp"
                 android:paddingEnd="8dp"
-                android:progressBackgroundTint="@color/grey_300"
+                android:progressBackgroundTint="@color/color_sub_text"
                 android:progressTint="@color/color_dialog_primary_button_bg"
                 android:splitTrack="false"
                 android:thumbTint="@color/color_dialog_primary_button_bg" />

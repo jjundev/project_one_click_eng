@@ -33,8 +33,8 @@
             android:layout_marginTop="12dp"
             android:layout_marginBottom="16dp"
             android:lineSpacingMultiplier="1.4"
-            android:text="&#xD55C;&#xAD6D;&#xC5B4; &#xD574;&#xC11D;"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:text="한국어 해석"
+            android:textColor="@color/color_sub_text"
             android:textSize="14sp" />
 
         <TextView
@@ -42,7 +42,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:lineSpacingMultiplier="1.4"
-            android:text="AI&#xAC00; &#xC774; &#xBB38;&#xC7A5;&#xC744; &#xC6D0;&#xC5B4;&#xBBFC; &#xBAA8;&#xBA3C;&#xD2B8;&#xB85C; &#xC120;&#xD0DD;&#xD55C; &#xC774;&#xC720;&#xC785;&#xB2C8;&#xB2E4;."
+            android:text="AI가 이 문장을 원어민 모먼트로 선택한 이유입니다."
             android:textColor="#6F4E37"
             android:textSize="14sp" />
     </LinearLayout>

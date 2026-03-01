@@ -62,7 +62,7 @@
             android:layout_marginTop="8dp"
             android:lineSpacingMultiplier="1.4"
             android:text="이번 세션 중에 맘에 들었던 문장입니다."
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textColor="@color/color_sub_text"
             android:textSize="14sp" />
 
     </LinearLayout>
