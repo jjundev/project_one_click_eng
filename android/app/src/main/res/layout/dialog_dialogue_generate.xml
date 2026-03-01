@@ -51,7 +51,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="@android:color/transparent"
-                    android:hint="원하는 주제를 입력해보세요"
+                    android:hint="원하는 주제를 입력해보세요!"
                     android:inputType="textCapSentences"
                     android:padding="@dimen/dialog_card_content_padding"
                     android:textColorHint="@color/color_sub_sub_text" />

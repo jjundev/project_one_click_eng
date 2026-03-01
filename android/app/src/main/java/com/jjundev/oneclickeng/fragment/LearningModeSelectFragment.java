@@ -14,14 +14,13 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.dialog.NotificationInboxDialog;
-import com.jjundev.oneclickeng.settings.AppSettingsStore;
 import com.jjundev.oneclickeng.settings.LearningPointCloudRepository;
 import com.jjundev.oneclickeng.settings.LearningPointStore;
 import com.jjundev.oneclickeng.settings.LearningStudyTimeCloudRepository;
 import com.jjundev.oneclickeng.settings.LearningStudyTimeStore;
+import com.jjundev.oneclickeng.settings.UserNicknameCloudRepository;
 import com.jjundev.oneclickeng.widget.SlotMachineTextGroupView;
 
 public class LearningModeSelectFragment extends Fragment {
@@ -34,8 +33,10 @@ public class LearningModeSelectFragment extends Fragment {
   @Nullable private LearningStudyTimeCloudRepository learningStudyTimeCloudRepository;
   @Nullable private LearningPointStore learningPointStore;
   @Nullable private LearningPointCloudRepository learningPointCloudRepository;
+  @Nullable private UserNicknameCloudRepository userNicknameCloudRepository;
   @Nullable private LearningStudyTimeStore.StudyTimeSnapshot currentStudyTimeSnapshot;
   @Nullable private PopupWindow studyTimePopup;
+  @Nullable private TextView tvGreeting;
 
   @Nullable
   @Override
@@ -57,6 +58,8 @@ public class LearningModeSelectFragment extends Fragment {
       learningPointCloudRepository =
           new LearningPointCloudRepository(
               getContext().getApplicationContext(), learningPointStore);
+      userNicknameCloudRepository =
+          new UserNicknameCloudRepository(getContext().getApplicationContext());
     }
     recordAppEntry();
 
@@ -72,6 +75,7 @@ public class LearningModeSelectFragment extends Fragment {
   public void onResume() {
     super.onResume();
     recordAppEntry();
+    syncGreetingNicknameFromCloud();
     refreshStudyTimeData();
     refreshPointData();
   }
@@ -89,31 +93,65 @@ public class LearningModeSelectFragment extends Fragment {
     if (view != null) {
       cancelStatusAnimations(view);
     }
+    tvGreeting = null;
     currentStudyTimeSnapshot = null;
     super.onDestroyView();
   }
 
   private void setupGreeting(View view) {
-    TextView tvGreeting = view.findViewById(R.id.tv_greeting);
-    if (tvGreeting == null) return;
-
-    String nickname = "";
-    if (getContext() != null) {
-      AppSettingsStore appSettingsStore =
-          new AppSettingsStore(getContext().getApplicationContext());
-      nickname = appSettingsStore.getSettings().getUserNickname();
+    tvGreeting = view.findViewById(R.id.tv_greeting);
+    if (tvGreeting == null) {
+      return;
     }
 
-    if (nickname.isEmpty()) {
-      FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-      if (user != null && user.getDisplayName() != null && !user.getDisplayName().isEmpty()) {
-        nickname = user.getDisplayName();
-      } else {
-        nickname = "학습자";
-      }
+    UserNicknameCloudRepository nicknameRepository = userNicknameCloudRepository;
+    if (nicknameRepository != null) {
+      applyGreetingNickname(nicknameRepository.getCachedOrFallbackNickname());
+    } else {
+      applyGreetingNickname("학습자");
     }
+    syncGreetingNicknameFromCloud();
+  }
 
-    tvGreeting.setText(getString(R.string.greeting_format, nickname));
+  private void syncGreetingNicknameFromCloud() {
+    UserNicknameCloudRepository nicknameRepository = userNicknameCloudRepository;
+    if (nicknameRepository == null) {
+      return;
+    }
+    nicknameRepository.fetchOrBootstrapForCurrentUser(
+        new UserNicknameCloudRepository.NicknameFetchCallback() {
+          @Override
+          public void onSuccess(@NonNull String nickname, boolean bootstrapped) {
+            if (!isAdded()) {
+              return;
+            }
+            applyGreetingNickname(nickname);
+          }
+
+          @Override
+          public void onFailure(@NonNull String fallbackNickname) {
+            if (!isAdded()) {
+              return;
+            }
+            applyGreetingNickname(fallbackNickname);
+          }
+
+          @Override
+          public void onNoUser(@NonNull String fallbackNickname) {
+            if (!isAdded()) {
+              return;
+            }
+            applyGreetingNickname(fallbackNickname);
+          }
+        });
+  }
+
+  private void applyGreetingNickname(@NonNull String nickname) {
+    TextView greetingView = tvGreeting;
+    if (greetingView == null) {
+      return;
+    }
+    greetingView.setText(getString(R.string.greeting_format, nickname));
   }
 
   private void startCardAnimations(View view) {

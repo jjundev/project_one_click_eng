@@ -43,6 +43,7 @@ import com.jjundev.oneclickeng.settings.LearningPointStore;
 import com.jjundev.oneclickeng.settings.LearningStudyTimeCloudRepository;
 import com.jjundev.oneclickeng.settings.LearningStudyTimeStore;
 import com.jjundev.oneclickeng.settings.SharedPreferencesCleaner;
+import com.jjundev.oneclickeng.settings.UserNicknameCloudRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -76,6 +77,7 @@ public class SettingFragment extends Fragment
   @Nullable private LearningStudyTimeCloudRepository learningStudyTimeCloudRepository;
   @Nullable private LearningPointStore learningPointStore;
   @Nullable private LearningPointCloudRepository learningPointCloudRepository;
+  @Nullable private UserNicknameCloudRepository userNicknameCloudRepository;
 
   private boolean bindingState;
   private boolean isLearningDataResetInProgress;
@@ -129,6 +131,7 @@ public class SettingFragment extends Fragment
     learningStudyTimeCloudRepository = new LearningStudyTimeCloudRepository(appContext);
     learningPointStore = new LearningPointStore(appContext);
     learningPointCloudRepository = new LearningPointCloudRepository(appContext, learningPointStore);
+    userNicknameCloudRepository = new UserNicknameCloudRepository(appContext);
     bindViews(view);
     setupListeners();
     renderSettings();
@@ -374,9 +377,16 @@ public class SettingFragment extends Fragment
   }
 
   private String getEffectiveNickname() {
-    String storedNickname = appSettingsStore.getSettings().getUserNickname();
-    if (!storedNickname.isEmpty()) {
-      return storedNickname;
+    UserNicknameCloudRepository nicknameRepository = userNicknameCloudRepository;
+    if (nicknameRepository != null) {
+      return nicknameRepository.getCachedOrFallbackNickname();
+    }
+    AppSettingsStore settingsStore = appSettingsStore;
+    if (settingsStore != null) {
+      String storedNickname = settingsStore.getSettings().getUserNickname();
+      if (!storedNickname.isEmpty()) {
+        return storedNickname;
+      }
     }
     FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
     if (user != null && user.getDisplayName() != null && !user.getDisplayName().isEmpty()) {
@@ -903,7 +913,7 @@ public class SettingFragment extends Fragment
     AppCompatButton btnCancel = dialogView.findViewById(R.id.btn_nickname_cancel);
     AppCompatButton btnSave = dialogView.findViewById(R.id.btn_nickname_save);
 
-    String currentNickname = appSettingsStore.getSettings().getUserNickname();
+    String currentNickname = getEffectiveNickname();
     if (!currentNickname.isEmpty()) {
       etNicknameInput.setText(currentNickname);
       etNicknameInput.setSelection(currentNickname.length());
@@ -924,32 +934,104 @@ public class SettingFragment extends Fragment
 
     btnSave.setOnClickListener(
         v -> {
-          String newNickname = etNicknameInput.getText().toString().trim();
-          appSettingsStore.setUserNickname(newNickname);
-          if (tvProfileNicknameValue != null) {
-            tvProfileNicknameValue.setText(getEffectiveNickname());
+          UserNicknameCloudRepository nicknameRepository = userNicknameCloudRepository;
+          if (nicknameRepository == null) {
+            showToastSafe("닉네임 저장을 준비하지 못했어요");
+            return;
           }
-          Toast.makeText(getContext(), "닉네임이 저장되었어요", Toast.LENGTH_SHORT).show();
-          dialog.dismiss();
+          String requestedNickname = etNicknameInput.getText().toString();
+          btnSave.setEnabled(false);
+          btnCancel.setEnabled(false);
+          nicknameRepository.saveForCurrentUser(
+              requestedNickname,
+              new UserNicknameCloudRepository.NicknameSaveCallback() {
+                @Override
+                public void onSuccess(@NonNull String nickname) {
+                  if (!isAdded()) {
+                    return;
+                  }
+                  applyProfileNicknameText(nickname);
+                  showToastSafe("닉네임이 저장되었어요");
+                  if (dialog.isShowing()) {
+                    dialog.dismiss();
+                  }
+                }
+
+                @Override
+                public void onFailure(@NonNull String fallbackNickname) {
+                  if (!isAdded()) {
+                    return;
+                  }
+                  applyProfileNicknameText(fallbackNickname);
+                  btnSave.setEnabled(true);
+                  btnCancel.setEnabled(true);
+                  showToastSafe("닉네임 저장에 실패했어요");
+                }
+
+                @Override
+                public void onNoUser(@NonNull String fallbackNickname) {
+                  if (!isAdded()) {
+                    return;
+                  }
+                  applyProfileNicknameText(fallbackNickname);
+                  btnSave.setEnabled(true);
+                  btnCancel.setEnabled(true);
+                  showToastSafe("로그인 정보를 확인할 수 없어요");
+                }
+              });
         });
 
     dialog.show();
   }
 
   private void renderSettings() {
-    AppSettingsStore store = appSettingsStore;
-    if (store == null) {
-      return;
-    }
     bindingState = true;
 
-    if (tvProfileNicknameValue != null) {
-      tvProfileNicknameValue.setText(getEffectiveNickname());
-    }
+    applyProfileNicknameText(getEffectiveNickname());
+    fetchNicknameFromCloud();
     renderProfileEmail();
     fetchUserCredit();
 
     bindingState = false;
+  }
+
+  private void fetchNicknameFromCloud() {
+    UserNicknameCloudRepository nicknameRepository = userNicknameCloudRepository;
+    if (nicknameRepository == null) {
+      return;
+    }
+    nicknameRepository.fetchOrBootstrapForCurrentUser(
+        new UserNicknameCloudRepository.NicknameFetchCallback() {
+          @Override
+          public void onSuccess(@NonNull String nickname, boolean bootstrapped) {
+            if (!isAdded()) {
+              return;
+            }
+            applyProfileNicknameText(nickname);
+          }
+
+          @Override
+          public void onFailure(@NonNull String fallbackNickname) {
+            if (!isAdded()) {
+              return;
+            }
+            applyProfileNicknameText(fallbackNickname);
+          }
+
+          @Override
+          public void onNoUser(@NonNull String fallbackNickname) {
+            if (!isAdded()) {
+              return;
+            }
+            applyProfileNicknameText(fallbackNickname);
+          }
+        });
+  }
+
+  private void applyProfileNicknameText(@NonNull String nickname) {
+    if (tvProfileNicknameValue != null) {
+      tvProfileNicknameValue.setText(nickname);
+    }
   }
 
   private void fetchUserCredit() {
