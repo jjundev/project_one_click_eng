@@ -70,6 +70,10 @@ public class LearningHistoryFragment extends Fragment {
   private int adRetryAttempt = 0;
   @NonNull private final Handler uiHandler = new Handler(Looper.getMainLooper());
   @NonNull private final Handler adRetryHandler = new Handler(Looper.getMainLooper());
+  private boolean adLifecycleActive = false;
+  private boolean isAdLoading = false;
+  private boolean isAdShowing = false;
+  private long adLoadGeneration = 0L;
   private long quizPreparationRequestId = 0L;
 
   @Nullable
@@ -88,21 +92,24 @@ public class LearningHistoryFragment extends Fragment {
     initViewModel();
     initViews(view);
     observeViewModel();
-    loadRewardedAd();
+  }
+
+  @Override
+  public void onStart() {
+    super.onStart();
+    activateAdLifecycle();
+  }
+
+  @Override
+  public void onStop() {
+    softResetAdStateForStop();
+    super.onStop();
   }
 
   @Override
   public void onDestroyView() {
     clearPendingQuizSession(true);
-    adRetryHandler.removeCallbacksAndMessages(null);
-    if (chargeCreditDialog != null && chargeCreditDialog.isShowing()) {
-      chargeCreditDialog.dismiss();
-    }
-    chargeCreditDialog = null;
-    rewardedAd = null;
-    isRewardEarned = false;
-    isWaitingForAd = false;
-    adRetryAttempt = 0;
+    hardResetAdStateForDestroyView();
     pendingConfigDialog = null;
     quizPreparationRequestId = 0L;
     super.onDestroyView();
@@ -636,32 +643,56 @@ public class LearningHistoryFragment extends Fragment {
 
     btnAd.setOnClickListener(
         v -> {
-          if (rewardedAd != null && isAdded()) {
-            chargeCreditDialog.dismiss();
-            isRewardEarned = false;
-            rewardedAd.show(
-                requireActivity(),
-                rewardItem -> {
-                  isRewardEarned = true;
-                  increaseCredit();
-                });
+          if (rewardedAd != null && isAdded() && isResumed()) {
+            dismissChargeCreditDialog();
+            showRewardedAdIfAvailable();
           } else {
             isWaitingForAd = true;
             layoutContent.setVisibility(View.GONE);
             layoutLoading.setVisibility(View.VISIBLE);
             chargeCreditDialog.setCancelable(false);
 
-            if (adRetryAttempt == 0) {
-              loadRewardedAd();
-            }
+            ensureRewardedAdPreloaded();
           }
         });
 
     chargeCreditDialog.show();
   }
 
-  private void loadRewardedAd() {
-    if (!isAdded()) {
+  private void activateAdLifecycle() {
+    adLifecycleActive = true;
+    adLoadGeneration++;
+  }
+
+  private void softResetAdStateForStop() {
+    adLifecycleActive = false;
+    adLoadGeneration++;
+    adRetryHandler.removeCallbacksAndMessages(null);
+    dismissChargeCreditDialog();
+    isAdLoading = false;
+    adRetryAttempt = 0;
+  }
+
+  private void hardResetAdStateForDestroyView() {
+    softResetAdStateForStop();
+    rewardedAd = null;
+    isAdLoading = false;
+    isAdShowing = false;
+    isRewardEarned = false;
+    adRetryAttempt = 0;
+    chargeCreditDialog = null;
+  }
+
+  private void dismissChargeCreditDialog() {
+    if (chargeCreditDialog != null && chargeCreditDialog.isShowing()) {
+      chargeCreditDialog.dismiss();
+    }
+    chargeCreditDialog = null;
+    isWaitingForAd = false;
+  }
+
+  private void ensureRewardedAdPreloaded() {
+    if (!adLifecycleActive || isAdLoading || rewardedAd != null || !isAdded() || getContext() == null) {
       return;
     }
 
@@ -671,6 +702,8 @@ public class LearningHistoryFragment extends Fragment {
             ? "ca-app-pub-3940256099942544/5224354917"
             : BuildConfig.ADMOB_REWARDED_AD_UNIT_ID;
     logDebug("Loading rewarded ad with Unit ID: " + adUnitId);
+    isAdLoading = true;
+    long generation = adLoadGeneration;
     RewardedAd.load(
         requireContext(),
         adUnitId,
@@ -678,15 +711,27 @@ public class LearningHistoryFragment extends Fragment {
         new RewardedAdLoadCallback() {
           @Override
           public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+            if (generation != adLoadGeneration) {
+              return;
+            }
+            isAdLoading = false;
+            if (!adLifecycleActive) {
+              return;
+            }
             logDebug("Failed to load rewarded ad: " + loadAdError.getMessage());
             rewardedAd = null;
             adRetryAttempt++;
             long retryDelayMillis = (long) Math.pow(2, Math.min(6, adRetryAttempt)) * 1000L;
-            if (adRetryAttempt <= 5) {
-              if (isWaitingForAd) {
-                logDebug("Retrying ad load in " + retryDelayMillis + "ms (Attempt " + adRetryAttempt + ")");
-              }
-              adRetryHandler.postDelayed(() -> loadRewardedAd(), retryDelayMillis);
+            if (isWaitingForAd && adRetryAttempt <= 5 && adLifecycleActive) {
+              logDebug("Retrying ad load in " + retryDelayMillis + "ms (Attempt " + adRetryAttempt + ")");
+              adRetryHandler.postDelayed(
+                  () -> {
+                    if (!adLifecycleActive || generation != adLoadGeneration) {
+                      return;
+                    }
+                    ensureRewardedAdPreloaded();
+                  },
+                  retryDelayMillis);
             } else {
               if (isWaitingForAd) {
                 isWaitingForAd = false;
@@ -703,52 +748,74 @@ public class LearningHistoryFragment extends Fragment {
 
           @Override
           public void onAdLoaded(@NonNull RewardedAd ad) {
+            if (generation != adLoadGeneration) {
+              return;
+            }
+            isAdLoading = false;
+            if (!adLifecycleActive || !isAdded()) {
+              return;
+            }
             logDebug("Rewarded ad loaded.");
             rewardedAd = ad;
             adRetryAttempt = 0;
-            setFullScreenContentCallback();
+            setFullScreenContentCallback(ad);
 
-            if (isWaitingForAd && isAdded()) {
-              isWaitingForAd = false;
-              if (chargeCreditDialog != null && chargeCreditDialog.isShowing()) {
-                chargeCreditDialog.dismiss();
-              }
-              isRewardEarned = false;
-              rewardedAd.show(
-                  requireActivity(),
-                  rewardItem -> {
-                    isRewardEarned = true;
-                    increaseCredit();
-                  });
+            if (isWaitingForAd && isResumed()) {
+              dismissChargeCreditDialog();
+              showRewardedAdIfAvailable();
             }
           }
         });
   }
 
-  private void setFullScreenContentCallback() {
-    if (rewardedAd == null) {
+  private void showRewardedAdIfAvailable() {
+    if (!adLifecycleActive || !isAdded() || !isResumed()) {
       return;
     }
-    rewardedAd.setFullScreenContentCallback(
+    RewardedAd adToShow = rewardedAd;
+    if (adToShow == null) {
+      return;
+    }
+
+    rewardedAd = null;
+    isAdShowing = true;
+    isRewardEarned = false;
+    adToShow.show(
+        requireActivity(),
+        rewardItem -> {
+          isRewardEarned = true;
+          increaseCredit();
+        });
+  }
+
+  private void setFullScreenContentCallback(@NonNull RewardedAd ad) {
+    ad.setFullScreenContentCallback(
         new FullScreenContentCallback() {
           @Override
           public void onAdShowedFullScreenContent() {
-            rewardedAd = null;
+            isAdShowing = true;
           }
 
           @Override
           public void onAdFailedToShowFullScreenContent(@NonNull AdError adError) {
+            isAdShowing = false;
+            if (!adLifecycleActive) {
+              return;
+            }
             logDebug("Ad failed to show: " + adError.getMessage());
           }
 
           @Override
           public void onAdDismissedFullScreenContent() {
+            isAdShowing = false;
+            if (!adLifecycleActive) {
+              return;
+            }
             logDebug("Ad dismissed");
             if (!isRewardEarned && isAdded()) {
               Toast.makeText(getContext(), "광고 시청을 완료하지 않아 크레딧이 지급되지 않았어요", Toast.LENGTH_SHORT)
                   .show();
             }
-            loadRewardedAd();
           }
         });
   }

@@ -366,6 +366,15 @@ public class EnglishShortsFragment extends Fragment {
   }
 
   @Override
+  public void onStop() {
+    if (viewPager != null && adapter != null) {
+      RecyclerView rv = (RecyclerView) viewPager.getChildAt(0);
+      adapter.pauseAll(rv);
+    }
+    super.onStop();
+  }
+
+  @Override
   public void onResume() {
     super.onResume();
     if (viewPager != null && !shortsItems.isEmpty()) {
@@ -388,7 +397,7 @@ public class EnglishShortsFragment extends Fragment {
   public void onDestroyView() {
     if (viewPager != null && adapter != null) {
       RecyclerView rv = (RecyclerView) viewPager.getChildAt(0);
-      adapter.pauseAll(rv);
+      adapter.releaseAll(rv);
     }
     if (viewPager != null && pageChangeCallback != null) {
       viewPager.unregisterOnPageChangeCallback(pageChangeCallback);

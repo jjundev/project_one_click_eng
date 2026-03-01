@@ -15,7 +15,9 @@ import androidx.media3.ui.PlayerView;
 import androidx.recyclerview.widget.RecyclerView;
 import com.jjundev.oneclickeng.R;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Adapter for the English Shorts ViewPager2. Each page displays a full-screen video with a tag
@@ -25,6 +27,7 @@ public class EnglishShortsPagerAdapter
     extends RecyclerView.Adapter<EnglishShortsPagerAdapter.ShortViewHolder> {
 
   @NonNull private final List<EnglishShortsItem> items;
+  @NonNull private final Set<ShortViewHolder> attachedHolders = new HashSet<>();
 
   public EnglishShortsPagerAdapter(@NonNull List<EnglishShortsItem> items) {
     this.items = new ArrayList<>(items);
@@ -54,7 +57,21 @@ public class EnglishShortsPagerAdapter
   @Override
   public void onViewRecycled(@NonNull ShortViewHolder holder) {
     super.onViewRecycled(holder);
+    attachedHolders.remove(holder);
     holder.releasePlayer();
+  }
+
+  @Override
+  public void onViewAttachedToWindow(@NonNull ShortViewHolder holder) {
+    super.onViewAttachedToWindow(holder);
+    attachedHolders.add(holder);
+  }
+
+  @Override
+  public void onViewDetachedFromWindow(@NonNull ShortViewHolder holder) {
+    super.onViewDetachedFromWindow(holder);
+    attachedHolders.remove(holder);
+    holder.pause();
   }
 
   @Override
@@ -71,6 +88,24 @@ public class EnglishShortsPagerAdapter
         ((ShortViewHolder) holder).pause();
       }
     }
+  }
+
+  /** Releases all players regardless of RecyclerView attach state. */
+  public void releaseAll(@Nullable RecyclerView recyclerView) {
+    if (recyclerView != null) {
+      for (int i = 0; i < recyclerView.getChildCount(); i++) {
+        RecyclerView.ViewHolder holder =
+            recyclerView.getChildViewHolder(recyclerView.getChildAt(i));
+        if (holder instanceof ShortViewHolder) {
+          ((ShortViewHolder) holder).releasePlayer();
+        }
+      }
+    }
+    List<ShortViewHolder> holders = new ArrayList<>(attachedHolders);
+    for (ShortViewHolder holder : holders) {
+      holder.releasePlayer();
+    }
+    attachedHolders.clear();
   }
 
   /** Plays the video at the given position and pauses all others. */
@@ -162,18 +197,22 @@ public class EnglishShortsPagerAdapter
       player.play();
     }
 
-    /** Pauses playback and releases the player to free decoders. */
+    /** Pauses playback while keeping the decoder allocated. */
     public void pause() {
-      releasePlayer();
+      if (player != null) {
+        player.pause();
+      }
     }
 
     /** Releases the ExoPlayer instance to free resources. */
     public void releasePlayer() {
+      playerView.setPlayer(null);
       if (player != null) {
+        player.pause();
+        player.clearVideoSurface();
         player.release();
         player = null;
       }
-      playerView.setPlayer(null);
       ivThumbnail.setVisibility(View.VISIBLE);
     }
   }

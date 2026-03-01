@@ -71,6 +71,10 @@ public class DialogueSelectFragment extends Fragment
   private int adRetryAttempt = 0;
   private final android.os.Handler adRetryHandler =
       new android.os.Handler(android.os.Looper.getMainLooper());
+  private boolean adLifecycleActive = false;
+  private boolean isAdLoading = false;
+  private boolean isAdShowing = false;
+  private long adLoadGeneration = 0L;
 
   @Nullable
   @Override
@@ -107,14 +111,25 @@ public class DialogueSelectFragment extends Fragment
 
     setupRecyclerView();
     setupListeners();
-    loadRewardedAd();
+  }
+
+  @Override
+  public void onStart() {
+    super.onStart();
+    activateAdLifecycle();
+  }
+
+  @Override
+  public void onStop() {
+    softResetAdStateForStop();
+    super.onStop();
   }
 
   @Override
   public void onDestroyView() {
     clearPendingScriptSession(true);
     scriptPreparationRequestId = 0L;
-    adRetryHandler.removeCallbacksAndMessages(null);
+    hardResetAdStateForDestroyView();
     super.onDestroyView();
   }
 
@@ -679,37 +694,67 @@ public class DialogueSelectFragment extends Fragment
         });
     btnAd.setOnClickListener(
         v -> {
-          if (rewardedAd != null && isAdded()) {
-            chargeCreditDialog.dismiss();
-            isRewardEarned = false;
-            rewardedAd.show(
-                requireActivity(),
-                rewardItem -> {
-                  isRewardEarned = true;
-                  increaseCredit();
-                });
+          if (rewardedAd != null && isAdded() && isResumed()) {
+            dismissChargeCreditDialog();
+            showRewardedAdIfAvailable();
           } else {
             isWaitingForAd = true;
             layoutContent.setVisibility(View.GONE);
             layoutLoading.setVisibility(View.VISIBLE);
             chargeCreditDialog.setCancelable(false);
 
-            if (adRetryAttempt == 0) {
-              loadRewardedAd();
-            }
+            ensureRewardedAdPreloaded();
           }
         });
 
     chargeCreditDialog.show();
   }
 
-  private void loadRewardedAd() {
+  private void activateAdLifecycle() {
+    adLifecycleActive = true;
+    adLoadGeneration++;
+  }
+
+  private void softResetAdStateForStop() {
+    adLifecycleActive = false;
+    adLoadGeneration++;
+    adRetryHandler.removeCallbacksAndMessages(null);
+    dismissChargeCreditDialog();
+    isAdLoading = false;
+    adRetryAttempt = 0;
+  }
+
+  private void hardResetAdStateForDestroyView() {
+    softResetAdStateForStop();
+    rewardedAd = null;
+    isAdLoading = false;
+    isAdShowing = false;
+    isRewardEarned = false;
+    adRetryAttempt = 0;
+    chargeCreditDialog = null;
+  }
+
+  private void dismissChargeCreditDialog() {
+    if (chargeCreditDialog != null && chargeCreditDialog.isShowing()) {
+      chargeCreditDialog.dismiss();
+    }
+    chargeCreditDialog = null;
+    isWaitingForAd = false;
+  }
+
+  private void ensureRewardedAdPreloaded() {
+    if (!adLifecycleActive || isAdLoading || rewardedAd != null || !isAdded() || getContext() == null) {
+      return;
+    }
+
     AdRequest adRequest = new AdRequest.Builder().build();
     String adUnitId =
         BuildConfig.DEBUG
             ? "ca-app-pub-3940256099942544/5224354917"
             : BuildConfig.ADMOB_REWARDED_AD_UNIT_ID;
     logStream("Loading rewarded ad with Unit ID: " + adUnitId);
+    isAdLoading = true;
+    long generation = adLoadGeneration;
     RewardedAd.load(
         requireContext(),
         adUnitId,
@@ -717,20 +762,32 @@ public class DialogueSelectFragment extends Fragment
         new RewardedAdLoadCallback() {
           @Override
           public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+            if (generation != adLoadGeneration) {
+              return;
+            }
+            isAdLoading = false;
+            if (!adLifecycleActive) {
+              return;
+            }
             logStream("Failed to load rewarded ad: " + loadAdError.getMessage());
             rewardedAd = null;
             adRetryAttempt++;
             long retryDelayMillis = (long) Math.pow(2, Math.min(6, adRetryAttempt)) * 1000L;
-            if (adRetryAttempt <= 5) {
-              if (isWaitingForAd) {
-                logStream(
-                    "Retrying ad load in "
-                        + retryDelayMillis
-                        + "ms (Attempt "
-                        + adRetryAttempt
-                        + ")");
-              }
-              adRetryHandler.postDelayed(() -> loadRewardedAd(), retryDelayMillis);
+            if (isWaitingForAd && adRetryAttempt <= 5 && adLifecycleActive) {
+              logStream(
+                  "Retrying ad load in "
+                      + retryDelayMillis
+                      + "ms (Attempt "
+                      + adRetryAttempt
+                      + ")");
+              adRetryHandler.postDelayed(
+                  () -> {
+                    if (!adLifecycleActive || generation != adLoadGeneration) {
+                      return;
+                    }
+                    ensureRewardedAdPreloaded();
+                  },
+                  retryDelayMillis);
             } else {
               if (isWaitingForAd) {
                 isWaitingForAd = false;
@@ -748,50 +805,74 @@ public class DialogueSelectFragment extends Fragment
 
           @Override
           public void onAdLoaded(@NonNull RewardedAd ad) {
+            if (generation != adLoadGeneration) {
+              return;
+            }
+            isAdLoading = false;
+            if (!adLifecycleActive || !isAdded()) {
+              return;
+            }
             logStream("Rewarded ad loaded.");
             rewardedAd = ad;
             adRetryAttempt = 0;
-            setFullScreenContentCallback();
+            setFullScreenContentCallback(ad);
 
-            if (isWaitingForAd && isAdded()) {
-              isWaitingForAd = false;
-              if (chargeCreditDialog != null && chargeCreditDialog.isShowing()) {
-                chargeCreditDialog.dismiss();
-              }
-              isRewardEarned = false;
-              rewardedAd.show(
-                  requireActivity(),
-                  rewardItem -> {
-                    isRewardEarned = true;
-                    increaseCredit();
-                  });
+            if (isWaitingForAd && isResumed()) {
+              dismissChargeCreditDialog();
+              showRewardedAdIfAvailable();
             }
           }
         });
   }
 
-  private void setFullScreenContentCallback() {
-    if (rewardedAd == null) return;
-    rewardedAd.setFullScreenContentCallback(
+  private void showRewardedAdIfAvailable() {
+    if (!adLifecycleActive || !isAdded() || !isResumed()) {
+      return;
+    }
+    RewardedAd adToShow = rewardedAd;
+    if (adToShow == null) {
+      return;
+    }
+
+    rewardedAd = null;
+    isAdShowing = true;
+    isRewardEarned = false;
+    adToShow.show(
+        requireActivity(),
+        rewardItem -> {
+          isRewardEarned = true;
+          increaseCredit();
+        });
+  }
+
+  private void setFullScreenContentCallback(@NonNull RewardedAd ad) {
+    ad.setFullScreenContentCallback(
         new FullScreenContentCallback() {
           @Override
           public void onAdShowedFullScreenContent() {
-            rewardedAd = null;
+            isAdShowing = true;
           }
 
           @Override
           public void onAdFailedToShowFullScreenContent(@NonNull AdError adError) {
+            isAdShowing = false;
+            if (!adLifecycleActive) {
+              return;
+            }
             logStream("Ad failed to show: " + adError.getMessage());
           }
 
           @Override
           public void onAdDismissedFullScreenContent() {
+            isAdShowing = false;
+            if (!adLifecycleActive) {
+              return;
+            }
             logStream("Ad dismissed");
             if (!isRewardEarned && isAdded()) {
               Toast.makeText(getContext(), "광고 시청을 완료하지 않아 크레딧이 지급되지 않았어요", Toast.LENGTH_SHORT)
                   .show();
             }
-            loadRewardedAd();
           }
         });
   }

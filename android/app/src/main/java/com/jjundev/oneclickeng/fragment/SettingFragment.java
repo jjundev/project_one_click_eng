@@ -112,6 +112,10 @@ public class SettingFragment extends Fragment
   private int adRetryAttempt = 0;
   private final android.os.Handler adRetryHandler =
       new android.os.Handler(android.os.Looper.getMainLooper());
+  private boolean adLifecycleActive = false;
+  private boolean isAdLoading = false;
+  private boolean isAdShowing = false;
+  private long adLoadGeneration = 0L;
 
   @Nullable
   @Override
@@ -135,13 +139,30 @@ public class SettingFragment extends Fragment
     bindViews(view);
     setupListeners();
     renderSettings();
-    loadRewardedAd();
   }
 
   @Override
   public void onResume() {
     super.onResume();
     renderSettings();
+  }
+
+  @Override
+  public void onStart() {
+    super.onStart();
+    activateAdLifecycle();
+  }
+
+  @Override
+  public void onStop() {
+    softResetAdStateForStop();
+    super.onStop();
+  }
+
+  @Override
+  public void onDestroyView() {
+    hardResetAdStateForDestroyView();
+    super.onDestroyView();
   }
 
   private void bindViews(@NonNull View view) {
@@ -755,16 +776,9 @@ public class SettingFragment extends Fragment
         });
     btnAd.setOnClickListener(
         v -> {
-          if (rewardedAd != null && isAdded()) {
-            chargeCreditDialog.dismiss();
-            isRewardEarned = false; // 보상을 받기 전 초기화
-            rewardedAd.show(
-                requireActivity(),
-                rewardItem -> {
-                  // 보상 콜백
-                  isRewardEarned = true;
-                  increaseCredit();
-                });
+          if (rewardedAd != null && isAdded() && isResumed()) {
+            dismissChargeCreditDialog();
+            showRewardedAdIfAvailable();
           } else {
             // 광고 준비 안 됨: 기존 다이얼로그 내부에서 UI 전환 (로딩 표시)
             isWaitingForAd = true;
@@ -772,22 +786,58 @@ public class SettingFragment extends Fragment
             layoutLoading.setVisibility(View.VISIBLE);
             chargeCreditDialog.setCancelable(false); // 로딩 중에는 백버튼 등으로 안 닫히게 처리
 
-            if (adRetryAttempt == 0) { // 재시도 중이 아니라면 새로 로드 요청
-              loadRewardedAd();
-            }
+            ensureRewardedAdPreloaded();
           }
         });
 
     chargeCreditDialog.show();
   }
 
-  private void loadRewardedAd() {
+  private void activateAdLifecycle() {
+    adLifecycleActive = true;
+    adLoadGeneration++;
+  }
+
+  private void softResetAdStateForStop() {
+    adLifecycleActive = false;
+    adLoadGeneration++;
+    adRetryHandler.removeCallbacksAndMessages(null);
+    dismissChargeCreditDialog();
+    isAdLoading = false;
+    adRetryAttempt = 0;
+  }
+
+  private void hardResetAdStateForDestroyView() {
+    softResetAdStateForStop();
+    rewardedAd = null;
+    isAdLoading = false;
+    isAdShowing = false;
+    isRewardEarned = false;
+    adRetryAttempt = 0;
+    chargeCreditDialog = null;
+  }
+
+  private void dismissChargeCreditDialog() {
+    if (chargeCreditDialog != null && chargeCreditDialog.isShowing()) {
+      chargeCreditDialog.dismiss();
+    }
+    chargeCreditDialog = null;
+    isWaitingForAd = false;
+  }
+
+  private void ensureRewardedAdPreloaded() {
+    if (!adLifecycleActive || isAdLoading || rewardedAd != null || !isAdded() || getContext() == null) {
+      return;
+    }
+
     AdRequest adRequest = new AdRequest.Builder().build();
     String adUnitId =
         BuildConfig.DEBUG
             ? "ca-app-pub-3940256099942544/5224354917"
             : BuildConfig.ADMOB_REWARDED_AD_UNIT_ID;
     logDebug("Loading rewarded ad with Unit ID: " + adUnitId);
+    isAdLoading = true;
+    long generation = adLoadGeneration;
     RewardedAd.load(
         requireContext(),
         adUnitId,
@@ -795,23 +845,35 @@ public class SettingFragment extends Fragment
         new RewardedAdLoadCallback() {
           @Override
           public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+            if (generation != adLoadGeneration) {
+              return;
+            }
+            isAdLoading = false;
+            if (!adLifecycleActive) {
+              return;
+            }
             logDebug("Failed to load rewarded ad: " + loadAdError.getMessage());
             rewardedAd = null;
 
             // Exponential Backoff 재시도 로직
             adRetryAttempt++;
             long retryDelayMillis = (long) Math.pow(2, Math.min(6, adRetryAttempt)) * 1000L;
-            if (adRetryAttempt <= 5) {
-              if (isWaitingForAd) {
-                // 대기 중인 상태면 재시도 사실을 로그나 토스트로 알릴 필요는 없고 그냥 백오프로 로드
-                logDebug(
-                    "Retrying ad load in "
-                        + retryDelayMillis
-                        + "ms (Attempt "
-                        + adRetryAttempt
-                        + ")");
-              }
-              adRetryHandler.postDelayed(() -> loadRewardedAd(), retryDelayMillis);
+            if (isWaitingForAd && adRetryAttempt <= 5 && adLifecycleActive) {
+              // 대기 중인 상태면 백오프 재시도
+              logDebug(
+                  "Retrying ad load in "
+                      + retryDelayMillis
+                      + "ms (Attempt "
+                      + adRetryAttempt
+                      + ")");
+              adRetryHandler.postDelayed(
+                  () -> {
+                    if (!adLifecycleActive || generation != adLoadGeneration) {
+                      return;
+                    }
+                    ensureRewardedAdPreloaded();
+                  },
+                  retryDelayMillis);
             } else {
               // 5번 이상 재시도 실패 시 완전히 포기
               if (isWaitingForAd) {
@@ -828,52 +890,75 @@ public class SettingFragment extends Fragment
 
           @Override
           public void onAdLoaded(@NonNull RewardedAd ad) {
+            if (generation != adLoadGeneration) {
+              return;
+            }
+            isAdLoading = false;
+            if (!adLifecycleActive || !isAdded()) {
+              return;
+            }
             logDebug("Rewarded ad loaded.");
             rewardedAd = ad;
             adRetryAttempt = 0; // 성공 시 재시도 횟수 초기화
-            setFullScreenContentCallback();
+            setFullScreenContentCallback(ad);
 
             // 만약 사용자가 로딩 다이얼로그를 띄운 채 대기 중이었다면
-            if (isWaitingForAd && isAdded()) {
-              isWaitingForAd = false;
-              if (chargeCreditDialog != null && chargeCreditDialog.isShowing()) {
-                chargeCreditDialog.dismiss();
-              }
-
-              isRewardEarned = false;
-              rewardedAd.show(
-                  requireActivity(),
-                  rewardItem -> {
-                    isRewardEarned = true;
-                    increaseCredit();
-                  });
+            if (isWaitingForAd && isResumed()) {
+              dismissChargeCreditDialog();
+              showRewardedAdIfAvailable();
             }
           }
         });
   }
 
-  private void setFullScreenContentCallback() {
-    if (rewardedAd == null) return;
-    rewardedAd.setFullScreenContentCallback(
+  private void showRewardedAdIfAvailable() {
+    if (!adLifecycleActive || !isAdded() || !isResumed()) {
+      return;
+    }
+    RewardedAd adToShow = rewardedAd;
+    if (adToShow == null) {
+      return;
+    }
+
+    rewardedAd = null;
+    isAdShowing = true;
+    isRewardEarned = false;
+    adToShow.show(
+        requireActivity(),
+        rewardItem -> {
+          isRewardEarned = true;
+          increaseCredit();
+        });
+  }
+
+  private void setFullScreenContentCallback(@NonNull RewardedAd ad) {
+    ad.setFullScreenContentCallback(
         new FullScreenContentCallback() {
           @Override
           public void onAdShowedFullScreenContent() {
-            rewardedAd = null; // 표시 직후 초기화 (재사용 불가)
+            isAdShowing = true;
           }
 
           @Override
           public void onAdFailedToShowFullScreenContent(@NonNull AdError adError) {
+            isAdShowing = false;
+            if (!adLifecycleActive) {
+              return;
+            }
             logDebug("Ad failed to show: " + adError.getMessage());
           }
 
           @Override
           public void onAdDismissedFullScreenContent() {
+            isAdShowing = false;
+            if (!adLifecycleActive) {
+              return;
+            }
             logDebug("Ad dismissed");
             if (!isRewardEarned && isAdded()) {
               // 사용자가 중간에 광고를 닫아 보상을 받지 못했을 때 안내
               showToastSafe("광고 시청을 완료하지 않아 크레딧이 지급되지 않았어요");
             }
-            loadRewardedAd(); // 다음 번을 대비하여 재생성
           }
         });
   }
