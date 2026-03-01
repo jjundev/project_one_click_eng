@@ -17,7 +17,7 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.gson.Gson;
 import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
-import com.jjundev.oneclickeng.activity.DialogueQuizActivity;
+import com.jjundev.oneclickeng.activity.QuizActivity;
 import com.jjundev.oneclickeng.learning.dialoguelearning.di.LearningDependencyProvider;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IQuizGenerationManager;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.QuizData;
@@ -369,10 +369,10 @@ public class LearningHistoryFragment extends Fragment {
       LearningDependencyProvider.provideQuizStreamingSessionStore().release(sessionId);
       return;
     }
-    Intent intent = new Intent(requireContext(), DialogueQuizActivity.class);
-    intent.putExtra(DialogueQuizActivity.EXTRA_SUMMARY_JSON, new Gson().toJson(seed));
-    intent.putExtra(DialogueQuizActivity.EXTRA_REQUESTED_QUESTION_COUNT, questionCount);
-    intent.putExtra(DialogueQuizActivity.EXTRA_STREAM_SESSION_ID, sessionId);
+    Intent intent = new Intent(requireContext(), QuizActivity.class);
+    intent.putExtra(QuizActivity.EXTRA_SUMMARY_JSON, new Gson().toJson(seed));
+    intent.putExtra(QuizActivity.EXTRA_REQUESTED_QUESTION_COUNT, questionCount);
+    intent.putExtra(QuizActivity.EXTRA_STREAM_SESSION_ID, sessionId);
     try {
       startActivity(intent);
       if (getActivity() != null) {

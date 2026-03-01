@@ -73,7 +73,7 @@ public class QuizFragment extends Fragment {
   @Nullable private BottomSheetBehavior.BottomSheetCallback bottomSheetCallback;
 
   public QuizFragment() {
-    super(R.layout.fragment_dialogue_quiz);
+    super(R.layout.fragment_quiz);
   }
 
   @NonNull

@@ -27,7 +27,7 @@ import com.jjundev.oneclickeng.learning.quiz.QuizResultFragment;
 import com.jjundev.oneclickeng.settings.AppSettings;
 import com.jjundev.oneclickeng.settings.AppSettingsStore;
 
-public class DialogueQuizActivity extends AppCompatActivity implements QuizResultFragment.Host {
+public class QuizActivity extends AppCompatActivity implements QuizResultFragment.Host {
   public static final String EXTRA_SUMMARY_JSON = "extra_summary_json";
   public static final String EXTRA_FEATURE_BUNDLE_JSON = "extra_feature_bundle_json";
   public static final String EXTRA_REQUESTED_QUESTION_COUNT = "extra_requested_question_count";
@@ -45,7 +45,7 @@ public class DialogueQuizActivity extends AppCompatActivity implements QuizResul
   @Override
   protected void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    setContentView(R.layout.activity_dialogue_quiz);
+    setContentView(R.layout.activity_quiz);
 
     getOnBackPressedDispatcher()
         .addCallback(

@@ -62,8 +62,8 @@
                         style="?android:attr/progressBarStyleHorizontal"
                         android:layout_width="100dp"
                         android:layout_height="4dp"
-                        android:progressBackgroundTint="@color/grey_200"
-                        android:progressTint="@color/toss_blue" />
+                        android:progressBackgroundTint="@color/color_sub_text"
+                        android:progressTint="@color/color_primary_text" />
 
                     <TextView
                         android:id="@+id/tv_progress"

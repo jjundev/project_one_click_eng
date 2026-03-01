@@ -15,6 +15,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.card.MaterialCardView;
 import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
+import com.jjundev.oneclickeng.activity.QuizActivity;
 import com.jjundev.oneclickeng.learning.dialoguelearning.di.LearningDependencyProvider;
 import com.jjundev.oneclickeng.learning.dialoguelearning.model.SummaryData;
 import com.jjundev.oneclickeng.learning.dialoguelearning.summary.DialogueSummaryViewModel;
@@ -334,11 +335,11 @@ public class DialogueSummaryFragment extends Fragment {
     logDebug("summary quiz selected");
     android.content.Intent intent =
         new android.content.Intent(
-            requireContext(), com.jjundev.oneclickeng.activity.DialogueQuizActivity.class);
+            requireContext(), QuizActivity.class);
     intent.putExtra(
-        com.jjundev.oneclickeng.activity.DialogueQuizActivity.EXTRA_SUMMARY_JSON, summaryJson);
+        QuizActivity.EXTRA_SUMMARY_JSON, summaryJson);
     intent.putExtra(
-        com.jjundev.oneclickeng.activity.DialogueQuizActivity.EXTRA_FEATURE_BUNDLE_JSON,
+        QuizActivity.EXTRA_FEATURE_BUNDLE_JSON,
         featureBundleJson);
     startActivity(intent);
     if (getActivity() != null) {

@@ -21,7 +21,7 @@ public class QuizResultFragment extends Fragment {
   @Nullable private MaterialButton btnFinish;
 
   public QuizResultFragment() {
-    super(R.layout.fragment_dialogue_quiz_result);
+    super(R.layout.fragment_quiz_result);
   }
 
   @NonNull

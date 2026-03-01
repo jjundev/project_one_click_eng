@@ -59,6 +59,8 @@
                     <ProgressBar
                         android:id="@+id/progress_bar"
                         style="?android:attr/progressBarStyleHorizontal"
+                        android:progressBackgroundTint="@color/color_sub_text"
+                        android:progressTint="@color/color_primary_text"
                         android:layout_width="100dp"
                         android:layout_height="4dp" />
 
