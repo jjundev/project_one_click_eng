@@ -60,6 +60,7 @@
                             android:id="@+id/rb_keep_1w"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:buttonTint="@color/selector_dialog_radio_button_tint"
                             android:text="@string/settings_learning_reset_option_keep_1w"
                             android:textColor="@color/color_sub_text"
                             android:textSize="@dimen/dialog_subtitle_text_size" />
@@ -68,6 +69,7 @@
                             android:id="@+id/rb_keep_2w"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:buttonTint="@color/selector_dialog_radio_button_tint"
                             android:text="@string/settings_learning_reset_option_keep_2w"
                             android:textColor="@color/color_sub_text"
                             android:textSize="@dimen/dialog_subtitle_text_size" />
@@ -76,6 +78,7 @@
                             android:id="@+id/rb_keep_1m"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:buttonTint="@color/selector_dialog_radio_button_tint"
                             android:text="@string/settings_learning_reset_option_keep_1m"
                             android:textColor="@color/color_sub_text"
                             android:textSize="@dimen/dialog_subtitle_text_size" />
@@ -84,6 +87,7 @@
                             android:id="@+id/rb_keep_3m"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:buttonTint="@color/selector_dialog_radio_button_tint"
                             android:text="@string/settings_learning_reset_option_keep_3m"
                             android:textColor="@color/color_sub_text"
                             android:textSize="@dimen/dialog_subtitle_text_size" />
@@ -92,6 +96,7 @@
                             android:id="@+id/rb_delete_all"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:buttonTint="@color/selector_dialog_radio_button_tint"
                             android:text="@string/settings_learning_reset_option_all"
                             android:textColor="@color/color_sub_text"
                             android:textSize="@dimen/dialog_subtitle_text_size" />

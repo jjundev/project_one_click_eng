@@ -1,4 +1,4 @@
-# GEMINI.md — Agent 실수 기록 및 행동 지침
+# AGENTS.md — Agent 실수 기록 및 행동 지침
 
 > 이 파일은 AI 에이전트가 작업 중 저지른 실수를 누적 기록하고,
 > 다음 작업에서 동일한 실수를 반복하지 않도록 안내하는 문서입니다.
@@ -37,6 +37,39 @@
 
 <!-- 아래에 실수 기록을 계속 추가하세요 -->
 
+### [2026-03-01] RecordingAudioPlayer 토큰 처리 순서 오류로 Gemini TTS 완료 콜백 누락
+
+- **심각도**: 🟠 High
+- **카테고리**: 기타
+- **작업 컨텍스트**: `DialogueLearning` 경로에 Gemini TTS 실재생을 연결한 뒤 턴 자동 진행 검증 작업
+- **실수 내용**: `RecordingAudioPlayer.play(byte[], int, PlaybackCallback)`에서 새 `requestToken`/`callback`을 먼저 설정한 뒤 `stop()`을 호출해 토큰이 즉시 무효화되도록 구현했다.
+- **원인 분석**: 토큰 기반 콜백 보호 로직이 있는 상태에서 `stop()`이 토큰을 증가시킨다는 점을 반영하지 못하고, 초기화/정리 순서 불변식을 놓쳤다.
+- **실제 결과**: Gemini PCM 재생이 끝나도 marker 콜백이 stale token으로 폐기되어 `onPlaybackCompleted()`가 전달되지 않았고, `DialogueLearning`에서 다음 턴(`onAdvanceToNextTurn`)으로 전환이 멈췄다.
+- **올바른 방법**: 이전 재생 정리(`stop()`)를 먼저 수행한 뒤 새 토큰/콜백을 발급해야 하며, 완료 체인(`playback completed -> onTtsTerminal -> turn advance`)을 trace 로그로 검증한다.
+- **재발 방지 규칙**: `[ ] 토큰 기반 비동기 재생 로직은 stop/cancel 등 이전 세션 정리 후에만 새 토큰/콜백을 등록하고, 완료 콜백 전달 여부를 로그로 검증한다.`
+
+### [2026-03-01] Gemini TTS 응답 파서에서 Android Base64 유틸 사용으로 JVM 테스트 불일치 발생
+
+- **심각도**: 🟢 Low
+- **카테고리**: 기타
+- **작업 컨텍스트**: `GeminiTtsManager` 신규 구현 및 `GeminiTtsManagerTest` 추가 작업
+- **실수 내용**: 응답 오디오 base64 decode에 `android.util.Base64`를 사용해 JVM 단위테스트 환경에서 decode 결과가 비어 `Decoded audio is empty` 실패를 유발했다.
+- **원인 분석**: Android 런타임과 JVM 단위테스트 런타임의 유틸 동작 차이를 구현 시점에 고려하지 못했다.
+- **실제 결과**: `:app:testDebugUnitTest --tests *GeminiTtsManagerTest*` 실행에서 2개 테스트가 1회 실패했다.
+- **올바른 방법**: Android 의존이 필요 없는 순수 파싱/디코딩 경로는 `java.util.Base64`처럼 JVM 호환 표준 유틸을 우선 사용한다.
+- **재발 방지 규칙**: `[ ] JVM 단위테스트 대상 로직(파서/디코더)에는 Android 전용 유틸(android.util.*) 사용 여부를 테스트 실행 전에 점검한다.`
+
+### [2026-03-01] Quiz 결과 버튼 색상 분기 리팩터링 중 상태 객체 접근자 혼동
+
+- **심각도**: 🟢 Low
+- **카테고리**: 기타
+- **작업 컨텍스트**: `QuizFragment`에서 정답/오답 기준으로 `btnPrimary` 색상 분기 적용 작업
+- **실수 내용**: `renderReady()`에서 `QuizUiState state`에 대해 존재하지 않는 `state.isCorrect()`를 호출하도록 작성했다.
+- **원인 분석**: `isCorrect()`가 `QuizQuestionState`에만 존재한다는 모델 경계를 빠르게 변경하는 과정에서 놓쳤다.
+- **실제 결과**: `:app:assembleDebug` 실행 시 `cannot find symbol: method isCorrect()` 컴파일 오류가 1회 발생했다.
+- **올바른 방법**: `renderReady()`에서 이미 확보한 `questionState.isCorrect()`를 전달하거나, 필요한 경우 상태 객체에 명시적 getter를 추가한 뒤 사용한다.
+- **재발 방지 규칙**: `[ ] UI 상태 전달/분기 리팩터링 시 사용하는 상태 객체 타입(QuizUiState vs QuizQuestionState)과 getter 존재 여부를 빌드 전에 확인한다.`
+
 ### [2026-02-28] CreditStore 탭 전환 커스텀 네비게이션 결함으로 빈 화면 발생
 
 - **심각도**: 🟠 High
@@ -50,31 +83,6 @@
 - **올바른 방법**: `popBackStack` 이후 `navigate` 실패를 기본 실패 시나리오로 가정하고 start destination 복구 fallback을 넣어야 한다. Billing/SDK 콜백은 `Handler(Looper.getMainLooper())`로 UI 호출을 강제해야 한다.
 - **재발 방지 규칙**: `[ ] 커스텀 탭 네비게이션 변경 시 popBackStack 이후 navigate 실패 복구(fallback)와 UI 메인 스레드 디스패치를 릴리즈 전 반드시 검증한다.`
 
-### [2026-02-28] 명세 해석 오류 및 뷰 중첩(Overlap) 문제
-
-- **심각도**: 🟡 Medium
-- **카테고리**: 기타
-- **작업 컨텍스트**: `LoginActivity.java`에 `DialogueLearningFragment`의 BottomSheet 애니메이션 적용 (가입/로그인 단계 전환)
-- **실수 내용**: 사용자가 의도한 "단계 간 전환 시 BottomSheet가 아래로 완전히 접혔다가 새 뷰로 교체 후 다시 펼쳐지는 애니메이션"을 파악하지 못하고, 오직 화면 첫 진입 시 바텀시트가 통째로 튀어오르는 초기 진입 애니메이션에만 집중하여 수정함. 또한 뷰 전환 로직을 수정할 때 기존 로딩 레이아웃(`layout_login_loading`)과 나머지 컨텐츠 뷰들 간 명시적인 `GONE` 처리를 누락하여 화면 중첩 현상이 일어남.
-- **원인 분석**: 
-  1. "바텀시트 전환 애니메이션"이라는 요구사항에서 "어떤 맥락의 전환인지(초기 진입 vs 단계 이동)" 명확히 파악하지 않고 한 가지 형태(Spring)로 섣불리 단정지음.
-  2. 여러 단계를 `FrameLayout` 안에서 `visibility`로만 조작하는 구조(`swapViews`)에서 예외 상태인 "로딩(`loading`)" 단계의 특수성을 고려하지 않아 `GONE` 처리에 누락된 View가 생김.
-- **실제 결과**: 사용자가 의도와 다르다고 재차 피드백하며 여러 차례 코드를 롤백하고 덧댐 수정해야 했고, 로딩 화면 진입 시 로그인 폼과 겹쳐 보이는 UI 버그가 노출됨.
-- **올바른 방법**: UI 애니메이션이나 로직 수정 시, "어느 시점(Trigger)"에 일어나는 일인지 기존 레퍼런스를 면밀히 돌려보거나 사용자의 의도를 먼저 명확하게 다져야 함. 또한 `visibility` 기반의 뷰 스와핑을 구현할 때는 연관된 모든 형제 뷰들에 대한 명시적인 보임/숨김 처리가 꼼꼼히 이뤄지도록 Cross-check 해야 함.
-- **재발 방지 규칙**: `[ ] 동일 레이아웃 컨테이너 내에서 뷰 교체(View Swapping)를 구현/수정할 때는 관련된 모든 형제 뷰(sibling views)가 명시적으로 GONE 처리되는지 재확인한다.`
-
-
-### [2026-02-27] multi_replace_file_content 사용 시 기존 import 구문 누락
-
-- **심각도**: 🟡 Medium
-- **카테고리**: 파일 조작
-- **작업 컨텍스트**: `LoginActivity.java`에 `FirebaseFirestore` import를 추가하기 위해 `multi_replace_file_content` 툴을 사용하던 중
-- **실수 내용**: TargetContent의 첫 줄이었던 `import com.google.firebase.auth.FirebaseAuth;`를 ReplacementContent에서 실수로 누락시켜 의도치 않게 삭제해버림.
-- **원인 분석**: 툴의 ReplacementChunk를 작성할 때, TargetContent에 명시된 원래의 코드 조각 중 유지해야 할 부분을 ReplacementContent에도 온전히 포함시키는 크로스체크가 미흡했음.
-- **실제 결과**: `FirebaseAuth` 심볼을 찾을 수 없다는 컴파일 에러가 발생하여 안드로이드 빌드(`assembleDebug`)가 실패했고, 추가적인 수정 작업이 필요했음.
-- **올바른 방법**: `multi_replace_file_content` 또는 `replace_file_content` 툴을 사용할 때는 반드시 TargetContent에 포함된 기존 코드 중 보존되어야 할 라인들이 ReplacementContent에 빠짐없이 포함되어 있는지 다시 한번 확인해야 함.
-- **재발 방지 규칙**: `[ ] multi_replace_file_content 사용 시 유지해야 할 기존 코드가 번역/교체 컨텐츠에 제대로 포함되었는지 반드시 대조/확인한다.`
-
 ### [2026-02-27] 다이얼로그 레이아웃 추가 시 연관 Drawable/Color 리소스 누락
 
 - **심각도**: 🟡 Medium
@@ -86,17 +94,6 @@
 - **올바른 방법**: 새로운 layout XML을 작성/수정할 때는, 해당 파일에서 처음으로 도입하는 혹은 누락 가능성이 있는 리소스 식별자를 미리 확인하고 동시에 생성해야 함.
 - **재발 방지 규칙**: `[ ] 레이아웃 XML 파일 생성/수정 시 참조하는 모든 리소스(drawable, color, string)가 함께 생성되었거나 이미 존재하는지 점검한다.`
 
-### [2026-02-27] 파일 내 존재하는 특정 뷰 요소와 메서드 참조 실수
-
-- **심각도**: 🟡 Medium
-- **카테고리**: 파일 조작
-- **작업 컨텍스트**: `SettingFragment.java`의 보상형 광고 대기 `AlertDialog`를 `dialog_charge_credit.xml` 커스텀 뷰 내부 로딩으로 전환하는 작업
-- **실수 내용**: 커스텀 다이얼로그 뷰(`chargeCreditDialog`)를 적용하면서, `chargeCreditDialog`에 대응하는 `dismissLoadingAdDialog()` 등 구버전 메서드 및 변수 호출들을 깔끔하게 삭제하고 교체하지 않아 불필요한 메서드 정의가 남거나 적용이 실패함. (결과 오류: target content not found in file 발생)
-- **원인 분석**: `multi_replace_file_content` 툴을 사용할 때, 기존 `showLoadingAdDialog()`, `dismissLoadingAdDialog()` 등을 통째로 삭제해야 했는데, 참조되는 곳(예: `onAdLoaded` 등)의 코드를 한 번에 정확히 매핑하여 삭제/수정하지 못함
-- **실제 결과**: `multi_replace_file_content`의 replacement가 일치하지 않아 부분 실패가 났고 여러 차례 덧댐 수정을 거쳐야 했음.
-- **올바른 방법**: 이전 로직을 완전히 덜어내는 방향으로 아키텍처를 변경할 경우(e.g., AlertDialog -> Custom View), 그 로직을 호출·참조하는 "모든" 라인을 연쇄적으로 `ReplaceChunk`에 한 번에 담아서 삭제하거나 교체해야 함. 
-- **재발 방지 규칙**: `[ ] 메서드나 로직의 구조체를 대체/삭제할 때는 툴 사용 전 반드시 해당 메서드가 호출되는 부분(call site)까지 전체적으로 검색 및 파악하여, 교체 청크에 누락 없이 포함한다.`
-
 ---
 
 ## 🚫 절대 하지 말 것 (Do NOT)
@@ -107,10 +104,10 @@
 - [ ] 예시: 환경변수 파일(`.env`)을 git에 커밋하지 않는다
 - [ ] 예시: 프로덕션 DB에 직접 쿼리를 실행하지 않는다
 - [ ] 레이아웃 XML 파일 생성/수정 시 참조하는 모든 리소스(drawable, color, string)의 존재 여부를 무시하고 단독으로만 커밋(기록)하지 않는다.
-- [ ] multi_replace_file_content 등 파일 조작 툴 사용 시 유지해야 할 기존 코드 라인을 누락하여 의도치 않게 삭제하지 않는다.
-- [ ] 메서드 자체를 완전히 삭제/대체할 때 해당 메서드의 호출부(call site)를 빼먹고 교체 청크를 작성하지 않는다.
-- [ ] 동일 레이아웃 컨테이너 내에서 뷰 교체(View Swapping)를 구현/수정할 때는 관련된 모든 형제 뷰(sibling views)가 명시적으로 GONE 처리되는지 무시하고 개발하지 않는다.
 - [ ] popBackStack 이후 navigate 실패 가능성을 무시하고 복구 경로 없이 커스텀 탭 네비게이션을 배포하지 않는다.
+- [ ] UI 상태 분기 리팩터링 중 상태 객체 타입 경계를 혼동해 존재하지 않는 getter/메서드를 호출하지 않는다.
+- [ ] JVM 단위테스트 대상 파서/유틸 로직에 Android 전용 유틸(android.util.*)을 무심코 사용하지 않는다.
+- [ ] 토큰 기반 비동기 재생에서 stop/cancel 전후 순서를 무시한 채 새 토큰/콜백을 먼저 등록하지 않는다.
 
 ---
 
@@ -124,10 +121,11 @@
 - [ ] 이 파일의 "절대 하지 말 것" 목록을 확인했는가?
 - [ ] 되돌리기 어려운 작업이 포함되어 있다면 사용자에게 고지했는가?
 - [ ] (안드로이드/프론트 개발 시) 레이아웃/UI 파일 작성 시 참조하는 외부 리소스 파일을 올바르게 포함시켰는가?
-- [ ] 파일 내용 수정 툴(multi_replace_file_content 등) 사용 시 교체 내용 중 기존 코드가 잘못 삭제되지 않았는지 확인했는가?
-- [ ] 로직(구조체, 메서드 등) 대체/변경 시, 과거 로직과 연결된 호출부들이 에러를 뱉지 않도록 완벽히 수정 계획에 포함시켰는가?
 - [ ] 커스텀 네비게이션에서 popBackStack 이후 navigate 실패 시 복구 목적지(startDestination 또는 안전 목적지)가 정의되어 있는가?
 - [ ] 외부 SDK/Billing 콜백에서 UI 갱신이 메인 스레드로 디스패치되는가?
+- [ ] UI 상태 전달/분기 변경 시 사용하는 상태 객체 타입과 getter 존재 여부를 확인했는가?
+- [ ] JVM 단위테스트 대상 코드에서 Android 전용 유틸 대신 JVM 호환 유틸(java.util.* 등)을 사용했는가?
+- [ ] 토큰 기반 재생/요청 로직에서 이전 세션 정리(stop/cancel)와 새 토큰 발급 순서를 점검했는가?
 
 ---
 
@@ -135,11 +133,11 @@
 
 | 카테고리 | 횟수 |
 |----------|------|
-| 파일 조작 | 2 |
+| 파일 조작 | 0 |
 | 명령어 오류 | 0 |
 | 경로 실수 | 0 |
 | 의존성 | 0 |
-| 기타 | 3 |
+| 기타 | 5 |
 | **합계** | **5** |
 
 ---
@@ -154,4 +152,4 @@
 
 ---
 
-*마지막 업데이트: 2026-02-28 | 총 기록된 실수: 5건*
+*마지막 업데이트: 2026-03-01 | 총 기록된 실수: 5건*

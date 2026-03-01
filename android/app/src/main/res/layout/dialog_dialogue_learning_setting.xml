@@ -106,6 +106,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
+                            android:buttonTint="@color/selector_dialog_radio_button_tint"
                             android:text="Android TTS"
                             android:textColor="@color/color_sub_text"
                             android:textSize="14sp" />
@@ -114,6 +115,7 @@
                             android:id="@+id/rb_provider_gemini"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:buttonTint="@color/selector_dialog_radio_button_tint"
                             android:text="Gemini API"
                             android:textColor="@color/color_sub_text"
                             android:textSize="14sp" />
