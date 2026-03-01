@@ -51,6 +51,9 @@ public class LearningHistoryFragment extends Fragment {
 
   private static final String TAG = "LearningHistoryFrag";
   private static final String TAG_HISTORY_QUIZ_CONFIG_DIALOG = "QuizGenerateDialog";
+  private static final int QUIZ_CREDIT_THRESHOLD_COUNT = 6;
+  private static final int QUIZ_CREDIT_DEFAULT = 1;
+  private static final int QUIZ_CREDIT_EXTENDED = 2;
 
   private LearningHistoryViewModel viewModel;
   private LearningHistoryAdapter adapter;
@@ -167,6 +170,11 @@ public class LearningHistoryFragment extends Fragment {
               long requestId = ++quizPreparationRequestId;
               int periodBucket = result.getInt(QuizGenerateDialog.BUNDLE_KEY_PERIOD_BUCKET);
               int questionCount = result.getInt(QuizGenerateDialog.BUNDLE_KEY_QUESTION_COUNT);
+              int requiredCredit =
+                  result.containsKey(QuizGenerateDialog.BUNDLE_KEY_REQUIRED_CREDIT)
+                      ? result.getInt(QuizGenerateDialog.BUNDLE_KEY_REQUIRED_CREDIT)
+                      : calculateRequiredCredit(questionCount);
+              requiredCredit = Math.max(1, requiredCredit);
               int currentTab = tabLayout != null ? tabLayout.getSelectedTabPosition() : 0;
               QuizGenerateDialog dialog = resolveConfigDialog();
 
@@ -179,7 +187,8 @@ public class LearningHistoryFragment extends Fragment {
                 dialog.setLoadingState(false);
                 return;
               }
-              verifyCreditAndPrepareQuiz(dialog, requestId, periodBucket, questionCount, currentTab);
+              verifyCreditAndPrepareQuiz(
+                  dialog, requestId, periodBucket, questionCount, requiredCredit, currentTab);
             });
   }
 
@@ -250,6 +259,7 @@ public class LearningHistoryFragment extends Fragment {
       long requestId,
       int periodBucket,
       int questionCount,
+      int requiredCredit,
       int currentTab) {
     FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
     if (user == null) {
@@ -277,7 +287,14 @@ public class LearningHistoryFragment extends Fragment {
               DocumentSnapshot doc = task.getResult();
               Long creditObj = doc.getLong("credit");
               long credit = creditObj != null ? creditObj : 0L;
-              if (credit <= 0L) {
+              if (credit < requiredCredit) {
+                logDebug(
+                    "Insufficient credit: required="
+                        + requiredCredit
+                        + ", current="
+                        + credit
+                        + ", questionCount="
+                        + questionCount);
                 finishQuizPreparation(dialog, requestId);
                 if (dialog.isAdded()) {
                   dialog.dismiss();
@@ -287,7 +304,8 @@ public class LearningHistoryFragment extends Fragment {
                 return;
               }
 
-              prepareQuizGeneration(dialog, requestId, periodBucket, questionCount, currentTab);
+              prepareQuizGeneration(
+                  dialog, requestId, periodBucket, questionCount, requiredCredit, currentTab);
             });
   }
 
@@ -296,6 +314,7 @@ public class LearningHistoryFragment extends Fragment {
       long requestId,
       int periodBucket,
       int questionCount,
+      int requiredCredit,
       int currentTab) {
     if (requestId != quizPreparationRequestId) {
       return;
@@ -334,7 +353,8 @@ public class LearningHistoryFragment extends Fragment {
                     return;
                   }
                   completed[0] = true;
-                  startPreparedQuiz(dialog, requestId, finalSeed, questionCount, sessionId);
+                  startPreparedQuiz(
+                      dialog, requestId, finalSeed, questionCount, requiredCredit, sessionId);
                 });
           }
 
@@ -373,7 +393,7 @@ public class LearningHistoryFragment extends Fragment {
     }
     if (hasStartableQuestion(snapshot.getBufferedQuestions())) {
       completed[0] = true;
-      startPreparedQuiz(dialog, requestId, finalSeed, questionCount, sessionId);
+      startPreparedQuiz(dialog, requestId, finalSeed, questionCount, requiredCredit, sessionId);
       return;
     }
 
@@ -394,13 +414,14 @@ public class LearningHistoryFragment extends Fragment {
       long requestId,
       @NonNull SummaryData seed,
       int questionCount,
+      int requiredCredit,
       @NonNull String sessionId) {
     clearPendingQuizSession(false);
     finishQuizPreparation(dialog, requestId);
     if (dialog.isAdded()) {
       dialog.dismiss();
     }
-    startDialogueQuiz(seed, questionCount, sessionId);
+    startDialogueQuiz(seed, questionCount, requiredCredit, sessionId);
   }
 
   private void showPreparationError(
@@ -464,7 +485,10 @@ public class LearningHistoryFragment extends Fragment {
   }
 
   private void startDialogueQuiz(
-      @NonNull SummaryData seed, int questionCount, @NonNull String sessionId) {
+      @NonNull SummaryData seed,
+      int questionCount,
+      int requiredCredit,
+      @NonNull String sessionId) {
     if (!isAdded()) {
       LearningDependencyProvider.provideQuizStreamingSessionStore().release(sessionId);
       return;
@@ -478,7 +502,7 @@ public class LearningHistoryFragment extends Fragment {
       if (getActivity() != null) {
         getActivity().overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
       }
-      decrementCreditOnQuizStart();
+      decrementCreditOnQuizStart(requiredCredit);
     } catch (Exception e) {
       LearningDependencyProvider.provideQuizStreamingSessionStore().release(sessionId);
       logDebug("Activity start failed: " + e.getMessage());
@@ -486,17 +510,30 @@ public class LearningHistoryFragment extends Fragment {
     }
   }
 
-  private void decrementCreditOnQuizStart() {
+  private void decrementCreditOnQuizStart(int requiredCredit) {
     FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
     if (user == null) {
       return;
     }
+    int creditToDeduct = Math.max(1, requiredCredit);
 
     FirebaseFirestore.getInstance()
         .collection("users")
         .document(user.getUid())
-        .update("credit", FieldValue.increment(-1))
-        .addOnFailureListener(e -> logDebug("Failed to decrement credit: " + e.getMessage()));
+        .update("credit", FieldValue.increment(-creditToDeduct))
+        .addOnFailureListener(
+            e ->
+                logDebug(
+                    "Failed to decrement credit("
+                        + creditToDeduct
+                        + "): "
+                        + e.getMessage()));
+  }
+
+  private static int calculateRequiredCredit(int questionCount) {
+    return questionCount >= QUIZ_CREDIT_THRESHOLD_COUNT
+        ? QUIZ_CREDIT_EXTENDED
+        : QUIZ_CREDIT_DEFAULT;
   }
 
   private boolean isValidQuestionReadyForStart(@Nullable QuizData.QuizQuestion question) {

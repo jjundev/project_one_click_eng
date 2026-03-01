@@ -22,10 +22,14 @@ public class QuizGenerateDialog extends DialogFragment {
 
   private static final long LOADING_MESSAGE_ROTATION_INTERVAL_MS = 2500L;
   private static final long LOADING_MESSAGE_FADE_DURATION_MS = 300L;
+  private static final int QUIZ_CREDIT_THRESHOLD_COUNT = 6;
+  private static final int QUIZ_CREDIT_DEFAULT = 1;
+  private static final int QUIZ_CREDIT_EXTENDED = 2;
 
   public static final String REQUEST_KEY = "history_quiz_config_request";
   public static final String BUNDLE_KEY_PERIOD_BUCKET = "bundle_key_period_bucket";
   public static final String BUNDLE_KEY_QUESTION_COUNT = "bundle_key_question_count";
+  public static final String BUNDLE_KEY_REQUIRED_CREDIT = "bundle_key_required_credit";
 
   public static final int PERIOD_1W = 0;
   public static final int PERIOD_2W = 1;
@@ -66,14 +70,14 @@ public class QuizGenerateDialog extends DialogFragment {
     TextView tvQuizCountValue = view.findViewById(R.id.tv_quiz_count_value);
     tvLoadingMessage = view.findViewById(R.id.tv_quiz_loading_message);
     loadingMessages = getResources().getStringArray(R.array.history_quiz_config_loading_messages);
-    updateQuestionCountText(tvQuizCountValue, sbQuestionCount.getProgress() + 1);
+    updateQuestionCountUi(tvQuizCountValue, sbQuestionCount.getProgress() + 1);
 
     sbQuestionCount.setOnSeekBarChangeListener(
         new SeekBar.OnSeekBarChangeListener() {
           @Override
           public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
             int count = progress + 1;
-            updateQuestionCountText(tvQuizCountValue, count);
+            updateQuestionCountUi(tvQuizCountValue, count);
           }
 
           @Override
@@ -102,10 +106,12 @@ public class QuizGenerateDialog extends DialogFragment {
             }
 
             int questionCount = sbQuestionCount.getProgress() + 1;
+            int requiredCredit = calculateRequiredCredit(questionCount);
 
             Bundle result = new Bundle();
             result.putInt(BUNDLE_KEY_PERIOD_BUCKET, periodBucket);
             result.putInt(BUNDLE_KEY_QUESTION_COUNT, questionCount);
+            result.putInt(BUNDLE_KEY_REQUIRED_CREDIT, requiredCredit);
 
             setLoadingState(true);
             getParentFragmentManager().setFragmentResult(REQUEST_KEY, result);
@@ -209,8 +215,23 @@ public class QuizGenerateDialog extends DialogFragment {
     }
   }
 
-  private void updateQuestionCountText(@NonNull TextView textView, int count) {
+  private void updateQuestionCountUi(@NonNull TextView textView, int count) {
     textView.setText(getString(R.string.history_quiz_config_count_value_format, count));
+    if (btnStart == null) {
+      return;
+    }
+    int requiredCredit = calculateRequiredCredit(count);
+    int textResId =
+        requiredCredit == QUIZ_CREDIT_EXTENDED
+            ? R.string.history_quiz_config_confirm_credit_2
+            : R.string.history_quiz_config_confirm_credit_1;
+    btnStart.setText(textResId);
+  }
+
+  private int calculateRequiredCredit(int questionCount) {
+    return questionCount >= QUIZ_CREDIT_THRESHOLD_COUNT
+        ? QUIZ_CREDIT_EXTENDED
+        : QUIZ_CREDIT_DEFAULT;
   }
 
   private void ensureLoadingMessages() {

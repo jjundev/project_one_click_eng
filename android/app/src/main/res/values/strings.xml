@@ -268,6 +268,8 @@
     </string-array>
     <string name="history_quiz_config_cancel">취소</string>
     <string name="history_quiz_config_confirm">퀴즈 생성하기 (1 크레딧)</string>
+    <string name="history_quiz_config_confirm_credit_1">퀴즈 생성하기 (1 크레딧)</string>
+    <string name="history_quiz_config_confirm_credit_2">퀴즈 생성하기 (2 크레딧)</string>
     <string name="history_quiz_err_no_items">해당 기간에 학습한 항목이 없어요.</string>
     <string name="history_quiz_err_count_range">문제 수를 1~10 사이로 입력해 주세요.</string>
 </resources>

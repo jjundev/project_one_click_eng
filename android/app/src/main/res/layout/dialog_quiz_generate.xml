@@ -154,7 +154,7 @@
                 style="@style/DialogButtonPrimary"
                 android:layout_width="match_parent"
                 android:layout_marginTop="@dimen/dialog_action_top_margin"
-                android:text="@string/history_quiz_config_confirm" />
+                android:text="@string/history_quiz_config_confirm_credit_1" />
         </LinearLayout>
     </ScrollView>
 
