@@ -269,6 +269,9 @@ public class CreditHistoryFragment extends Fragment {
     if (CreditHistoryEventLogger.EVENT_QUIZ_USE.equals(event)) {
       return getString(R.string.credit_history_event_quiz_use);
     }
+    if (CreditHistoryEventLogger.EVENT_SIGNUP_BONUS_CHARGE.equals(event)) {
+      return getString(R.string.credit_history_event_signup_bonus_charge);
+    }
     return getString(R.string.credit_history_event_unknown);
   }
 

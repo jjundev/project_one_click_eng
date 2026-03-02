@@ -43,10 +43,10 @@ import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
-import com.google.firebase.firestore.FirebaseFirestore;
 import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.billing.BillingStartupDiagnostics;
+import com.jjundev.oneclickeng.credit.CreditHistoryEventLogger;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -351,6 +351,10 @@ public class LoginActivity extends AppCompatActivity {
             tilEmail.setError("올바른 이메일 주소를 입력해주세요.");
             return;
           }
+          if (email.toLowerCase().endsWith("@gmail.com")) {
+            Toast.makeText(this, "구글 로그인을 이용해주세요", Toast.LENGTH_SHORT).show();
+            return;
+          }
           checkEmailExists(email);
         });
   }
@@ -599,7 +603,7 @@ public class LoginActivity extends AppCompatActivity {
                       Log.d(TAG, "createUserWithEmail:success");
                       if (task.getResult().getUser() != null) {
                         initializeUserCredit(
-                            task.getResult().getUser().getUid(), "회원가입 성공!\n10 크레딧이 지급되었어요");
+                            task.getResult().getUser().getUid(), "회원가입 성공!\n5 크레딧이 지급되었어요");
                       } else {
                         setLoadingState(false);
                         Toast.makeText(LoginActivity.this, "회원가입 및 로그인 완료!", Toast.LENGTH_SHORT)
@@ -733,7 +737,7 @@ public class LoginActivity extends AppCompatActivity {
                 }
 
                 if (isNewUser && task.getResult().getUser() != null) {
-                  initializeUserCredit(task.getResult().getUser().getUid(), "로그인 성공! (10 크레딧 지급)");
+                  initializeUserCredit(task.getResult().getUser().getUid(), "로그인 성공! (5 크레딧 지급)");
                 } else {
                   setLoadingState(false);
                   Toast.makeText(LoginActivity.this, "로그인 성공!", Toast.LENGTH_SHORT).show();
@@ -781,17 +785,30 @@ public class LoginActivity extends AppCompatActivity {
   }
 
   private void initializeUserCredit(String uid, String successMessage) {
-    java.util.Map<String, Object> data = new java.util.HashMap<>();
-    data.put("credit", 10L);
-    FirebaseFirestore.getInstance()
-        .collection("users")
-        .document(uid)
-        .set(data, com.google.firebase.firestore.SetOptions.merge())
-        .addOnCompleteListener(
-            task -> {
-              setLoadingState(false);
-              Toast.makeText(LoginActivity.this, successMessage, Toast.LENGTH_SHORT).show();
-              navigateToMain();
-            });
+    CreditHistoryEventLogger.grantSignupBonusIfAbsent(
+        uid,
+        new CreditHistoryEventLogger.SignupBonusCallback() {
+          @Override
+          public void onComplete(boolean granted, long creditAfter) {
+            setLoadingState(false);
+            Toast.makeText(
+                    LoginActivity.this,
+                    granted ? successMessage : "로그인 성공!",
+                    Toast.LENGTH_SHORT)
+                .show();
+            navigateToMain();
+          }
+
+          @Override
+          public void onFailure(Exception exception) {
+            setLoadingState(false);
+            Log.w(TAG, "grantSignupBonusIfAbsent:failure", exception);
+            Toast.makeText(
+                    LoginActivity.this,
+                    "초기 크레딧 지급에 실패했어요. 잠시 후 다시 시도해 주세요.",
+                    Toast.LENGTH_SHORT)
+                .show();
+          }
+        });
   }
 }

@@ -228,6 +228,7 @@
     <string name="credit_history_event_ad_charge">광고 충전</string>
     <string name="credit_history_event_learning_use">학습 사용</string>
     <string name="credit_history_event_quiz_use">퀴즈 사용</string>
+    <string name="credit_history_event_signup_bonus_charge">회원가입 보너스</string>
     <string name="credit_history_event_unknown">기타</string>
     <string name="credit_history_delta_format">%1$+d</string>
     <string name="credit_history_meta_format">남은 크레딧 %1$d개 · %2$s</string>
