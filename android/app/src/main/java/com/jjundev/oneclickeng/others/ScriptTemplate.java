@@ -5,13 +5,11 @@ public class ScriptTemplate {
   private String emoji;
   private String title;
   private String subtitle;
-  private String initialKo;
 
-  public ScriptTemplate(String emoji, String title, String subtitle, String initialKo) {
+  public ScriptTemplate(String emoji, String title, String subtitle) {
     this.emoji = emoji;
     this.title = title;
     this.subtitle = subtitle;
-    this.initialKo = initialKo;
   }
 
   public String getEmoji() {
@@ -24,9 +22,5 @@ public class ScriptTemplate {
 
   public String getSubtitle() {
     return subtitle;
-  }
-
-  public String getInitialKo() {
-    return initialKo;
   }
 }
