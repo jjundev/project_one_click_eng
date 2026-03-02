@@ -51,6 +51,7 @@ public class CreditStoreFragment extends Fragment {
   private static final String MESSAGE_PRECHECK_BILLING = "결제 서비스를 준비 중이에요";
   private static final String MESSAGE_PRECHECK_PRODUCT = "상품 정보를 불러오는 중이에요.";
   private static final String MESSAGE_VERIFICATION_RETRYABLE = "결제 확인이 지연되고 있어요. 잠시 후 자동으로 다시 시도할게요.";
+  private static final String MESSAGE_ALREADY_OWNED_RECOVERY = "이미 보유한 상품을 정리하고 있어요. 잠시만 기다려주세요.";
 
   @Nullable
   private RecyclerView rvProducts;
@@ -268,8 +269,39 @@ public class CreditStoreFragment extends Fragment {
         || status == CreditPurchaseVerifier.VerificationStatus.SERVER_ERROR;
   }
 
+  static boolean shouldRecoverOwnedPurchaseOnLaunchResult(int responseCode) {
+    return responseCode == BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED;
+  }
+
+  static boolean shouldForceConsumePurchaseState(int purchaseState) {
+    return purchaseState == Purchase.PurchaseState.PURCHASED
+        || purchaseState == Purchase.PurchaseState.PENDING;
+  }
+
+  static boolean doesPurchaseMatchTargetProduct(
+      @Nullable String targetProductId, @Nullable List<String> purchaseProductIds) {
+    String safeTargetProductId = normalizeProductId(targetProductId);
+    if (safeTargetProductId.isEmpty()) {
+      return true;
+    }
+    if (purchaseProductIds == null || purchaseProductIds.isEmpty()) {
+      return false;
+    }
+    for (String productId : purchaseProductIds) {
+      if (safeTargetProductId.equals(normalizeProductId(productId))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private static boolean isVerifyUrlConfigured(@Nullable String verifyUrl) {
     return verifyUrl != null && !verifyUrl.trim().isEmpty();
+  }
+
+  @NonNull
+  private static String normalizeProductId(@Nullable String productId) {
+    return productId == null ? "" : productId.trim();
   }
 
   private void refreshPurchaseEntryState() {
@@ -321,10 +353,28 @@ public class CreditStoreFragment extends Fragment {
       return;
     }
 
-    BillingResult launchResult = billingManager.launchBillingFlow(hostActivity, product.productDetails);
+    PlayBillingManager manager = billingManager;
+    if (manager == null) {
+      showToastSafe(MESSAGE_PRECHECK_BILLING);
+      return;
+    }
+
+    BillingResult launchResult = manager.launchBillingFlow(hostActivity, product.productDetails);
     int responseCode = launchResult.getResponseCode();
+    logDebug(
+        "launchBillingFlow result: responseCode="
+            + responseCode
+            + ", productId="
+            + product.productId
+            + ", message="
+            + launchResult.getDebugMessage());
     if (responseCode == BillingClient.BillingResponseCode.OK
         || responseCode == BillingClient.BillingResponseCode.USER_CANCELED) {
+      return;
+    }
+    if (shouldRecoverOwnedPurchaseOnLaunchResult(responseCode)) {
+      showToastSafe(MESSAGE_ALREADY_OWNED_RECOVERY);
+      recoverOwnedPurchasesAndProcessPending(product.productId, true);
       return;
     }
 
@@ -375,7 +425,8 @@ public class CreditStoreFragment extends Fragment {
     }
 
     if (responseCode == BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED) {
-      recoverOwnedPurchasesAndProcessPending();
+      showToastSafe(MESSAGE_ALREADY_OWNED_RECOVERY);
+      recoverOwnedPurchasesAndProcessPending(null, true);
       return;
     }
 
@@ -388,16 +439,34 @@ public class CreditStoreFragment extends Fragment {
   }
 
   private void recoverOwnedPurchasesAndProcessPending() {
+    recoverOwnedPurchasesAndProcessPending(null, false);
+  }
+
+  private void recoverOwnedPurchasesAndProcessPending(
+      @Nullable String targetProductId, boolean forceConsumeImmediately) {
     PlayBillingManager manager = billingManager;
     if (manager == null || !billingReady) {
+      logDebug("recoverOwnedPurchases skipped: billing not ready.");
       return;
     }
 
+    String safeTargetProductId = normalizeProductId(targetProductId);
     manager.queryInAppPurchases(
         (billingResult, purchases) -> {
+          logDebug(
+              "recoverOwnedPurchases query result: responseCode="
+                  + billingResult.getResponseCode()
+                  + ", purchaseCount="
+                  + (purchases != null ? purchases.size() : "null")
+                  + ", forceConsume="
+                  + forceConsumeImmediately
+                  + ", targetProductId="
+                  + (safeTargetProductId.isEmpty() ? "(all)" : safeTargetProductId));
           if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-            for (Purchase purchase : purchases) {
-              handleIncomingPurchase(purchase, false);
+            if (purchases != null) {
+              for (Purchase purchase : purchases) {
+                handleIncomingPurchase(purchase, false);
+              }
             }
           } else {
             logDebug(
@@ -407,7 +476,48 @@ public class CreditStoreFragment extends Fragment {
                     + billingResult.getDebugMessage());
           }
           processPendingPurchases();
+          if (forceConsumeImmediately && purchases != null && !purchases.isEmpty()) {
+            forceConsumeOwnedPurchases(purchases, safeTargetProductId);
+          }
         });
+  }
+
+  private void forceConsumeOwnedPurchases(
+      @NonNull List<Purchase> purchases, @Nullable String targetProductId) {
+    String safeTargetProductId = normalizeProductId(targetProductId);
+    int scheduledCount = 0;
+    for (Purchase purchase : purchases) {
+      int state = purchase.getPurchaseState();
+      List<String> productIds = purchase.getProducts();
+      if (!shouldForceConsumePurchaseState(state)
+          || !doesPurchaseMatchTargetProduct(safeTargetProductId, productIds)) {
+        continue;
+      }
+
+      String token = purchase.getPurchaseToken() == null ? "" : purchase.getPurchaseToken().trim();
+      if (token.isEmpty()) {
+        continue;
+      }
+
+      logDebug(
+          "forceConsume scheduled: token="
+              + maskToken(token)
+              + ", state="
+              + state
+              + ", targetProductId="
+              + (safeTargetProductId.isEmpty() ? "(all)" : safeTargetProductId)
+              + ", products="
+              + productIds);
+      consumePurchaseImmediately(token);
+      scheduledCount++;
+    }
+    logDebug(
+        "forceConsume summary: scheduled="
+            + scheduledCount
+            + ", purchaseCount="
+            + purchases.size()
+            + ", targetProductId="
+            + (safeTargetProductId.isEmpty() ? "(all)" : safeTargetProductId));
   }
 
   private void handleIncomingPurchase(@NonNull Purchase purchase, boolean fromUserFlow) {

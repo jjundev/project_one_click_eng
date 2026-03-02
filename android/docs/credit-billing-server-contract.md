@@ -53,10 +53,12 @@
 - `PENDING`: Play purchase pending; no grant yet.
 - `REJECTED`: verification failed by policy/rule.
 - `INVALID`: invalid token/product/package mismatch.
+- `SERVER_ERROR`: temporary backend/server-side validation failure (including Google Play API auth/config issues). Client must keep token pending and retry later.
 
 ## Server Processing Rules
 1. Verify Firebase ID token and resolve `uid`.
 2. Verify purchase token via Google Play Developer API.
+   - If Google Play responds `401/403` (authorization/configuration issue), server returns HTTP `200` with `status=SERVER_ERROR` and does not grant credits.
 3. Resolve granted credits from server-side SKU mapping (`credit_10`, `credit_20`, `credit_50`).
 4. Use `purchaseToken` as idempotency key.
 5. Apply Firestore transaction:
@@ -90,4 +92,9 @@
 1. On `GRANTED` or `ALREADY_GRANTED`, app consumes purchase token.
 2. On `PENDING`, token stays pending locally.
 3. On `REJECTED`/`INVALID`, app does not consume token.
-4. On network/auth/server errors, app keeps token in pending queue and retries on next app/session entry.
+4. On `SERVER_ERROR` and network/auth/server transport errors, app keeps token in pending queue and retries on next app/session entry.
+
+## Operational Troubleshooting
+1. If logs show `apiStatus=401` / `apiStatus=403` or `apiReason=permissionDenied`, check Play Console `Setup > API access` first.
+2. Confirm the linked GCP project is `one-click-eng`.
+3. Confirm `play-purchase-verifier@one-click-eng.iam.gserviceaccount.com` has app access for `com.jjundev.oneclickeng` and purchase/order read permissions.

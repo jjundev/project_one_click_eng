@@ -190,6 +190,8 @@ public final class CreditPurchaseVerifier {
         return VerificationStatus.REJECTED;
       case "INVALID":
         return VerificationStatus.INVALID;
+      case "SERVER_ERROR":
+        return VerificationStatus.SERVER_ERROR;
       default:
         return VerificationStatus.SERVER_ERROR;
     }

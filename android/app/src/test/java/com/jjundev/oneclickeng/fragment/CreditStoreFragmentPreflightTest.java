@@ -5,7 +5,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import com.android.billingclient.api.BillingClient;
+import com.android.billingclient.api.Purchase;
 import com.jjundev.oneclickeng.billing.CreditPurchaseVerifier;
+import java.util.Arrays;
+import java.util.Collections;
 import org.junit.Test;
 
 public class CreditStoreFragmentPreflightTest {
@@ -83,5 +87,64 @@ public class CreditStoreFragmentPreflightTest {
         CreditStoreFragment.shouldKeepPendingPurchase(
             CreditPurchaseVerifier.VerificationStatus.INVALID));
   }
-}
 
+  @Test
+  public void shouldRecoverOwnedPurchaseOnLaunchResult_itemAlreadyOwned_returnsTrue() {
+    assertTrue(
+        CreditStoreFragment.shouldRecoverOwnedPurchaseOnLaunchResult(
+            BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED));
+  }
+
+  @Test
+  public void shouldRecoverOwnedPurchaseOnLaunchResult_ok_returnsFalse() {
+    assertFalse(
+        CreditStoreFragment.shouldRecoverOwnedPurchaseOnLaunchResult(
+            BillingClient.BillingResponseCode.OK));
+  }
+
+  @Test
+  public void shouldForceConsumePurchaseState_purchasedAndPending_returnsTrue() {
+    assertTrue(
+        CreditStoreFragment.shouldForceConsumePurchaseState(Purchase.PurchaseState.PURCHASED));
+    assertTrue(
+        CreditStoreFragment.shouldForceConsumePurchaseState(Purchase.PurchaseState.PENDING));
+  }
+
+  @Test
+  public void shouldForceConsumePurchaseState_unspecified_returnsFalse() {
+    assertFalse(
+        CreditStoreFragment.shouldForceConsumePurchaseState(
+            Purchase.PurchaseState.UNSPECIFIED_STATE));
+  }
+
+  @Test
+  public void doesPurchaseMatchTargetProduct_emptyTarget_returnsTrue() {
+    assertTrue(
+        CreditStoreFragment.doesPurchaseMatchTargetProduct(
+            "",
+            Arrays.asList("credit_10")));
+  }
+
+  @Test
+  public void doesPurchaseMatchTargetProduct_matchingProduct_returnsTrue() {
+    assertTrue(
+        CreditStoreFragment.doesPurchaseMatchTargetProduct(
+            "credit_20",
+            Arrays.asList("credit_10", "credit_20")));
+  }
+
+  @Test
+  public void doesPurchaseMatchTargetProduct_nonMatchingProduct_returnsFalse() {
+    assertFalse(
+        CreditStoreFragment.doesPurchaseMatchTargetProduct(
+            "credit_50",
+            Arrays.asList("credit_10", "credit_20")));
+  }
+
+  @Test
+  public void doesPurchaseMatchTargetProduct_targetSetAndNoProducts_returnsFalse() {
+    assertFalse(CreditStoreFragment.doesPurchaseMatchTargetProduct("credit_10", null));
+    assertFalse(
+        CreditStoreFragment.doesPurchaseMatchTargetProduct("credit_10", Collections.emptyList()));
+  }
+}

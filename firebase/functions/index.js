@@ -2,12 +2,14 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const crypto = require("crypto");
 const {google} = require("googleapis");
+const {defineSecret} = require("firebase-functions/params");
 
 admin.initializeApp();
 
 const REGION = "us-central1";
 const APP_PACKAGE_NAME = "com.jjundev.oneclickeng";
 const PLAY_SCOPE = "https://www.googleapis.com/auth/androidpublisher";
+const playServiceAccount = defineSecret("PLAY_SERVICE_ACCOUNT");
 const CREDIT_BY_PRODUCT_ID = Object.freeze({
   "credit_10": 10,
   "credit_20": 20,
@@ -27,7 +29,14 @@ exports.deleteUserData = functions.auth.user().onDelete(async (user) => {
  * Google Play purchase verification endpoint for INAPP credits.
  * Contract: android/docs/credit-billing-server-contract.md
  */
-exports.verifyCreditPurchase = functions.region(REGION).https.onRequest(async (req, res) => {
+exports.verifyCreditPurchase = functions
+    .runWith({
+      "serviceAccount": "play-purchase-verifier@one-click-eng.iam.gserviceaccount.com",
+      "secrets": [playServiceAccount],
+    })
+    .region(REGION)
+    .https
+    .onRequest(async (req, res) => {
   setCors(res);
   if (req.method === "OPTIONS") {
     res.status(204).send("");
@@ -111,7 +120,13 @@ exports.verifyCreditPurchase = functions.region(REGION).https.onRequest(async (r
       return;
     }
 
-    const playVerification = await verifyWithGooglePlay(packageName, productId, purchaseToken);
+    const serviceAccountCredentials = getPlayServiceAccountCredentials();
+    const playVerification = await verifyWithGooglePlay(
+        packageName,
+        productId,
+        purchaseToken,
+        serviceAccountCredentials,
+    );
     if (playVerification.status === "INVALID") {
       sendJson(
           res,
@@ -135,6 +150,15 @@ exports.verifyCreditPurchase = functions.region(REGION).https.onRequest(async (r
           res,
           200,
           buildResult("REJECTED", 0, 0, "", purchaseToken, playVerification.message),
+      );
+      return;
+    }
+
+    if (playVerification.status === "SERVER_ERROR") {
+      sendJson(
+          res,
+          200,
+          buildResult("SERVER_ERROR", 0, 0, "", purchaseToken, playVerification.message),
       );
       return;
     }
@@ -182,8 +206,16 @@ exports.verifyCreditPurchase = functions.region(REGION).https.onRequest(async (r
   }
 });
 
-async function verifyWithGooglePlay(packageName, productId, purchaseToken) {
-  const auth = new google.auth.GoogleAuth({"scopes": [PLAY_SCOPE]});
+async function verifyWithGooglePlay(
+    packageName,
+    productId,
+    purchaseToken,
+    serviceAccountCredentials,
+) {
+  const auth = new google.auth.GoogleAuth({
+    "credentials": serviceAccountCredentials,
+    "scopes": [PLAY_SCOPE],
+  });
   const authClient = await auth.getClient();
   const publisher = google.androidpublisher({
     "version": "v3",
@@ -225,22 +257,97 @@ async function verifyWithGooglePlay(packageName, productId, purchaseToken) {
       "message": "ok",
     };
   } catch (error) {
-    const code = normalizeInt(error && (error.code || error.status), -1);
-    if (code === 400 || code === 404) {
+    const code = normalizeInt(error && error.code, -1);
+    const status = normalizeInt(
+        error && (error.status ||
+          (error.response && error.response.status)),
+        -1,
+    );
+    const message = normalizeString(
+        error && (error.message ||
+          (error.response && error.response.statusText)),
+    );
+    const reason = normalizeString(
+        error &&
+        error.response &&
+        error.response.data &&
+        error.response.data.error &&
+        Array.isArray(error.response.data.error.errors) &&
+        error.response.data.error.errors[0] &&
+        error.response.data.error.errors[0].reason,
+    );
+    const normalizedCode = code >= 0 ? code : status;
+    const logFields = {
+      "apiCode": normalizedCode,
+      "apiStatus": status,
+      "apiMessage": message,
+      "apiReason": reason,
+      "productId": productId,
+      "packageName": packageName,
+      "purchaseTokenPrefix": normalizeString(purchaseToken).substring(0, 8),
+      "serviceAccountEmail": normalizeString(
+          serviceAccountCredentials && serviceAccountCredentials.client_email,
+      ),
+    };
+    if (normalizedCode === 400 || normalizedCode === 404) {
+      functions.logger.warn("verifyWithGooglePlay invalid purchase", logFields);
       return {
         "status": "INVALID",
         "playData": {},
         "message": "Invalid purchase token or product mismatch",
       };
     }
-    if (code === 401 || code === 403) {
-      throw new Error(
+    if (normalizedCode === 401 || normalizedCode === 403) {
+      functions.logger.warn("verifyWithGooglePlay permission/config issue", logFields);
+      return {
+        "status": "SERVER_ERROR",
+        "playData": {},
+        "message":
           "Google Play API authorization failed. " +
           "Grant Android Publisher access to the Functions service account.",
-      );
+      };
     }
+    functions.logger.error(error, "verifyWithGooglePlay unexpected error", logFields);
     throw error;
   }
+}
+
+function getPlayServiceAccountCredentials() {
+  const rawSecret = playServiceAccount.value();
+  const secretJson = normalizeString(rawSecret);
+  if (!secretJson) {
+    throw new Error("PLAY_SERVICE_ACCOUNT missing");
+  }
+
+  let parsedSecret;
+  try {
+    parsedSecret = JSON.parse(secretJson);
+  } catch (error) {
+    throw new Error("PLAY_SERVICE_ACCOUNT invalid JSON");
+  }
+
+  if (!parsedSecret || typeof parsedSecret !== "object") {
+    throw new Error("PLAY_SERVICE_ACCOUNT invalid credential shape");
+  }
+
+  const clientEmail = normalizeString(parsedSecret.client_email);
+  const projectId = normalizeString(parsedSecret.project_id);
+  const privateKeyRaw =
+    typeof parsedSecret.private_key === "string" ? parsedSecret.private_key : "";
+  const privateKey = privateKeyRaw.includes("\\n") ?
+    privateKeyRaw.replace(/\\n/g, "\n") :
+    privateKeyRaw;
+
+  if (!clientEmail || !projectId || !privateKey) {
+    throw new Error("PLAY_SERVICE_ACCOUNT invalid credential shape");
+  }
+
+  return {
+    ...parsedSecret,
+    "client_email": clientEmail,
+    "project_id": projectId,
+    "private_key": privateKey,
+  };
 }
 
 async function grantCreditsWithIdempotency(params) {

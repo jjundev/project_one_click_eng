@@ -1,0 +1,30 @@
+[debug] [2026-03-02T04:25:41.315Z] ----------------------------------------------------------------------
+[debug] [2026-03-02T04:25:41.318Z] Command:       C:\nvm4w\nodejs\node.exe C:\nvm4w\nodejs\node_modules\firebase-tools\lib\bin\firebase.js functions:secrets:get PLAY_SERVICE_ACCOUNT --project one-click-eng
+[debug] [2026-03-02T04:25:41.318Z] CLI Version:   15.8.0
+[debug] [2026-03-02T04:25:41.318Z] Platform:      win32
+[debug] [2026-03-02T04:25:41.318Z] Node Version:  v20.20.0
+[debug] [2026-03-02T04:25:41.318Z] Time:          Mon Mar 02 2026 13:25:41 GMT+0900 (대한민국 표준시)
+[debug] [2026-03-02T04:25:41.318Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-03-02T04:25:41.348Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-02T04:25:41.349Z] > authorizing via signed-in user (johnshin617@gmail.com)
+[debug] [2026-03-02T04:25:41.350Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-02T04:25:41.351Z] > authorizing via signed-in user (johnshin617@gmail.com)
+[debug] [2026-03-02T04:25:41.351Z] [iam] checking project one-click-eng for permissions ["firebase.projects.get","secretmanager.secrets.get"]
+[debug] [2026-03-02T04:25:41.354Z] Checked if tokens are valid: true, expires at: 1772428303551
+[debug] [2026-03-02T04:25:41.355Z] Checked if tokens are valid: true, expires at: 1772428303551
+[debug] [2026-03-02T04:25:41.357Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/one-click-eng:testIamPermissions [none]
+[debug] [2026-03-02T04:25:41.357Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/one-click-eng:testIamPermissions  x-goog-user-project=one-click-eng
+[debug] [2026-03-02T04:25:41.357Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/one-click-eng:testIamPermissions {"permissions":["firebase.projects.get","secretmanager.secrets.get"]}
+[debug] [2026-03-02T04:25:41.733Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/one-click-eng:testIamPermissions 200
+[debug] [2026-03-02T04:25:41.733Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/one-click-eng:testIamPermissions {"permissions":["firebase.projects.get","secretmanager.secrets.get"]}
+[debug] [2026-03-02T04:25:41.734Z] Checked if tokens are valid: true, expires at: 1772428303551
+[debug] [2026-03-02T04:25:41.734Z] Checked if tokens are valid: true, expires at: 1772428303551
+[debug] [2026-03-02T04:25:41.734Z] >>> [apiv2][query] GET https://secretmanager.googleapis.com/v1/projects/one-click-eng/secrets/PLAY_SERVICE_ACCOUNT/versions [none]
+[debug] [2026-03-02T04:25:42.033Z] <<< [apiv2][status] GET https://secretmanager.googleapis.com/v1/projects/one-click-eng/secrets/PLAY_SERVICE_ACCOUNT/versions 200
+[debug] [2026-03-02T04:25:42.033Z] <<< [apiv2][body] GET https://secretmanager.googleapis.com/v1/projects/one-click-eng/secrets/PLAY_SERVICE_ACCOUNT/versions {"versions":[{"name":"projects/804702971455/secrets/PLAY_SERVICE_ACCOUNT/versions/1","createTime":"2026-03-02T04:21:20.572358Z","state":"ENABLED","replicationStatus":{"automatic":{}},"etag":"\"164c02eb3d4bc6\""}],"totalSize":1}
+[info] ┌─────────┬─────────┐
+│ Version │ State   │
+├─────────┼─────────┤
+│ 1       │ ENABLED │
+└─────────┴─────────┘
