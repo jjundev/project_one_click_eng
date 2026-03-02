@@ -11,7 +11,7 @@ const APP_PACKAGE_NAME = "com.jjundev.oneclickeng";
 const PLAY_SCOPE = "https://www.googleapis.com/auth/androidpublisher";
 const playServiceAccount = defineSecret("PLAY_SERVICE_ACCOUNT");
 const CREDIT_BY_PRODUCT_ID = Object.freeze({
-  "credit_10": 10,
+  "credit_10_v2": 10,
   "credit_20": 20,
   "credit_50": 50,
 });

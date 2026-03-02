@@ -122,7 +122,7 @@ public class CreditStoreFragmentPreflightTest {
     assertTrue(
         CreditStoreFragment.doesPurchaseMatchTargetProduct(
             "",
-            Arrays.asList("credit_10")));
+            Arrays.asList("credit_10_v2")));
   }
 
   @Test
@@ -130,7 +130,7 @@ public class CreditStoreFragmentPreflightTest {
     assertTrue(
         CreditStoreFragment.doesPurchaseMatchTargetProduct(
             "credit_20",
-            Arrays.asList("credit_10", "credit_20")));
+            Arrays.asList("credit_10_v2", "credit_20")));
   }
 
   @Test
@@ -138,13 +138,14 @@ public class CreditStoreFragmentPreflightTest {
     assertFalse(
         CreditStoreFragment.doesPurchaseMatchTargetProduct(
             "credit_50",
-            Arrays.asList("credit_10", "credit_20")));
+            Arrays.asList("credit_10_v2", "credit_20")));
   }
 
   @Test
   public void doesPurchaseMatchTargetProduct_targetSetAndNoProducts_returnsFalse() {
-    assertFalse(CreditStoreFragment.doesPurchaseMatchTargetProduct("credit_10", null));
+    assertFalse(CreditStoreFragment.doesPurchaseMatchTargetProduct("credit_10_v2", null));
     assertFalse(
-        CreditStoreFragment.doesPurchaseMatchTargetProduct("credit_10", Collections.emptyList()));
+        CreditStoreFragment.doesPurchaseMatchTargetProduct(
+            "credit_10_v2", Collections.emptyList()));
   }
 }

@@ -38,7 +38,7 @@ import java.util.Set;
 public class CreditStoreFragment extends Fragment {
   private static final String TAG = "CreditStoreFragment";
 
-  private static final String PRODUCT_CREDIT_10 = "credit_10";
+  private static final String PRODUCT_CREDIT_10 = "credit_10_v2";
   private static final String PRODUCT_CREDIT_20 = "credit_20";
   private static final String PRODUCT_CREDIT_50 = "credit_50";
   private static final List<String> CREDIT_PRODUCT_IDS = Arrays.asList(PRODUCT_CREDIT_10, PRODUCT_CREDIT_20,
@@ -420,7 +420,7 @@ public class CreditStoreFragment extends Fragment {
     }
 
     if (responseCode == BillingClient.BillingResponseCode.USER_CANCELED) {
-      showToastSafe("결제가 취소되었어요");
+      showToastSafe("결제를 취소했어요");
       return;
     }
 
@@ -528,7 +528,7 @@ public class CreditStoreFragment extends Fragment {
     if (state == Purchase.PurchaseState.PENDING) {
       enqueuePendingPurchase(purchase);
       if (fromUserFlow) {
-        showToastSafe("결제 승인 대기 중이에요");
+        showToastSafe("결제 승인을 기다리고 있어요");
       }
       return;
     }

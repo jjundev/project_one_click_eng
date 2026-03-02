@@ -26,7 +26,7 @@
 ```json
 {
   "packageName": "com.jjundev.oneclickeng",
-  "productId": "credit_10",
+  "productId": "credit_10_v2",
   "purchaseToken": "token_from_play",
   "orderId": "GPA.1234-5678-9012-34567",
   "purchaseTimeMillis": 1739491200000,
@@ -59,7 +59,7 @@
 1. Verify Firebase ID token and resolve `uid`.
 2. Verify purchase token via Google Play Developer API.
    - If Google Play responds `401/403` (authorization/configuration issue), server returns HTTP `200` with `status=SERVER_ERROR` and does not grant credits.
-3. Resolve granted credits from server-side SKU mapping (`credit_10`, `credit_20`, `credit_50`).
+3. Resolve granted credits from server-side SKU mapping (`credit_10_v2`, `credit_20`, `credit_50`).
 4. Use `purchaseToken` as idempotency key.
 5. Apply Firestore transaction:
 6. Update `users/{uid}.credit` with increment/decrement.
