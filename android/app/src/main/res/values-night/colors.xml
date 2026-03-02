@@ -6,6 +6,8 @@
     <color name="color_background_3">#0E0F12</color>
     <color name="color_background_4">#1A1B20</color>
 
+    <color name="color_skeleton_bg">#4A4A4A</color>
+
     <color name="color_primary_text">#F2F3F5</color>
     <color name="color_sub_text">#A9ADB6</color>
     <color name="color_sub_sub_text">#7C818C</color>

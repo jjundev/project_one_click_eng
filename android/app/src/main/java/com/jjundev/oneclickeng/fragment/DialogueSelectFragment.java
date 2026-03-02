@@ -1,12 +1,16 @@
 package com.jjundev.oneclickeng.fragment;
 
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.LinearInterpolator;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ImageButton;
 import android.widget.Toast;
@@ -54,6 +58,7 @@ public class DialogueSelectFragment extends Fragment
   private static final String DIALOG_TAG_LEARNING_SETTINGS = "DialogueLearningSettingDialog";
   private static final int MIN_TURN_COUNT_TO_START = 2;
   private static final int DISPLAYED_SCRIPT_COUNT = 4;
+  private static final long REFRESH_ANIMATION_DURATION_MS = 500L;
 
   private ImageButton btnBack;
   private ImageButton btnSettings;
@@ -70,6 +75,8 @@ public class DialogueSelectFragment extends Fragment
   @Nullable
   private DialogueScriptStreamingSessionStore.Listener pendingScriptSessionListener;
   private long scriptPreparationRequestId = 0L;
+  private boolean isRefreshing = false;
+  private final Handler refreshHandler = new Handler(Looper.getMainLooper());
 
   private RewardedAd rewardedAd;
   private boolean isRewardEarned = false;
@@ -136,6 +143,8 @@ public class DialogueSelectFragment extends Fragment
   public void onDestroyView() {
     clearPendingScriptSession(true);
     scriptPreparationRequestId = 0L;
+    refreshHandler.removeCallbacksAndMessages(null);
+    isRefreshing = false;
     hardResetAdStateForDestroyView();
     super.onDestroyView();
   }
@@ -394,14 +403,9 @@ public class DialogueSelectFragment extends Fragment
 
     btnRefreshScripts.setOnClickListener(
         v -> {
-          shuffleAndDisplayScripts();
-          if (adapter != null) {
-            adapter.updateTemplates(templateList);
-          }
-          // 레이아웃 애니메이션 재실행
-          if (rvScripts != null) {
-            rvScripts.scheduleLayoutAnimation();
-          }
+          if (isRefreshing)
+            return;
+          startRefreshWithAnimation();
         });
   }
 
@@ -850,6 +854,42 @@ public class DialogueSelectFragment extends Fragment
     for (int i = 0; i < count; i++) {
       templateList.add(shuffled.get(i));
     }
+  }
+
+  private void startRefreshWithAnimation() {
+    isRefreshing = true;
+
+    // 1) 새로고침 버튼 360도 회전 애니메이션
+    ObjectAnimator rotateAnim = ObjectAnimator.ofFloat(btnRefreshScripts, "rotation", 0f, 360f);
+    rotateAnim.setDuration(REFRESH_ANIMATION_DURATION_MS);
+    rotateAnim.setInterpolator(new LinearInterpolator());
+    rotateAnim.start();
+
+    // 2) 스켈레톤 모드 ON
+    if (adapter != null) {
+      adapter.setSkeletonMode(true);
+    }
+
+    // 3) 애니메이션 종료 후 실제 데이터 갱신
+    refreshHandler.postDelayed(() -> {
+      if (!isAdded())
+        return;
+
+      shuffleAndDisplayScripts();
+      if (adapter != null) {
+        adapter.setSkeletonMode(false);
+        // templateList는 adapter 내부 templates와 같은 참조이므로
+        // shuffleAndDisplayScripts()에서 이미 갱신됨 → notifyDataSetChanged만 호출
+        adapter.notifyDataSetChanged();
+      }
+
+      // 레이아웃 애니메이션 재실행
+      if (rvScripts != null) {
+        rvScripts.scheduleLayoutAnimation();
+      }
+
+      isRefreshing = false;
+    }, REFRESH_ANIMATION_DURATION_MS);
   }
 
   private void updateEmptyState() {

@@ -29,7 +29,7 @@
     <color name="color_quiz_finish">#009B72</color>
     <color name="color_quiz_finish_bg">#E6F5F0</color>
 
-
+    <color name="color_skeleton_bg">#E0E0E0</color>
 
 
     <color name="color_background_translated_sentence_card">#E3F2FD</color>
@@ -115,4 +115,5 @@
     <color name="shorts_caption_box_bg">#66202A3A</color>
     <color name="shorts_caption_box_stroke">#66FFFFFF</color>
     <color name="shorts_meta_title_text">#FFFFFFFF</color>
+
 </resources>
