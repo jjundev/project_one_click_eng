@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
         if (result.getResultCode() != RESULT_OK) {
           logDebug(
               "In-app update cancelled or failed. resultCode=" + result.getResultCode());
-          Toast.makeText(this, "업데이트가 필요합니다. 앱을 종료합니다.", Toast.LENGTH_SHORT).show();
+          Toast.makeText(this, "업데이트 하지 않으면 앱을 실행할 수 없어요", Toast.LENGTH_SHORT).show();
           finish();
         } else {
           logDebug("In-app update completed successfully.");
