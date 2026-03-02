@@ -44,7 +44,7 @@
             android:layout_marginTop="6dp"
             android:ellipsize="end"
             android:maxLines="1"
-            android:text="credit_10"
+            android:text="가장 저렴해요"
             android:textColor="@color/color_sub_text"
             android:textSize="13sp" />
 

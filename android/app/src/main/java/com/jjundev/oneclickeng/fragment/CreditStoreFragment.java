@@ -181,9 +181,9 @@ public class CreditStoreFragment extends Fragment {
 
   private void initializeProducts() {
     products.clear();
-    products.add(new CreditProduct("10 크레딧", PRODUCT_CREDIT_10, "300원", PRICE_LOADING));
-    products.add(new CreditProduct("20 크레딧", PRODUCT_CREDIT_20, "500원", PRICE_LOADING));
-    products.add(new CreditProduct("50 크레딧", PRODUCT_CREDIT_50, "1000원", PRICE_LOADING));
+    products.add(new CreditProduct("10 크레딧", "가장 저렴해요", PRODUCT_CREDIT_10, "300원", PRICE_LOADING));
+    products.add(new CreditProduct("20 크레딧", "무난한 선택!", PRODUCT_CREDIT_20, "500원", PRICE_LOADING));
+    products.add(new CreditProduct("50 크레딧", "가장 효율이 좋아요", PRODUCT_CREDIT_50, "1000원", PRICE_LOADING));
   }
 
   private void requestProductDetails() {
@@ -816,7 +816,7 @@ public class CreditStoreFragment extends Fragment {
     public void onBindViewHolder(@NonNull CreditStoreViewHolder holder, int position) {
       CreditProduct item = items.get(position);
       holder.tvProductName.setText(item.productName);
-      holder.tvProductId.setText(item.productId);
+      holder.tvProductSubtitle.setText(item.productSubtitle);
       holder.tvPrice.setText(item.priceText);
       holder.card.setOnClickListener(v -> clickListener.onProductClicked(item));
       holder.card.setAlpha(item.canAttemptPurchase ? 1.0f : 0.6f);
@@ -833,7 +833,7 @@ public class CreditStoreFragment extends Fragment {
       @NonNull
       private final TextView tvProductName;
       @NonNull
-      private final TextView tvProductId;
+      private final TextView tvProductSubtitle;
       @NonNull
       private final TextView tvPrice;
 
@@ -841,7 +841,7 @@ public class CreditStoreFragment extends Fragment {
         super(itemView);
         card = itemView.findViewById(R.id.card_credit_product);
         tvProductName = itemView.findViewById(R.id.tv_card_title);
-        tvProductId = itemView.findViewById(R.id.tv_card_subtitle);
+        tvProductSubtitle = itemView.findViewById(R.id.tv_card_subtitle);
         tvPrice = itemView.findViewById(R.id.tv_card_price);
       }
     }
@@ -855,6 +855,8 @@ public class CreditStoreFragment extends Fragment {
     @NonNull
     private final String productName;
     @NonNull
+    private final String productSubtitle;
+    @NonNull
     private final String productId;
     @NonNull
     private final String fallbackPriceText;
@@ -866,10 +868,12 @@ public class CreditStoreFragment extends Fragment {
 
     CreditProduct(
         @NonNull String productName,
+        @NonNull String productSubtitle,
         @NonNull String productId,
         @NonNull String fallbackPriceText,
         @NonNull String initialPriceText) {
       this.productName = productName;
+      this.productSubtitle = productSubtitle;
       this.productId = productId;
       this.fallbackPriceText = fallbackPriceText;
       this.priceText = initialPriceText;
