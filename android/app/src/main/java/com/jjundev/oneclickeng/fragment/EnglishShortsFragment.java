@@ -220,7 +220,7 @@ public class EnglishShortsFragment extends Fragment {
           viewPager.setCurrentItem(targetIndex, false);
         }
         renderOverlayAfterLayout(targetIndex);
-        playVideoAtPosition(targetIndex);
+        playVideoAtPosition(targetIndex, false);
       }
       preloadVideos(items);
       hasInitializedContent = true;
@@ -336,17 +336,17 @@ public class EnglishShortsFragment extends Fragment {
             super.onPageSelected(position);
             if (position < 0 || position >= shortsItems.size()) return;
             renderOverlay(shortsItems.get(position), position);
-            playVideoAtPosition(position);
+            playVideoAtPosition(position, true);
             logDebug("Short page changed: index=" + position);
           }
         };
     pager.registerOnPageChangeCallback(pageChangeCallback);
   }
 
-  private void playVideoAtPosition(int position) {
+  private void playVideoAtPosition(int position, boolean restartFromBeginning) {
     if (viewPager == null || adapter == null) return;
     RecyclerView recyclerView = (RecyclerView) viewPager.getChildAt(0);
-    adapter.playAtPosition(recyclerView, position);
+    adapter.playAtPosition(recyclerView, position, restartFromBeginning);
   }
 
   private void setupLikeButton(@NonNull View root) {
@@ -850,7 +850,7 @@ public class EnglishShortsFragment extends Fragment {
   public void onResume() {
     super.onResume();
     if (viewPager != null && !shortsItems.isEmpty()) {
-      playVideoAtPosition(viewPager.getCurrentItem());
+      playVideoAtPosition(viewPager.getCurrentItem(), false);
     }
   }
 

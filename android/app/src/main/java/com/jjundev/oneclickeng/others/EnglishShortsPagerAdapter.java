@@ -110,13 +110,14 @@ public class EnglishShortsPagerAdapter
   }
 
   /** Plays the video at the given position and pauses all others. */
-  public void playAtPosition(@Nullable RecyclerView recyclerView, int position) {
+  public void playAtPosition(
+      @Nullable RecyclerView recyclerView, int position, boolean restartFromBeginning) {
     if (recyclerView == null)
       return;
     pauseAll(recyclerView);
     RecyclerView.ViewHolder holder = recyclerView.findViewHolderForAdapterPosition(position);
     if (holder instanceof ShortViewHolder) {
-      ((ShortViewHolder) holder).play();
+      ((ShortViewHolder) holder).play(restartFromBeginning);
     }
   }
 
@@ -200,6 +201,11 @@ public class EnglishShortsPagerAdapter
 
     /** Starts playback if a player is ready, or initializes it. */
     public void play() {
+      play(false);
+    }
+
+    /** Starts playback if a player is ready, or initializes it. */
+    public void play(boolean restartFromBeginning) {
       if (currentItem == null)
         return;
       String videoUrl = currentItem.getVideoUrl();
@@ -238,6 +244,9 @@ public class EnglishShortsPagerAdapter
               }
             });
         player.prepare();
+      }
+      if (restartFromBeginning && player != null) {
+        player.seekTo(0);
       }
       // Hide play/pause indicator when playback starts from page change
       handler.removeCallbacksAndMessages(null);

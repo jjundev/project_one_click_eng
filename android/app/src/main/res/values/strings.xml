@@ -105,6 +105,7 @@
     <string name="settings_connection_test_description">API Key와 모델이 정상적으로 동작하는지 확인해요</string>
     <string name="settings_section_app_info">앱 정보</string>
     <string name="settings_app_version_label">앱 버전</string>
+    <string name="settings_app_version_code_label">버전 코드</string>
     <string name="settings_section_llm">LLM 설정</string>
     <string name="settings_api_key_override_label">Gemini API Key를 입력해 주세요</string>
     <string name="settings_api_key_override_hint">비워두면 기본 API key 사용</string>

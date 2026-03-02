@@ -105,6 +105,7 @@ public class SettingFragment extends Fragment
   private TextView tvProfileEmailValue;
 
   private TextView tvAppVersion;
+  private TextView tvAppVersionCode;
   private TextView tvLogout;
   private int creatorPlannerTapCount;
   private long creatorPlannerWindowStartElapsedMs = TAP_WINDOW_UNSET;
@@ -188,6 +189,7 @@ public class SettingFragment extends Fragment
     tvProfileNicknameValue = view.findViewById(R.id.tv_profile_nickname_value);
     tvProfileEmailValue = view.findViewById(R.id.tv_profile_email_value);
     tvAppVersion = view.findViewById(R.id.tv_app_version);
+    tvAppVersionCode = view.findViewById(R.id.tv_app_version_code);
     tvLogout = view.findViewById(R.id.tv_logout);
 
     layoutCreditRemaining = view.findViewById(R.id.layout_credit_remaining);
@@ -197,6 +199,9 @@ public class SettingFragment extends Fragment
 
     if (tvAppVersion != null) {
       tvAppVersion.setText(BuildConfig.VERSION_NAME);
+    }
+    if (tvAppVersionCode != null) {
+      tvAppVersionCode.setText(String.valueOf(BuildConfig.VERSION_CODE));
     }
   }
 
