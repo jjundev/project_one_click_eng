@@ -28,4 +28,17 @@
         android:layout_height="wrap_content"
         android:visibility="gone" />
 
+    <!-- 재생/일시정지 중앙 인디케이터 (YouTube Shorts 스타일) -->
+    <ImageView
+        android:id="@+id/iv_play_pause_indicator"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:layout_gravity="center"
+        android:background="@drawable/bg_shorts_play_pause_indicator"
+        android:padding="16dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_shorts_pause"
+        android:visibility="gone"
+        android:contentDescription="@string/english_shorts_play_pause_desc" />
+
 </FrameLayout>
