@@ -7,7 +7,9 @@ public class EnglishShortsItem {
   @NonNull private String title;
   @NonNull private String videoUrl;
   @NonNull private String tag;
+  @NonNull private String documentId;
   private int likeCount;
+  private int dislikeCount;
   private boolean isActive;
 
   /** No-arg constructor required for Firestore deserialization. */
@@ -15,7 +17,9 @@ public class EnglishShortsItem {
     this.title = "";
     this.videoUrl = "";
     this.tag = "";
+    this.documentId = "";
     this.likeCount = 0;
+    this.dislikeCount = 0;
     this.isActive = true;
   }
 
@@ -46,12 +50,29 @@ public class EnglishShortsItem {
     this.tag = tag;
   }
 
+  @NonNull
+  public String getDocumentId() {
+    return documentId;
+  }
+
+  public void setDocumentId(@NonNull String documentId) {
+    this.documentId = documentId;
+  }
+
   public int getLikeCount() {
     return likeCount;
   }
 
   public void setLikeCount(int likeCount) {
     this.likeCount = likeCount;
+  }
+
+  public int getDislikeCount() {
+    return dislikeCount;
+  }
+
+  public void setDislikeCount(int dislikeCount) {
+    this.dislikeCount = dislikeCount;
   }
 
   public boolean isActive() {

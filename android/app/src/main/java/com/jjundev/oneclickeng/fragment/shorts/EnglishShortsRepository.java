@@ -71,6 +71,7 @@ public class EnglishShortsRepository {
                     List<EnglishShortsItem> items = new ArrayList<>();
                     for (QueryDocumentSnapshot doc : value) {
                       EnglishShortsItem item = doc.toObject(EnglishShortsItem.class);
+                      item.setDocumentId(doc.getId());
                       items.add(item);
                     }
                     shortsItems.setValue(items);
