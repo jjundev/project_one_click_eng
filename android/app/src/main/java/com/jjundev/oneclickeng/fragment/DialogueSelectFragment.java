@@ -33,11 +33,11 @@ import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.activity.DialogueLearningActivity;
+import com.jjundev.oneclickeng.credit.CreditHistoryEventLogger;
 import com.jjundev.oneclickeng.dialog.DialogueGenerateDialog;
 import com.jjundev.oneclickeng.dialog.DialogueLearningSettingDialog;
 import com.jjundev.oneclickeng.learning.dialoguelearning.di.LearningDependencyProvider;
@@ -542,16 +542,26 @@ public class DialogueSelectFragment extends Fragment
       // 요청된 대본 길이에 맞춰 크레딧 차감(11줄부터 2)
       FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
       if (user != null) {
-        FirebaseFirestore.getInstance()
-            .collection("users")
-            .document(user.getUid())
-            .update("credit", FieldValue.increment(-creditToDeduct))
-            .addOnFailureListener(
-                e -> logStream(
+        CreditHistoryEventLogger.applyDeltaWithEvent(
+            user.getUid(),
+            -creditToDeduct,
+            CreditHistoryEventLogger.EVENT_LEARNING_USE,
+            "learning_start",
+            "dialogue_select",
+            CreditHistoryEventLogger.SOURCE_APP,
+            new CreditHistoryEventLogger.Callback() {
+              @Override
+              public void onSuccess(long creditAfter) {}
+
+              @Override
+              public void onFailure(@NonNull Exception exception) {
+                logStream(
                     "Failed to decrement credit("
                         + creditToDeduct
                         + "): "
-                        + e.getMessage()));
+                        + exception.getMessage());
+              }
+            });
       }
 
     } catch (Exception e) {
@@ -965,22 +975,28 @@ public class DialogueSelectFragment extends Fragment
       return;
     }
 
-    FirebaseFirestore.getInstance()
-        .collection("users")
-        .document(user.getUid())
-        .update("credit", com.google.firebase.firestore.FieldValue.increment(1))
-        .addOnSuccessListener(
-            aVoid -> {
-              if (isAdded()) {
-                Toast.makeText(getContext(), "1 크레딧이 충전되었어요", Toast.LENGTH_SHORT).show();
-              }
-            })
-        .addOnFailureListener(
-            e -> {
-              logStream("Failed to add credit: " + e.getMessage());
-              if (isAdded()) {
-                Toast.makeText(getContext(), "크레딧 충전에 실패했어요", Toast.LENGTH_SHORT).show();
-              }
-            });
+    CreditHistoryEventLogger.applyDeltaWithEvent(
+        user.getUid(),
+        1L,
+        CreditHistoryEventLogger.EVENT_AD_CHARGE,
+        "ad_reward",
+        "dialogue_select",
+        CreditHistoryEventLogger.SOURCE_APP,
+        new CreditHistoryEventLogger.Callback() {
+          @Override
+          public void onSuccess(long creditAfter) {
+            if (isAdded()) {
+              Toast.makeText(getContext(), "1 크레딧이 충전되었어요", Toast.LENGTH_SHORT).show();
+            }
+          }
+
+          @Override
+          public void onFailure(@NonNull Exception exception) {
+            logStream("Failed to add credit: " + exception.getMessage());
+            if (isAdded()) {
+              Toast.makeText(getContext(), "크레딧 충전에 실패했어요", Toast.LENGTH_SHORT).show();
+            }
+          }
+        });
   }
 }

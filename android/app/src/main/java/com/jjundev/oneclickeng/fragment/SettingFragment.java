@@ -1,5 +1,7 @@
 package com.jjundev.oneclickeng.fragment;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
@@ -32,6 +34,7 @@ import com.google.firebase.firestore.WriteBatch;
 import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.activity.LoginActivity;
+import com.jjundev.oneclickeng.credit.CreditHistoryEventLogger;
 import com.jjundev.oneclickeng.dialog.LearningDataResetDialog;
 import com.jjundev.oneclickeng.dialog.LearningMetricsResetDialog;
 import com.jjundev.oneclickeng.dialog.LogoutConfirmDialog;
@@ -50,8 +53,8 @@ import java.util.UUID;
 
 public class SettingFragment extends Fragment
     implements LearningDataResetDialog.OnLearningDataResetListener,
-        LearningMetricsResetDialog.OnLearningMetricsResetListener,
-        LogoutConfirmDialog.OnLogoutConfirmListener {
+    LearningMetricsResetDialog.OnLearningMetricsResetListener,
+    LogoutConfirmDialog.OnLogoutConfirmListener {
   private static final String TAG = "SettingFragment";
   private static final String TAG_LEARNING_DATA_RESET_DIALOG = "LearningDataResetDialog";
   private static final String TAG_LEARNING_METRICS_RESET_DIALOG = "LearningMetricsResetDialog";
@@ -72,12 +75,18 @@ public class SettingFragment extends Fragment
   private static final String CREATOR_PLANNER_BONUS_DAY_KEY_PREFIX = "planner_bonus_day_";
   private static final long TAP_WINDOW_UNSET = -1L;
 
-  @Nullable private AppSettingsStore appSettingsStore;
-  @Nullable private LearningStudyTimeStore learningStudyTimeStore;
-  @Nullable private LearningStudyTimeCloudRepository learningStudyTimeCloudRepository;
-  @Nullable private LearningPointStore learningPointStore;
-  @Nullable private LearningPointCloudRepository learningPointCloudRepository;
-  @Nullable private UserNicknameCloudRepository userNicknameCloudRepository;
+  @Nullable
+  private AppSettingsStore appSettingsStore;
+  @Nullable
+  private LearningStudyTimeStore learningStudyTimeStore;
+  @Nullable
+  private LearningStudyTimeCloudRepository learningStudyTimeCloudRepository;
+  @Nullable
+  private LearningPointStore learningPointStore;
+  @Nullable
+  private LearningPointCloudRepository learningPointCloudRepository;
+  @Nullable
+  private UserNicknameCloudRepository userNicknameCloudRepository;
 
   private boolean bindingState;
   private boolean isLearningDataResetInProgress;
@@ -91,6 +100,7 @@ public class SettingFragment extends Fragment
   private LinearLayout layoutInitLearningStreak;
   private LinearLayout layoutCreatorPlanner;
   private LinearLayout layoutCreatorDeveloper;
+  private LinearLayout layoutContactEmail;
   private TextView tvProfileNicknameValue;
   private TextView tvProfileEmailValue;
 
@@ -101,6 +111,7 @@ public class SettingFragment extends Fragment
   private int creatorDeveloperTapCount;
   private long creatorDeveloperWindowStartElapsedMs = TAP_WINDOW_UNSET;
 
+  private LinearLayout layoutCreditRemaining;
   private TextView tvCreditRemainingValue;
   private LinearLayout layoutChargeCredit;
   private LinearLayout layoutCouponInput;
@@ -110,8 +121,7 @@ public class SettingFragment extends Fragment
   private boolean isWaitingForAd = false;
   private android.app.Dialog chargeCreditDialog; // 기존 다이얼로그를 멤버 변수로 참조
   private int adRetryAttempt = 0;
-  private final android.os.Handler adRetryHandler =
-      new android.os.Handler(android.os.Looper.getMainLooper());
+  private final android.os.Handler adRetryHandler = new android.os.Handler(android.os.Looper.getMainLooper());
   private boolean adLifecycleActive = false;
   private boolean isAdLoading = false;
   private boolean isAdShowing = false;
@@ -174,11 +184,13 @@ public class SettingFragment extends Fragment
     layoutInitLearningStreak = view.findViewById(R.id.layout_init_learning_streak);
     layoutCreatorPlanner = view.findViewById(R.id.layout_creator_planner);
     layoutCreatorDeveloper = view.findViewById(R.id.layout_creator_developer);
+    layoutContactEmail = view.findViewById(R.id.layout_contact_email);
     tvProfileNicknameValue = view.findViewById(R.id.tv_profile_nickname_value);
     tvProfileEmailValue = view.findViewById(R.id.tv_profile_email_value);
     tvAppVersion = view.findViewById(R.id.tv_app_version);
     tvLogout = view.findViewById(R.id.tv_logout);
 
+    layoutCreditRemaining = view.findViewById(R.id.layout_credit_remaining);
     tvCreditRemainingValue = view.findViewById(R.id.tv_credit_remaining_value);
     layoutChargeCredit = view.findViewById(R.id.layout_charge_credit);
     layoutCouponInput = view.findViewById(R.id.layout_coupon_input);
@@ -219,6 +231,10 @@ public class SettingFragment extends Fragment
       logDebug("Developer card view not found; bonus listener not bound");
     }
 
+    if (layoutCreditRemaining != null) {
+      layoutCreditRemaining.setOnClickListener(v -> navigateToCreditHistory());
+    }
+
     if (layoutChargeCredit != null) {
       layoutChargeCredit.setOnClickListener(v -> showChargeCreditDialog());
     }
@@ -227,17 +243,31 @@ public class SettingFragment extends Fragment
       layoutCouponInput.setOnClickListener(v -> showCouponInputDialog());
     }
 
+    if (layoutContactEmail != null) {
+      layoutContactEmail.setOnClickListener(v -> openEmailApp());
+    }
+
     if (tvLogout != null) {
       tvLogout.setOnClickListener(v -> showLogoutConfirmDialog());
     }
   }
 
+  private void openEmailApp() {
+    Intent intent = new Intent(Intent.ACTION_SENDTO);
+    intent.setData(Uri.parse("mailto:" + BuildConfig.DEVELOPER_EMAIL));
+    intent.putExtra(Intent.EXTRA_SUBJECT, "[원클릭 잉글리시] 문의");
+    try {
+      startActivity(intent);
+    } catch (android.content.ActivityNotFoundException e) {
+      showToastSafe("이메일 앱을 찾을 수 없어요");
+    }
+  }
+
   private void onCreatorPlannerCardTapped() {
     long nowElapsedMs = SystemClock.elapsedRealtime();
-    boolean startsNewWindow =
-        creatorPlannerWindowStartElapsedMs == TAP_WINDOW_UNSET
-            || nowElapsedMs < creatorPlannerWindowStartElapsedMs
-            || nowElapsedMs - creatorPlannerWindowStartElapsedMs > CREATOR_BONUS_WINDOW_MS;
+    boolean startsNewWindow = creatorPlannerWindowStartElapsedMs == TAP_WINDOW_UNSET
+        || nowElapsedMs < creatorPlannerWindowStartElapsedMs
+        || nowElapsedMs - creatorPlannerWindowStartElapsedMs > CREATOR_BONUS_WINDOW_MS;
     if (startsNewWindow) {
       creatorPlannerTapCount = 1;
       creatorPlannerWindowStartElapsedMs = nowElapsedMs;
@@ -262,10 +292,9 @@ public class SettingFragment extends Fragment
 
   private void onCreatorDeveloperCardTapped() {
     long nowElapsedMs = SystemClock.elapsedRealtime();
-    boolean startsNewWindow =
-        creatorDeveloperWindowStartElapsedMs == TAP_WINDOW_UNSET
-            || nowElapsedMs < creatorDeveloperWindowStartElapsedMs
-            || nowElapsedMs - creatorDeveloperWindowStartElapsedMs > CREATOR_BONUS_WINDOW_MS;
+    boolean startsNewWindow = creatorDeveloperWindowStartElapsedMs == TAP_WINDOW_UNSET
+        || nowElapsedMs < creatorDeveloperWindowStartElapsedMs
+        || nowElapsedMs - creatorDeveloperWindowStartElapsedMs > CREATOR_BONUS_WINDOW_MS;
     if (startsNewWindow) {
       creatorDeveloperTapCount = 1;
       creatorDeveloperWindowStartElapsedMs = nowElapsedMs;
@@ -298,8 +327,7 @@ public class SettingFragment extends Fragment
     }
 
     long nowEpochMs = System.currentTimeMillis();
-    String bonusDayKey =
-        CREATOR_PLANNER_BONUS_DAY_KEY_PREFIX + nowEpochMs + "_" + UUID.randomUUID();
+    String bonusDayKey = CREATOR_PLANNER_BONUS_DAY_KEY_PREFIX + nowEpochMs + "_" + UUID.randomUUID();
     studyTimeStore.applyManualBonus(CREATOR_PLANNER_BONUS_STUDY_MILLIS, bonusDayKey);
 
     LearningStudyTimeCloudRepository studyTimeCloudRepository = learningStudyTimeCloudRepository;
@@ -385,11 +413,9 @@ public class SettingFragment extends Fragment
 
   private void performLogout() {
     FirebaseAuth.getInstance().signOut();
-    int clearedPreferenceCount =
-        SharedPreferencesCleaner.clearAll(requireContext().getApplicationContext());
+    int clearedPreferenceCount = SharedPreferencesCleaner.clearAll(requireContext().getApplicationContext());
     logDebug("Cleared shared preferences files: " + clearedPreferenceCount);
-    android.content.Intent intent =
-        new android.content.Intent(requireContext(), LoginActivity.class);
+    android.content.Intent intent = new android.content.Intent(requireContext(), LoginActivity.class);
     intent.setFlags(
         android.content.Intent.FLAG_ACTIVITY_NEW_TASK
             | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -440,7 +466,8 @@ public class SettingFragment extends Fragment
     String userEmail = getCurrentUserEmailOrNull();
     if (userEmail == null) {
       cardProfileEmail.setVisibility(View.GONE);
-      if (cardChangePassword != null) cardChangePassword.setVisibility(View.GONE);
+      if (cardChangePassword != null)
+        cardChangePassword.setVisibility(View.GONE);
       tvProfileEmailValue.setText("");
       return;
     }
@@ -472,8 +499,7 @@ public class SettingFragment extends Fragment
       return;
     }
 
-    View dialogView =
-        LayoutInflater.from(getContext()).inflate(R.layout.dialog_change_password, null);
+    View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_change_password, null);
 
     EditText etCurrentPassword = dialogView.findViewById(R.id.et_current_password);
     View cardCurrentPassword = dialogView.findViewById(R.id.card_current_password);
@@ -500,17 +526,15 @@ public class SettingFragment extends Fragment
     btnSave.setOnClickListener(
         v -> {
           // 키보드 숨기기
-          android.view.inputmethod.InputMethodManager imm =
-              (android.view.inputmethod.InputMethodManager)
-                  requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+          android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) requireContext()
+              .getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
           if (imm != null) {
             imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
           }
 
           tvError.setVisibility(View.GONE);
 
-          boolean isCurrentPasswordVerified =
-              layoutNewPasswordContainer.getVisibility() == View.VISIBLE;
+          boolean isCurrentPasswordVerified = layoutNewPasswordContainer.getVisibility() == View.VISIBLE;
 
           if (!isCurrentPasswordVerified) {
             // Step 1: 현재 비밀번호 확인
@@ -588,10 +612,9 @@ public class SettingFragment extends Fragment
                       } else {
                         btnSave.setEnabled(true);
                         btnSave.setText("변경");
-                        String errorMsg =
-                            updateTask.getException() != null
-                                ? updateTask.getException().getMessage()
-                                : "알 수 없는 오류";
+                        String errorMsg = updateTask.getException() != null
+                            ? updateTask.getException().getMessage()
+                            : "알 수 없는 오류";
                         tvError.setText("비밀번호 변경 실패: " + errorMsg);
                         tvError.setVisibility(View.VISIBLE);
                       }
@@ -631,9 +654,8 @@ public class SettingFragment extends Fragment
           }
 
           // Hide keyboard
-          android.view.inputmethod.InputMethodManager imm =
-              (android.view.inputmethod.InputMethodManager)
-                  requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+          android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) requireContext()
+              .getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
           if (imm != null) {
             imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
           }
@@ -676,15 +698,13 @@ public class SettingFragment extends Fragment
                                 if (couponTask.isSuccessful()
                                     && couponTask.getResult() != null
                                     && !couponTask.getResult().isEmpty()) {
-                                  DocumentSnapshot couponDoc =
-                                      couponTask.getResult().getDocuments().get(0);
+                                  DocumentSnapshot couponDoc = couponTask.getResult().getDocuments().get(0);
                                   Long rewardCreditObj = couponDoc.getLong("reward_credit");
-                                  long rewardCredit =
-                                      rewardCreditObj != null ? rewardCreditObj : 0L;
+                                  long rewardCredit = rewardCreditObj != null ? rewardCreditObj : 0L;
 
                                   WriteBatch batch = db.batch();
-                                  com.google.firebase.firestore.DocumentReference userRef =
-                                      db.collection("users").document(user.getUid());
+                                  com.google.firebase.firestore.DocumentReference userRef = db.collection("users")
+                                      .document(user.getUid());
 
                                   batch.update(
                                       userRef,
@@ -731,8 +751,7 @@ public class SettingFragment extends Fragment
   }
 
   private void showChargeCreditDialog() {
-    View dialogView =
-        LayoutInflater.from(getContext()).inflate(R.layout.dialog_charge_credit, null);
+    View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_charge_credit, null);
 
     View layoutContent = dialogView.findViewById(R.id.layout_content);
     View layoutLoading = dialogView.findViewById(R.id.layout_loading);
@@ -793,6 +812,24 @@ public class SettingFragment extends Fragment
     chargeCreditDialog.show();
   }
 
+  private void navigateToCreditHistory() {
+    if (!isAdded()) {
+      return;
+    }
+
+    NavController navController = NavHostFragment.findNavController(this);
+    if (navController.getCurrentDestination() != null
+        && navController.getCurrentDestination().getId() == R.id.creditHistoryFragment) {
+      return;
+    }
+
+    try {
+      navController.navigate(R.id.action_settingFragment_to_creditHistoryFragment);
+    } catch (IllegalArgumentException | IllegalStateException exception) {
+      logDebug("Failed to navigate to credit history: " + exception.getMessage());
+    }
+  }
+
   private void activateAdLifecycle() {
     adLifecycleActive = true;
     adLoadGeneration++;
@@ -831,10 +868,9 @@ public class SettingFragment extends Fragment
     }
 
     AdRequest adRequest = new AdRequest.Builder().build();
-    String adUnitId =
-        BuildConfig.DEBUG
-            ? "ca-app-pub-3940256099942544/5224354917"
-            : BuildConfig.ADMOB_REWARDED_AD_UNIT_ID;
+    String adUnitId = BuildConfig.DEBUG
+        ? "ca-app-pub-3940256099942544/5224354917"
+        : BuildConfig.ADMOB_REWARDED_AD_UNIT_ID;
     logDebug("Loading rewarded ad with Unit ID: " + adUnitId);
     isAdLoading = true;
     long generation = adLoadGeneration;
@@ -970,29 +1006,35 @@ public class SettingFragment extends Fragment
       return;
     }
 
-    FirebaseFirestore.getInstance()
-        .collection("users")
-        .document(user.getUid())
-        .update("credit", com.google.firebase.firestore.FieldValue.increment(1))
-        .addOnSuccessListener(
-            aVoid -> {
-              if (isAdded()) {
-                showToastSafe("1 크레딧이 충전되었어요");
-                fetchUserCredit(); // UI 업데이트
-              }
-            })
-        .addOnFailureListener(
-            e -> {
-              logDebug("Failed to add credit: " + e.getMessage());
-              if (isAdded()) {
-                showToastSafe("크레딧 충전에 실패했어요");
-              }
-            });
+    CreditHistoryEventLogger.applyDeltaWithEvent(
+        user.getUid(),
+        1L,
+        CreditHistoryEventLogger.EVENT_AD_CHARGE,
+        "ad_reward",
+        "setting",
+        CreditHistoryEventLogger.SOURCE_APP,
+        new CreditHistoryEventLogger.Callback() {
+          @Override
+          public void onSuccess(long creditAfter) {
+            if (!isAdded()) {
+              return;
+            }
+            showToastSafe("1 크레딧이 충전되었어요");
+            fetchUserCredit();
+          }
+
+          @Override
+          public void onFailure(@NonNull Exception exception) {
+            logDebug("Failed to add credit: " + exception.getMessage());
+            if (isAdded()) {
+              showToastSafe("크레딧 충전에 실패했어요");
+            }
+          }
+        });
   }
 
   private void showNicknameEditDialog() {
-    View dialogView =
-        LayoutInflater.from(getContext()).inflate(R.layout.dialog_profile_nickname, null);
+    View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_profile_nickname, null);
 
     EditText etNicknameInput = dialogView.findViewById(R.id.et_nickname_input);
     AppCompatButton btnCancel = dialogView.findViewById(R.id.btn_nickname_cancel);
@@ -1036,7 +1078,7 @@ public class SettingFragment extends Fragment
                     return;
                   }
                   applyProfileNicknameText(nickname);
-                  showToastSafe("닉네임이 저장되었어요");
+                  showToastSafe("닉네임이 변경되었어요");
                   if (dialog.isShowing()) {
                     dialog.dismiss();
                   }
@@ -1131,7 +1173,8 @@ public class SettingFragment extends Fragment
         .get()
         .addOnSuccessListener(
             documentSnapshot -> {
-              if (!isAdded()) return;
+              if (!isAdded())
+                return;
               if (documentSnapshot.exists() && documentSnapshot.contains("credit")) {
                 Long credit = documentSnapshot.getLong("credit");
                 if (credit != null) {
@@ -1217,13 +1260,11 @@ public class SettingFragment extends Fragment
     boolean[] taskResults = new boolean[2];
     int[] completedCount = new int[1];
     studyTimeCloudRepository.resetMetricsForCurrentUser(
-        success ->
-            onLearningMetricsResetTaskCompleted(
-                dialog, 0, success, taskResults, completedCount, studyTimeStore, pointStore));
+        success -> onLearningMetricsResetTaskCompleted(
+            dialog, 0, success, taskResults, completedCount, studyTimeStore, pointStore));
     pointCloudRepository.resetTotalPointsForCurrentUser(
-        success ->
-            onLearningMetricsResetTaskCompleted(
-                dialog, 1, success, taskResults, completedCount, studyTimeStore, pointStore));
+        success -> onLearningMetricsResetTaskCompleted(
+            dialog, 1, success, taskResults, completedCount, studyTimeStore, pointStore));
   }
 
   private void onLearningMetricsResetTaskCompleted(

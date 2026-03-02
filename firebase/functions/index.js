@@ -395,6 +395,8 @@ async function grantCreditsWithIdempotency(params) {
     const eventId = buildEventId();
     const ledgerRef =
       db.collection("billing_ledger").doc(params.uid).collection("events").doc(eventId);
+    const creditEventRef =
+      db.collection("users").doc(params.uid).collection("credit_events").doc(eventId);
 
     transaction.set(userRef, {"credit": newCreditBalance}, {"merge": true});
     transaction.set(
@@ -421,6 +423,18 @@ async function grantCreditsWithIdempotency(params) {
       "delta_credits": params.grantedCredits,
       "reason": "purchase_grant",
       "created_at_epoch_ms": nowEpochMs,
+    });
+    transaction.set(creditEventRef, {
+      "timestamp_epoch_ms": nowEpochMs,
+      "timestamp_server": admin.firestore.FieldValue.serverTimestamp(),
+      "event": "purchase_charge",
+      "delta_credits": params.grantedCredits,
+      "credit_after": newCreditBalance,
+      "source": "server",
+      "reason": "purchase_grant",
+      "product_id": params.productId,
+      "purchase_token": params.purchaseToken,
+      "order_id": params.orderId,
     });
 
     result.status = "GRANTED";

@@ -27,13 +27,13 @@ import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.android.material.tabs.TabLayout;
 import com.google.gson.Gson;
 import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.activity.QuizActivity;
+import com.jjundev.oneclickeng.credit.CreditHistoryEventLogger;
 import com.jjundev.oneclickeng.dialog.QuizGenerateDialog;
 import com.jjundev.oneclickeng.learning.dialoguelearning.di.LearningDependencyProvider;
 import com.jjundev.oneclickeng.learning.dialoguelearning.manager_contracts.IQuizGenerationManager;
@@ -524,17 +524,26 @@ public class LearningHistoryFragment extends Fragment {
     }
     int creditToDeduct = Math.max(1, requiredCredit);
 
-    FirebaseFirestore.getInstance()
-        .collection("users")
-        .document(user.getUid())
-        .update("credit", FieldValue.increment(-creditToDeduct))
-        .addOnFailureListener(
-            e ->
-                logDebug(
-                    "Failed to decrement credit("
-                        + creditToDeduct
-                        + "): "
-                        + e.getMessage()));
+    CreditHistoryEventLogger.applyDeltaWithEvent(
+        user.getUid(),
+        -creditToDeduct,
+        CreditHistoryEventLogger.EVENT_QUIZ_USE,
+        "quiz_start",
+        "learning_history",
+        CreditHistoryEventLogger.SOURCE_APP,
+        new CreditHistoryEventLogger.Callback() {
+          @Override
+          public void onSuccess(long creditAfter) {}
+
+          @Override
+          public void onFailure(@NonNull Exception exception) {
+            logDebug(
+                "Failed to decrement credit("
+                    + creditToDeduct
+                    + "): "
+                    + exception.getMessage());
+          }
+        });
   }
 
   private static int calculateRequiredCredit(int questionCount) {
@@ -827,16 +836,25 @@ public class LearningHistoryFragment extends Fragment {
       return;
     }
 
-    FirebaseFirestore.getInstance()
-        .collection("users")
-        .document(user.getUid())
-        .update("credit", FieldValue.increment(1))
-        .addOnSuccessListener(aVoid -> showToast("1 크레딧이 충전되었어요"))
-        .addOnFailureListener(
-            e -> {
-              logDebug("Failed to add credit: " + e.getMessage());
-              showToast("크레딧 충전에 실패했어요");
-            });
+    CreditHistoryEventLogger.applyDeltaWithEvent(
+        user.getUid(),
+        1L,
+        CreditHistoryEventLogger.EVENT_AD_CHARGE,
+        "ad_reward",
+        "learning_history",
+        CreditHistoryEventLogger.SOURCE_APP,
+        new CreditHistoryEventLogger.Callback() {
+          @Override
+          public void onSuccess(long creditAfter) {
+            showToast("1 크레딧이 충전되었어요");
+          }
+
+          @Override
+          public void onFailure(@NonNull Exception exception) {
+            logDebug("Failed to add credit: " + exception.getMessage());
+            showToast("크레딧 충전에 실패했어요");
+          }
+        });
   }
 
   private void showToast(int messageResId) {

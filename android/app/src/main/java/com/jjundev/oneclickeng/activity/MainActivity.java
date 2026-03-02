@@ -96,11 +96,12 @@ public class MainActivity extends AppCompatActivity {
           int currentDestinationId = controller.getCurrentDestination() != null
               ? controller.getCurrentDestination().getId()
               : -1;
-          if (currentDestinationId == R.id.creditStoreFragment) {
+          if (isSettingsSubDestination(currentDestinationId)) {
             if (itemId == R.id.settingFragment) {
-              return navigateToSettingFromCreditStore(controller);
+              return navigateToSettingFromSettingsSubDestination(controller, currentDestinationId);
             }
-            return navigateFromCreditStoreToBottomTab(itemId, controller);
+            return navigateFromSettingsSubDestinationToBottomTab(
+                itemId, controller, currentDestinationId);
           }
 
           return NavigationUI.onNavDestinationSelected(item, controller);
@@ -119,12 +120,12 @@ public class MainActivity extends AppCompatActivity {
           int currentDestinationId = controller.getCurrentDestination() != null
               ? controller.getCurrentDestination().getId()
               : -1;
-          if (currentDestinationId == R.id.creditStoreFragment) {
+          if (isSettingsSubDestination(currentDestinationId)) {
             if (itemId == R.id.settingFragment) {
-              navigateToSettingFromCreditStore(controller);
+              navigateToSettingFromSettingsSubDestination(controller, currentDestinationId);
               return;
             }
-            navigateFromCreditStoreToBottomTab(itemId, controller);
+            navigateFromSettingsSubDestinationToBottomTab(itemId, controller, currentDestinationId);
           }
         });
 
@@ -136,7 +137,8 @@ public class MainActivity extends AppCompatActivity {
           if (destinationId == R.id.scriptSelectFragment
               || destinationId == R.id.dialogueSummaryFragment) {
             menuId = R.id.studyModeSelectFragment;
-          } else if (destinationId == R.id.creditStoreFragment) {
+          } else if (destinationId == R.id.creditStoreFragment
+              || destinationId == R.id.creditHistoryFragment) {
             menuId = R.id.settingFragment;
           }
 
@@ -229,8 +231,15 @@ public class MainActivity extends AppCompatActivity {
             exception -> logDebug("Failed to check for app update: " + exception.getMessage()));
   }
 
-  private boolean navigateToSettingFromCreditStore(@NonNull NavController controller) {
-    logDebug("Navigating from CreditStore to Setting via bottom tab.");
+  private boolean navigateToSettingFromSettingsSubDestination(
+      @NonNull NavController controller, int currentDestinationId) {
+    String destinationName = getResources().getResourceEntryName(currentDestinationId);
+    logDebug(
+        "Navigating from settings sub destination to Setting via bottom tab: "
+            + destinationName
+            + " ("
+            + currentDestinationId
+            + ")");
     if (controller.popBackStack(R.id.settingFragment, false)) {
       return true;
     }
@@ -246,7 +255,7 @@ public class MainActivity extends AppCompatActivity {
       return true;
     } catch (IllegalArgumentException | IllegalStateException exception) {
       logDebug(
-          "Failed to navigate from CreditStore to Setting via bottom navigation."
+          "Failed to navigate from settings sub destination to Setting via bottom navigation."
               + " destinationId="
               + R.id.settingFragment
               + ", message="
@@ -255,10 +264,23 @@ public class MainActivity extends AppCompatActivity {
     }
   }
 
-  private boolean navigateFromCreditStoreToBottomTab(int menuId, @NonNull NavController controller) {
+  private boolean navigateFromSettingsSubDestinationToBottomTab(
+      int menuId, @NonNull NavController controller, int currentDestinationId) {
     String destinationName = getResources().getResourceEntryName(menuId);
-    logDebug("Navigating from CreditStore to tab: " + destinationName + " (" + menuId + ")");
-    controller.popBackStack(R.id.creditStoreFragment, true);
+    String fromName = getResources().getResourceEntryName(currentDestinationId);
+    logDebug(
+        "Navigating from settings sub destination to tab: from="
+            + fromName
+            + " ("
+            + currentDestinationId
+            + "), to="
+            + destinationName
+            + " ("
+            + menuId
+            + ")");
+    if (currentDestinationId != -1) {
+      controller.popBackStack(currentDestinationId, true);
+    }
 
     int startDestinationId = controller.getGraph().getStartDestinationId();
     NavOptions navOptions = new NavOptions.Builder()
@@ -271,13 +293,17 @@ public class MainActivity extends AppCompatActivity {
       return true;
     } catch (IllegalArgumentException | IllegalStateException exception) {
       logDebug(
-          "Failed to navigate from CreditStore via bottom navigation."
+          "Failed to navigate from settings sub destination via bottom navigation."
               + " destinationId="
               + menuId
               + ", message="
               + exception.getMessage());
-      return recoverToStartDestination(controller, "credit-store-tab-fallback");
+      return recoverToStartDestination(controller, "settings-sub-tab-fallback");
     }
+  }
+
+  private boolean isSettingsSubDestination(int destinationId) {
+    return destinationId == R.id.creditStoreFragment || destinationId == R.id.creditHistoryFragment;
   }
 
   private boolean recoverToStartDestination(

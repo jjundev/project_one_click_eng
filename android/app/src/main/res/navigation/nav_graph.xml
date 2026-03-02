@@ -71,6 +71,13 @@
         android:label="SettingFragment"
         tools:layout="@layout/fragment_setting">
         <action
+            android:id="@+id/action_settingFragment_to_creditHistoryFragment"
+            app:destination="@id/creditHistoryFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
             android:id="@+id/action_settingFragment_to_creditStoreFragment"
             app:destination="@id/creditStoreFragment"
             app:enterAnim="@anim/slide_in_right"
@@ -78,6 +85,12 @@
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
     </fragment>
+
+    <fragment
+        android:id="@+id/creditHistoryFragment"
+        android:name="com.jjundev.oneclickeng.fragment.CreditHistoryFragment"
+        android:label="CreditHistoryFragment"
+        tools:layout="@layout/fragment_credit_history" />
 
     <fragment
         android:id="@+id/creditStoreFragment"

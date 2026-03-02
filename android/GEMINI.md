@@ -37,6 +37,17 @@
 
 <!-- 아래에 실수 기록을 계속 추가하세요 -->
 
+### [2026-03-02] Intent resolveActivity()가 Android 11+ 패키지 가시성 제한으로 null 반환
+
+- **심각도**: 🟢 Low
+- **카테고리**: 기타
+- **작업 컨텍스트**: 설정 화면 개발자 연락 이메일 카드 클릭 시 이메일 앱 호출 기능 구현
+- **실수 내용**: `intent.resolveActivity(getPackageManager())`로 이메일 앱 존재 여부를 확인했으나, Android 11(API 30) 이상에서 `<queries>` 선언 없이는 항상 `null`을 반환하여 Gmail이 설치되어 있어도 "이메일 앱을 찾을 수 없어요" 토스트가 표시됨.
+- **원인 분석**: Android 11에서 도입된 패키지 가시성 제한(`Package Visibility`)을 Intent 발신 시 고려하지 못했다.
+- **실제 결과**: 사용자가 이메일 카드를 클릭해도 이메일 앱이 열리지 않고 토스트만 표시되어 즉시 피드백을 받고 수정함.
+- **올바른 방법**: `resolveActivity()` 대신 `try { startActivity(intent) } catch (ActivityNotFoundException)` 패턴을 사용하거나, `AndroidManifest.xml`에 `<queries><intent>` 선언을 추가해야 한다.
+- **재발 방지 규칙**: `[ ] 외부 앱 호출 Intent 구현 시 resolveActivity() 대신 try-catch(ActivityNotFoundException) 패턴을 사용하거나, AndroidManifest에 <queries> 선언을 추가한다.`
+
 ### [2026-03-02] RewardedAd 자동 프리로드 잔존 경로를 초기에 과소평가해 MediaCodec 로그 재발
 
 - **심각도**: 🟡 Medium
@@ -120,6 +131,7 @@
 - [ ] JVM 단위테스트 대상 파서/유틸 로직에 Android 전용 유틸(android.util.*)을 무심코 사용하지 않는다.
 - [ ] 토큰 기반 비동기 재생에서 stop/cancel 전후 순서를 무시한 채 새 토큰/콜백을 먼저 등록하지 않는다.
 - [ ] 광고/미디어 로그 이슈에서 자동 로드 트리거(onStart, onDismiss, onFailedToShow, retry handler)를 부분적으로만 수정한 채 종료하지 않는다.
+- [ ] Android 11+ 환경에서 외부 앱 호출 시 resolveActivity()만으로 존재 여부를 판단하지 않는다.
 
 ---
 
@@ -139,6 +151,7 @@
 - [ ] JVM 단위테스트 대상 코드에서 Android 전용 유틸 대신 JVM 호환 유틸(java.util.* 등)을 사용했는가?
 - [ ] 토큰 기반 재생/요청 로직에서 이전 세션 정리(stop/cancel)와 새 토큰 발급 순서를 점검했는가?
 - [ ] 광고/미디어 이슈에서 자동 로드 트리거 맵(onStart/onDismiss/onFailedToShow/retry)과 시청 전·후 재현 시나리오를 모두 점검했는가?
+- [ ] 외부 앱 호출 Intent에서 resolveActivity() 대신 try-catch 패턴을 사용했는가?
 
 ---
 
@@ -150,8 +163,8 @@
 | 명령어 오류 | 0 |
 | 경로 실수 | 0 |
 | 의존성 | 0 |
-| 기타 | 6 |
-| **합계** | **6** |
+| 기타 | 7 |
+| **합계** | **7** |
 
 ---
 
@@ -165,4 +178,4 @@
 
 ---
 
-*마지막 업데이트: 2026-03-02 | 총 기록된 실수: 6건*
+*마지막 업데이트: 2026-03-02 | 총 기록된 실수: 7건*

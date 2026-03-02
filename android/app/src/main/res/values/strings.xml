@@ -216,6 +216,22 @@
     <string name="notification_inbox_source_not_posted">알림창 미표시</string>
     <string name="notification_channel_general_name">OneClickEng 알림</string>
     <string name="notification_channel_general_description">OneClickEng 시스템 알림 채널</string>
+    <string name="credit_history_title">크레딧 이용 내역</string>
+    <string name="credit_history_subtitle">최근 크레딧 충전 및 사용 내역을 확인할 수 있어요</string>
+    <string name="credit_history_section_title">최근 내역</string>
+    <string name="credit_history_loading">내역을 불러오는 중이에요...</string>
+    <string name="credit_history_empty">아직 내역이 없어요.</string>
+    <string name="credit_history_login_required">로그인이 필요해요.</string>
+    <string name="credit_history_load_failed">내역을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</string>
+    <string name="credit_history_close">닫기</string>
+    <string name="credit_history_event_purchase_charge">구매 충전</string>
+    <string name="credit_history_event_ad_charge">광고 충전</string>
+    <string name="credit_history_event_learning_use">학습 사용</string>
+    <string name="credit_history_event_quiz_use">퀴즈 사용</string>
+    <string name="credit_history_event_unknown">기타</string>
+    <string name="credit_history_delta_format">%1$+d</string>
+    <string name="credit_history_meta_format">남은 크레딧 %1$d개 · %2$s</string>
+    <string name="credit_history_time_unknown">시간 정보 없음</string>
 
     <string-array name="settings_llm_model_presets">
         <item>gemini-3-flash-preview</item>

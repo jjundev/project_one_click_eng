@@ -29,6 +29,7 @@ android {
         buildConfigField "String", "ADMOB_REWARDED_AD_UNIT_ID", "\"${localProperties.getProperty('ADMOB_REWARDED_AD_UNIT_ID', '')}\""
         // 필수: 미설정 시 CreditStore에서 결제 시작이 차단되고 검증이 CONFIG_ERROR로 처리됨
         buildConfigField "String", "CREDIT_BILLING_VERIFY_URL", "\"${localProperties.getProperty('CREDIT_BILLING_VERIFY_URL', '')}\""
+        buildConfigField "String", "DEVELOPER_EMAIL", "\"${localProperties.getProperty('DEVELOPER_EMAIL', 'ufo4hyun@gmail.com')}\""
 
         ndk {
             // 지원하는 아키텍처만 포함하여 용량 절감

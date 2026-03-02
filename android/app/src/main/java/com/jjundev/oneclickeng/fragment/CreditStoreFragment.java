@@ -536,7 +536,7 @@ public class CreditStoreFragment extends Fragment {
     if (state == Purchase.PurchaseState.PURCHASED) {
       enqueuePendingPurchase(purchase);
       if (fromUserFlow) {
-        showToastSafe("구매를 확인하고 있어요...");
+        showToastSafe("구매를 확인하고 있어요...\n잠시만 기다려 주세요");
       }
       return;
     }
