@@ -10,6 +10,7 @@ import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.IntentSenderRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -20,6 +21,12 @@ import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.play.core.appupdate.AppUpdateInfo;
+import com.google.android.play.core.appupdate.AppUpdateManager;
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory;
+import com.google.android.play.core.appupdate.AppUpdateOptions;
+import com.google.android.play.core.install.model.AppUpdateType;
+import com.google.android.play.core.install.model.UpdateAvailability;
 import com.jjundev.oneclickeng.R;
 
 public class MainActivity extends AppCompatActivity {
@@ -28,14 +35,31 @@ public class MainActivity extends AppCompatActivity {
   private static final String KEY_PERMISSION_REQUESTED = "post_notifications_requested";
 
   private long backPressedTime = 0;
-  @Nullable private BottomNavigationView bottomNavigation;
-  @Nullable private NavController navController;
+  @Nullable
+  private BottomNavigationView bottomNavigation;
+  @Nullable
+  private NavController navController;
+  @Nullable
+  private AppUpdateManager appUpdateManager;
 
   @NonNull
-  private final ActivityResultLauncher<String> notificationPermissionLauncher =
-      registerForActivityResult(
-          new ActivityResultContracts.RequestPermission(),
-          isGranted -> logDebug("POST_NOTIFICATIONS permission result: " + isGranted));
+  private final ActivityResultLauncher<String> notificationPermissionLauncher = registerForActivityResult(
+      new ActivityResultContracts.RequestPermission(),
+      isGranted -> logDebug("POST_NOTIFICATIONS permission result: " + isGranted));
+
+  @NonNull
+  private final ActivityResultLauncher<IntentSenderRequest> updateLauncher = registerForActivityResult(
+      new ActivityResultContracts.StartIntentSenderForResult(),
+      result -> {
+        if (result.getResultCode() != RESULT_OK) {
+          logDebug(
+              "In-app update cancelled or failed. resultCode=" + result.getResultCode());
+          Toast.makeText(this, "업데이트가 필요합니다. 앱을 종료합니다.", Toast.LENGTH_SHORT).show();
+          finish();
+        } else {
+          logDebug("In-app update completed successfully.");
+        }
+      });
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -43,10 +67,12 @@ public class MainActivity extends AppCompatActivity {
     EdgeToEdge.enable(this);
     setContentView(R.layout.activity_main);
     requestNotificationPermissionIfNeeded();
+    appUpdateManager = AppUpdateManagerFactory.create(this);
+    checkForAppUpdate();
 
     bottomNavigation = findViewById(R.id.bottom_navigation);
-    NavHostFragment navHostFragment =
-        (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+    NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
+        .findFragmentById(R.id.fragment_container);
 
     if (navHostFragment == null) {
       logDebug("NavHostFragment is null. Bottom navigation setup skipped.");
@@ -67,10 +93,9 @@ public class MainActivity extends AppCompatActivity {
             return false;
           }
 
-          int currentDestinationId =
-              controller.getCurrentDestination() != null
-                  ? controller.getCurrentDestination().getId()
-                  : -1;
+          int currentDestinationId = controller.getCurrentDestination() != null
+              ? controller.getCurrentDestination().getId()
+              : -1;
           if (currentDestinationId == R.id.creditStoreFragment) {
             if (itemId == R.id.settingFragment) {
               return navigateToSettingFromCreditStore(controller);
@@ -91,10 +116,9 @@ public class MainActivity extends AppCompatActivity {
             return;
           }
 
-          int currentDestinationId =
-              controller.getCurrentDestination() != null
-                  ? controller.getCurrentDestination().getId()
-                  : -1;
+          int currentDestinationId = controller.getCurrentDestination() != null
+              ? controller.getCurrentDestination().getId()
+              : -1;
           if (currentDestinationId == R.id.creditStoreFragment) {
             if (itemId == R.id.settingFragment) {
               navigateToSettingFromCreditStore(controller);
@@ -137,10 +161,9 @@ public class MainActivity extends AppCompatActivity {
                   return;
                 }
 
-                int currentDestId =
-                    controller.getCurrentDestination() != null
-                        ? controller.getCurrentDestination().getId()
-                        : -1;
+                int currentDestId = controller.getCurrentDestination() != null
+                    ? controller.getCurrentDestination().getId()
+                    : -1;
 
                 if (currentDestId == R.id.studyModeSelectFragment) {
                   // 홈 화면(learningModeSelect)에서만 두 번 눌러 종료
@@ -161,6 +184,51 @@ public class MainActivity extends AppCompatActivity {
             });
   }
 
+  @Override
+  protected void onResume() {
+    super.onResume();
+    if (appUpdateManager == null) {
+      return;
+    }
+    appUpdateManager
+        .getAppUpdateInfo()
+        .addOnSuccessListener(
+            appUpdateInfo -> {
+              if (appUpdateInfo.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS) {
+                logDebug("Resuming in-progress immediate update.");
+                appUpdateManager.startUpdateFlowForResult(
+                    appUpdateInfo,
+                    updateLauncher,
+                    AppUpdateOptions.newBuilder(AppUpdateType.IMMEDIATE).build());
+              }
+            });
+  }
+
+  private void checkForAppUpdate() {
+    if (appUpdateManager == null) {
+      return;
+    }
+    appUpdateManager
+        .getAppUpdateInfo()
+        .addOnSuccessListener(
+            appUpdateInfo -> {
+              if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
+                  && appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)) {
+                logDebug("Immediate update available. Starting update flow.");
+                appUpdateManager.startUpdateFlowForResult(
+                    appUpdateInfo,
+                    updateLauncher,
+                    AppUpdateOptions.newBuilder(AppUpdateType.IMMEDIATE).build());
+              } else {
+                logDebug(
+                    "No immediate update available. availability="
+                        + appUpdateInfo.updateAvailability());
+              }
+            })
+        .addOnFailureListener(
+            exception -> logDebug("Failed to check for app update: " + exception.getMessage()));
+  }
+
   private boolean navigateToSettingFromCreditStore(@NonNull NavController controller) {
     logDebug("Navigating from CreditStore to Setting via bottom tab.");
     if (controller.popBackStack(R.id.settingFragment, false)) {
@@ -168,12 +236,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     int startDestinationId = controller.getGraph().getStartDestinationId();
-    NavOptions navOptions =
-        new NavOptions.Builder()
-            .setLaunchSingleTop(true)
-            .setRestoreState(false)
-            .setPopUpTo(startDestinationId, false, false)
-            .build();
+    NavOptions navOptions = new NavOptions.Builder()
+        .setLaunchSingleTop(true)
+        .setRestoreState(false)
+        .setPopUpTo(startDestinationId, false, false)
+        .build();
     try {
       controller.navigate(R.id.settingFragment, null, navOptions);
       return true;
@@ -194,12 +261,11 @@ public class MainActivity extends AppCompatActivity {
     controller.popBackStack(R.id.creditStoreFragment, true);
 
     int startDestinationId = controller.getGraph().getStartDestinationId();
-    NavOptions navOptions =
-        new NavOptions.Builder()
-            .setLaunchSingleTop(true)
-            .setRestoreState(false)
-            .setPopUpTo(startDestinationId, false, false)
-            .build();
+    NavOptions navOptions = new NavOptions.Builder()
+        .setLaunchSingleTop(true)
+        .setRestoreState(false)
+        .setPopUpTo(startDestinationId, false, false)
+        .build();
     try {
       controller.navigate(menuId, null, navOptions);
       return true;
@@ -241,13 +307,12 @@ public class MainActivity extends AppCompatActivity {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
       return;
     }
-    if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-        == PackageManager.PERMISSION_GRANTED) {
+    if (ContextCompat.checkSelfPermission(this,
+        Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
       return;
     }
 
-    SharedPreferences preferences =
-        getSharedPreferences(PREF_NOTIFICATION_PERMISSION, MODE_PRIVATE);
+    SharedPreferences preferences = getSharedPreferences(PREF_NOTIFICATION_PERMISSION, MODE_PRIVATE);
     if (preferences.getBoolean(KEY_PERMISSION_REQUESTED, false)) {
       return;
     }

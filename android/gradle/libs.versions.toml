@@ -28,9 +28,11 @@ lottie = "6.1.0"
 lifecycle = "2.8.4"
 archCoreTesting = "2.2.0"
 firebaseFirestore = "26.1.0"
+playAppUpdate = "2.1.0"
 viewpager2 = "1.1.0"
 
 [libraries]
+play-app-update = { module = "com.google.android.play:app-update", version.ref = "playAppUpdate" }
 billing = { module = "com.android.billingclient:billing", version.ref = "billing" }
 credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
 credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }

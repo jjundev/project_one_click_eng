@@ -19,7 +19,7 @@ android {
         applicationId "com.jjundev.oneclickeng"
         minSdk 31
         targetSdk 36
-        versionCode 12
+        versionCode 13
         versionName "1.0.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -59,6 +59,7 @@ android {
 
 dependencies {
     implementation libs.billing
+    implementation libs.play.app.update
 
     implementation platform(libs.firebase.bom)
     implementation libs.firebase.analytics
