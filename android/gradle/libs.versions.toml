@@ -11,6 +11,7 @@ media3Ui = "1.9.2"
 navigationFragment = "2.9.7"
 navigationUi = "2.9.7"
 playServicesAds = "25.0.0"
+playReview = "2.0.2"
 spotless = "6.25.0"
 junit = "4.13.2"
 junitVersion = "1.1.5"
@@ -33,6 +34,7 @@ viewpager2 = "1.1.0"
 
 [libraries]
 play-app-update = { module = "com.google.android.play:app-update", version.ref = "playAppUpdate" }
+play-review = { module = "com.google.android.play:review", version.ref = "playReview" }
 billing = { module = "com.android.billingclient:billing", version.ref = "billing" }
 credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
 credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }

@@ -10,9 +10,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.widget.NestedScrollView;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.play.core.review.ReviewInfo;
+import com.google.android.play.core.review.ReviewManager;
+import com.google.android.play.core.review.ReviewManagerFactory;
 import com.jjundev.oneclickeng.BuildConfig;
 import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.activity.QuizActivity;
@@ -23,6 +27,7 @@ import com.jjundev.oneclickeng.learning.dialoguelearning.summary.DialogueSummary
 import com.jjundev.oneclickeng.learning.dialoguelearning.summary.SessionSummaryBinder;
 import com.jjundev.oneclickeng.settings.AppSettings;
 import com.jjundev.oneclickeng.settings.AppSettingsStore;
+import com.jjundev.oneclickeng.settings.InAppReviewPromptStore;
 
 public class DialogueSummaryFragment extends Fragment {
   public static final String ARG_SUMMARY_JSON = "arg_summary_json";
@@ -41,6 +46,7 @@ public class DialogueSummaryFragment extends Fragment {
   private TextView tvBottomSheetSubtitle;
   private View btnStartQuiz;
   private View btnFinishSummary;
+  private boolean isFinishingFlowInProgress = false;
 
   public static DialogueSummaryFragment newInstance(String summaryJson) {
     return newInstance(summaryJson, null);
@@ -103,15 +109,12 @@ public class DialogueSummaryFragment extends Fragment {
     restoreExpressionToggleState(view, savedInstanceState);
     initViewModel(view, savedInstanceState);
     logDebug("summary fragment entered");
-    view.findViewById(R.id.btn_finish_summary)
-        .setOnClickListener(
-            v -> {
-              logDebug("summary finish selected");
-              if (getActivity() != null) {
-                getActivity().finish();
-              }
-            });
-    view.findViewById(R.id.btn_start_quiz_summary).setOnClickListener(v -> navigateToQuiz());
+    if (btnFinishSummary != null) {
+      btnFinishSummary.setOnClickListener(v -> handleFinishSummaryClick());
+    }
+    if (btnStartQuiz != null) {
+      btnStartQuiz.setOnClickListener(v -> navigateToQuiz());
+    }
   }
 
   @Override
@@ -323,6 +326,81 @@ public class DialogueSummaryFragment extends Fragment {
       if (btnStartQuiz != null) btnStartQuiz.setVisibility(View.GONE);
       if (btnFinishSummary != null) btnFinishSummary.setVisibility(View.GONE);
     }
+  }
+
+  private void handleFinishSummaryClick() {
+    if (isFinishingFlowInProgress) {
+      logDebug("summary finish ignored: flow already in progress");
+      return;
+    }
+    isFinishingFlowInProgress = true;
+    if (btnFinishSummary != null) {
+      btnFinishSummary.setEnabled(false);
+    }
+
+    logDebug("summary finish selected");
+    InAppReviewPromptStore reviewPromptStore =
+        new InAppReviewPromptStore(requireContext().getApplicationContext());
+    boolean reviewOpportunityConsumed =
+        reviewPromptStore.consumeDialogueSummaryFinishReviewOpportunity();
+    logDebug("summary review opportunity consumed: " + reviewOpportunityConsumed);
+
+    if (!reviewOpportunityConsumed) {
+      finishHostActivitySafely();
+      return;
+    }
+    requestInAppReviewThenFinish();
+  }
+
+  private void requestInAppReviewThenFinish() {
+    if (!isAdded()) {
+      logDebug("summary review request skipped: fragment not added");
+      finishHostActivitySafely();
+      return;
+    }
+    ReviewManager reviewManager = ReviewManagerFactory.create(requireContext());
+    reviewManager
+        .requestReviewFlow()
+        .addOnSuccessListener(
+            reviewInfo -> {
+              logDebug("summary review request success");
+              launchInAppReviewThenFinish(reviewManager, reviewInfo);
+            })
+        .addOnFailureListener(
+            throwable -> {
+              String reason = throwable == null ? "unknown" : String.valueOf(throwable.getMessage());
+              logDebug("summary review request failed: " + reason);
+              finishHostActivitySafely();
+            });
+  }
+
+  private void launchInAppReviewThenFinish(
+      @NonNull ReviewManager reviewManager, @NonNull ReviewInfo reviewInfo) {
+    FragmentActivity hostActivity = getActivity();
+    if (hostActivity == null) {
+      logDebug("summary review launch skipped: host activity null");
+      finishHostActivitySafely();
+      return;
+    }
+    reviewManager
+        .launchReviewFlow(hostActivity, reviewInfo)
+        .addOnCompleteListener(
+            task -> {
+              logDebug("summary review launch completed");
+              finishHostActivitySafely();
+            });
+  }
+
+  private void finishHostActivitySafely() {
+    FragmentActivity hostActivity = getActivity();
+    if (hostActivity != null) {
+      hostActivity.finish();
+      return;
+    }
+    if (btnFinishSummary != null) {
+      btnFinishSummary.setEnabled(true);
+    }
+    isFinishingFlowInProgress = false;
   }
 
   private void navigateToQuiz() {
