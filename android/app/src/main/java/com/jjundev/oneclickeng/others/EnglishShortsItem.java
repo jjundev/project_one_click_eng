@@ -1,12 +1,14 @@
 package com.jjundev.oneclickeng.others;
 
 import androidx.annotation.NonNull;
+import java.util.ArrayList;
+import java.util.List;
 
 /** Data model for a single English Shorts card. */
 public class EnglishShortsItem {
   @NonNull private String title;
   @NonNull private String videoUrl;
-  @NonNull private String tag;
+  @NonNull private List<String> tags;
   @NonNull private String documentId;
   private int likeCount;
   private int dislikeCount;
@@ -16,7 +18,7 @@ public class EnglishShortsItem {
   public EnglishShortsItem() {
     this.title = "";
     this.videoUrl = "";
-    this.tag = "";
+    this.tags = new ArrayList<>();
     this.documentId = "";
     this.likeCount = 0;
     this.dislikeCount = 0;
@@ -42,12 +44,19 @@ public class EnglishShortsItem {
   }
 
   @NonNull
-  public String getTag() {
-    return tag;
+  public List<String> getTags() {
+    if (tags == null) {
+      return new ArrayList<>();
+    }
+    return new ArrayList<>(tags);
   }
 
-  public void setTag(@NonNull String tag) {
-    this.tag = tag;
+  public void setTags(@NonNull List<String> tags) {
+    if (tags == null) {
+      this.tags = new ArrayList<>();
+      return;
+    }
+    this.tags = new ArrayList<>(tags);
   }
 
   @NonNull

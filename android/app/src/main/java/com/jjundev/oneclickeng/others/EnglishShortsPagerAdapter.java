@@ -7,7 +7,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.media3.common.MediaItem;
@@ -22,9 +21,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Adapter for the English Shorts ViewPager2. Each page displays a full-screen
- * video with a tag
- * badge.
+ * Adapter for the English Shorts ViewPager2. Each page displays a full-screen video.
  */
 public class EnglishShortsPagerAdapter
     extends RecyclerView.Adapter<EnglishShortsPagerAdapter.ShortViewHolder> {
@@ -132,8 +129,6 @@ public class EnglishShortsPagerAdapter
     @NonNull
     private final ImageView ivPlayPause;
     @NonNull
-    private final TextView tvTag;
-    @NonNull
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     @Nullable
@@ -146,7 +141,6 @@ public class EnglishShortsPagerAdapter
       playerView = itemView.findViewById(R.id.player_view);
       ivThumbnail = itemView.findViewById(R.id.iv_thumbnail);
       ivPlayPause = itemView.findViewById(R.id.iv_play_pause_indicator);
-      tvTag = itemView.findViewById(R.id.tv_short_tag);
 
       playerView.setOnClickListener(v -> togglePlayback());
     }
@@ -200,7 +194,6 @@ public class EnglishShortsPagerAdapter
 
     void bind(@NonNull EnglishShortsItem item) {
       this.currentItem = item;
-      tvTag.setText(item.getTag());
       ivThumbnail.setVisibility(View.VISIBLE);
       releasePlayer();
     }

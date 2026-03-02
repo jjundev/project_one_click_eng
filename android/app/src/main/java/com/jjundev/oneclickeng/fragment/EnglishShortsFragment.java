@@ -21,6 +21,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
+import com.google.android.flexbox.FlexboxLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
@@ -33,6 +34,7 @@ import com.jjundev.oneclickeng.R;
 import com.jjundev.oneclickeng.fragment.shorts.EnglishShortsViewModel;
 import com.jjundev.oneclickeng.others.EnglishShortsItem;
 import com.jjundev.oneclickeng.others.EnglishShortsPagerAdapter;
+import com.jjundev.oneclickeng.others.EnglishShortsTagFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,6 +52,7 @@ public class EnglishShortsFragment extends Fragment {
   private static final String FIELD_LIKE_COUNT = "likeCount";
   private static final String FIELD_DISLIKE_COUNT = "dislikeCount";
   private static final String FIELD_REACTED_AT = "reactedAt";
+  private static final int MAX_DISPLAY_TAG_COUNT = 3;
 
   @NonNull private final List<View> progressBars = new ArrayList<>();
   @NonNull private final Set<String> likedShortDocIds = new HashSet<>();
@@ -65,7 +68,7 @@ public class EnglishShortsFragment extends Fragment {
   @Nullable private LinearLayout layoutBottomMeta;
   @Nullable private LinearLayout progressContainer;
   @Nullable private TextView tvTitle;
-  @Nullable private TextView tvTag;
+  @Nullable private FlexboxLayout layoutTags;
   @Nullable private TextView tvLikeCount;
   @Nullable private TextView tvDislikeLabel;
   @Nullable private AppCompatImageButton btnLike;
@@ -126,7 +129,7 @@ public class EnglishShortsFragment extends Fragment {
     layoutBottomMeta = root.findViewById(R.id.layout_shorts_bottom_meta);
     progressContainer = root.findViewById(R.id.layout_shorts_progress);
     tvTitle = root.findViewById(R.id.tv_shorts_title);
-    tvTag = root.findViewById(R.id.tv_shorts_tag);
+    layoutTags = root.findViewById(R.id.layout_shorts_tags);
     tvLikeCount = root.findViewById(R.id.tv_shorts_like_count);
     tvDislikeLabel = root.findViewById(R.id.tv_shorts_dislike_label);
     btnLike = root.findViewById(R.id.btn_shorts_like);
@@ -216,7 +219,7 @@ public class EnglishShortsFragment extends Fragment {
         if (viewPager != null && viewPager.getCurrentItem() != targetIndex) {
           viewPager.setCurrentItem(targetIndex, false);
         }
-        renderOverlay(items.get(targetIndex), targetIndex);
+        renderOverlayAfterLayout(targetIndex);
         playVideoAtPosition(targetIndex);
       }
       preloadVideos(items);
@@ -686,18 +689,92 @@ public class EnglishShortsFragment extends Fragment {
 
   private void renderOverlay(@NonNull EnglishShortsItem item, int index) {
     if (tvTitle != null) tvTitle.setText(item.getTitle());
-    if (tvTag != null) {
-      String tag = item.getTag();
-      if (tag != null && !tag.isEmpty()) {
-        tvTag.setText(tag);
-        tvTag.setVisibility(View.VISIBLE);
-      } else {
-        tvTag.setVisibility(View.GONE);
-      }
-    }
+    renderTagChips(item.getTags());
     if (tvLikeCount != null) tvLikeCount.setText(formatCount(item.getLikeCount()));
     updateProgressIndicators(index);
     applyCurrentReactionTint();
+  }
+
+  private void renderOverlayAfterLayout(int fallbackIndex) {
+    FlexboxLayout tagsContainer = layoutTags;
+    LinearLayout bottomMeta = layoutBottomMeta;
+    if (tagsContainer == null || bottomMeta == null || tagsContainer.getParent() == null) {
+      renderOverlayAtSafeIndex(fallbackIndex);
+      return;
+    }
+
+    bottomMeta.post(
+        () -> {
+          if (!isAdded() || getView() == null || shortsItems.isEmpty()) return;
+
+          int index = fallbackIndex;
+          if (viewPager != null) {
+            index = viewPager.getCurrentItem();
+          }
+          if (index < 0) {
+            index = 0;
+          }
+          if (index >= shortsItems.size()) {
+            index = shortsItems.size() - 1;
+          }
+
+          logDebug(
+              "Deferred initial overlay render. index="
+                  + index
+                  + ", tagsWidth="
+                  + tagsContainer.getWidth()
+                  + ", tagsHeight="
+                  + tagsContainer.getHeight());
+          renderOverlay(shortsItems.get(index), index);
+        });
+  }
+
+  private void renderOverlayAtSafeIndex(int index) {
+    if (shortsItems.isEmpty()) return;
+
+    int safeIndex = index;
+    if (safeIndex < 0) {
+      safeIndex = 0;
+    }
+    if (safeIndex >= shortsItems.size()) {
+      safeIndex = shortsItems.size() - 1;
+    }
+    renderOverlay(shortsItems.get(safeIndex), safeIndex);
+  }
+
+  private void renderTagChips(@NonNull List<String> rawTags) {
+    FlexboxLayout tagsContainer = layoutTags;
+    if (tagsContainer == null || tagsContainer.getParent() == null) return;
+
+    tagsContainer.removeAllViews();
+    List<String> displayTags = EnglishShortsTagFormatter.buildDisplayTags(rawTags, MAX_DISPLAY_TAG_COUNT);
+    if (displayTags.isEmpty()) {
+      tagsContainer.setVisibility(View.GONE);
+      return;
+    }
+
+    for (String tagText : displayTags) {
+      tagsContainer.addView(createTagChip(tagText));
+    }
+    tagsContainer.setVisibility(View.VISIBLE);
+  }
+
+  @NonNull
+  private TextView createTagChip(@NonNull String tagText) {
+    TextView chipView = new TextView(requireContext());
+    chipView.setText(tagText);
+    chipView.setBackgroundResource(R.drawable.bg_shorts_chip);
+    chipView.setTextColor(ContextCompat.getColor(requireContext(), R.color.shorts_chip_text));
+    chipView.setTextSize(11f);
+    chipView.setPadding(dp(10), dp(4), dp(10), dp(4));
+
+    FlexboxLayout.LayoutParams params =
+        new FlexboxLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    params.setMarginEnd(dp(6));
+    params.bottomMargin = dp(6);
+    chipView.setLayoutParams(params);
+    return chipView;
   }
 
   private void updateProgressIndicators(int currentIndex) {
@@ -805,7 +882,7 @@ public class EnglishShortsFragment extends Fragment {
     layoutBottomMeta = null;
     progressContainer = null;
     tvTitle = null;
-    tvTag = null;
+    layoutTags = null;
     tvLikeCount = null;
     tvDislikeLabel = null;
     btnLike = null;

@@ -20,14 +20,6 @@
         android:contentDescription="@string/english_shorts_thumbnail_desc"
         android:scaleType="centerCrop" />
 
-
-    <!-- 중앙 태그 배지 (하단 오버레이로 이동, 숨김 처리) -->
-    <TextView
-        android:id="@+id/tv_short_tag"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-
     <!-- 재생/일시정지 중앙 인디케이터 (YouTube Shorts 스타일) -->
     <ImageView
         android:id="@+id/iv_play_pause_indicator"
