@@ -38,7 +38,7 @@ public class SentenceFeedbackManager
 
   private static final String TAG = "SentenceFeedbackManager";
   private static final String BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
-  private static final String DEFAULT_MODEL_NAME = "gemini-3-flash-preview";
+  private static final String DEFAULT_MODEL_NAME = "gemini-3.1-flash-lite-preview";
   private static final int CACHE_TTL_SECONDS = 3600; // 1 hour
 
   private static final String PREF_NAME = "gemini_cache_prefs";

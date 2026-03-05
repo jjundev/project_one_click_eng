@@ -22,7 +22,7 @@ public class ExtraQuestionManager
         .IExtraQuestionManager {
   private static final String TAG = "ExtraQuestionManager";
   private static final String BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
-  private static final String DEFAULT_MODEL_NAME = "gemini-3-flash-preview";
+  private static final String DEFAULT_MODEL_NAME = "gemini-3.1-flash-lite-preview";
 
   private final String apiKey;
   private final String modelName;

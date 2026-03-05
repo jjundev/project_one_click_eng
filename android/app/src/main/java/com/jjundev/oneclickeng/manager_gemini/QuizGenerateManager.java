@@ -35,7 +35,7 @@ import okio.BufferedSource;
 public class QuizGenerateManager implements IQuizGenerationManager {
   private static final String TAG = "JOB_J-20260217-001";
   private static final String BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
-  private static final String DEFAULT_MODEL_NAME = "gemini-3-flash-preview";
+  private static final String DEFAULT_MODEL_NAME = "gemini-3.1-flash-lite-preview";
 
   private static final String PREF_NAME = "gemini_quiz_cache_prefs";
   private static final String KEY_CACHE_NAME = "gemini_quiz_cache_name";
